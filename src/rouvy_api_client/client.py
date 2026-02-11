@@ -1,0 +1,240 @@
+import logging
+import time
+from typing import Any
+
+import requests
+
+from .config import RouvyConfig
+from .errors import ApiResponseError, AuthenticationError
+
+LOGGER = logging.getLogger(__name__)
+BASE_URL = "https://riders.rouvy.com"
+
+
+class RouvyClient:
+    def __init__(self, config: RouvyConfig) -> None:
+        self._config = config
+        self._session = requests.Session()
+        self._authenticated = False
+
+    def login(self) -> None:
+        LOGGER.debug("Starting authentication process")
+        payload = {"email": self._config.email, "password": self._config.password}
+        response = self._session.post(
+            f"{BASE_URL}/login.data",
+            data=payload,
+            timeout=self._config.timeout_seconds,
+        )
+        if response.status_code >= 400:
+            LOGGER.error(
+                "Authentication failed",
+                extra={"status_code": response.status_code},
+            )
+            raise AuthenticationError(
+                f"Login failed with status {response.status_code}"
+            )
+
+        LOGGER.debug(
+            "Login request successful",
+            extra={"status_code": response.status_code},
+        )
+
+        # Set session cookie by loading _root.data
+        LOGGER.debug("Initializing session with _root.data")
+        root_response = self._session.get(
+            f"{BASE_URL}/_root.data",
+            timeout=self._config.timeout_seconds,
+        )
+        if root_response.status_code >= 400:
+            LOGGER.error(
+                "Failed to set session cookie",
+                extra={"status_code": root_response.status_code},
+            )
+            raise AuthenticationError(
+                f"Session initialization failed with status {root_response.status_code}"
+            )
+
+        LOGGER.debug(
+            "Session initialized successfully",
+            extra={"status_code": root_response.status_code},
+        )
+        LOGGER.info("Authentication successful")
+        self._authenticated = True
+
+    def request(self, method: str, path: str, **kwargs: Any) -> requests.Response:
+        LOGGER.debug(
+            "Initiating request",
+            extra={"method": method, "path": path},
+        )
+
+        if not self._authenticated:
+            self.login()
+
+        response = self._send_request(method, path, **kwargs)
+
+        # Handle 401 unauthorized
+        if response.status_code == 401:
+            self._authenticated = False
+            LOGGER.debug("Re-authenticating due to 401 response")
+            self.login()
+            response = self._send_request(method, path, **kwargs)
+
+        # Handle 202 incomplete authentication (session not fully initialized)
+        if response.status_code == 202 and self._is_redirect_response(response):
+            LOGGER.debug("Incomplete authentication detected, loading _root.data")
+            root_response = self._session.get(
+                f"{BASE_URL}/_root.data",
+                timeout=self._config.timeout_seconds,
+            )
+            if root_response.status_code >= 400:
+                LOGGER.error(
+                    "Failed to complete session initialization",
+                    extra={"status_code": root_response.status_code},
+                )
+                raise ApiResponseError(
+                    "Session initialization failed",
+                    root_response.status_code,
+                    _safe_payload(root_response),
+                )
+
+            # Retry the original request once
+            LOGGER.debug("Retrying request after session initialization")
+            response = self._send_request(method, path, **kwargs)
+            if response.status_code == 202 and self._is_redirect_response(response):
+                LOGGER.error(
+                    "Request failed after session initialization retry",
+                    extra={"method": method, "url": self._build_url(path)},
+                )
+                raise ApiResponseError(
+                    "Request failed in unknown authentication state",
+                    response.status_code,
+                    _safe_payload(response),
+                )
+
+        if response.status_code >= 400:
+            LOGGER.error(
+                "Request failed",
+                extra={
+                    "method": method,
+                    "url": self._build_url(path),
+                    "status_code": response.status_code,
+                },
+            )
+            raise ApiResponseError(
+                "Request failed",
+                response.status_code,
+                _safe_payload(response),
+            )
+
+        LOGGER.info(
+            "Request completed successfully",
+            extra={"method": method, "status_code": response.status_code},
+        )
+        return response
+
+    def get(self, path: str, **kwargs: Any) -> requests.Response:
+        return self.request("GET", path, **kwargs)
+
+    def post(self, path: str, **kwargs: Any) -> requests.Response:
+        return self.request("POST", path, **kwargs)
+
+    def get_user_settings(self) -> requests.Response:
+        LOGGER.debug("Fetching user settings")
+        return self.get(f"{BASE_URL}/user-settings.data")
+
+    def update_user_settings(self, updates: dict[str, Any]) -> requests.Response:
+        """Update user settings with the provided values.
+
+        Args:
+            updates: Dictionary of setting names to new values (e.g., {"weight": 86})
+
+        Returns:
+            Response from the update request
+
+        Note:
+            The API requires height, weight, units, and intent parameters.
+            Current values are fetched if not provided in updates.
+        """
+        from .parser import parse_response, extract_user_profile
+
+        LOGGER.debug("Updating user settings", extra={"updates": updates})
+
+        # Get current settings to fill in required fields
+        current_response = self.get_user_settings()
+        current_settings = extract_user_profile(current_response.text)
+
+        # Build the payload with current values as defaults
+        # Map from extracted profile keys to API parameter names
+        payload = {
+            "height": current_settings.get(
+                "height_cm", current_settings.get("height", 170)
+            ),
+            "weight": current_settings.get(
+                "weight_kg", current_settings.get("weight", 70)
+            ),
+            "units": current_settings.get("units", "METRIC"),
+            "intent": "update-units",  # Default intent for user settings updates
+        }
+
+        # Merge updates into payload
+        payload.update(updates)
+
+        LOGGER.info("Posting user settings update", extra={"payload": payload})
+
+        # POST to user-settings.data?index
+        response = self.post(
+            "user-settings.data?index",
+            data=payload,
+            headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+        )
+
+        LOGGER.info(
+            "User settings updated successfully",
+            extra={"status_code": response.status_code},
+        )
+
+        return response
+
+    def _send_request(self, method: str, path: str, **kwargs: Any) -> requests.Response:
+        if "timeout" not in kwargs:
+            kwargs["timeout"] = self._config.timeout_seconds
+
+        url = self._build_url(path)
+        start_time = time.perf_counter()
+        response = self._session.request(method, url, **kwargs)
+        duration_ms = (time.perf_counter() - start_time) * 1000
+
+        LOGGER.debug(
+            "HTTP request completed",
+            extra={
+                "method": method,
+                "url": url,
+                "status_code": response.status_code,
+                "duration_ms": round(duration_ms, 2),
+            },
+        )
+
+        return response
+
+    def _build_url(self, path: str) -> str:
+        if path.startswith("http://") or path.startswith("https://"):
+            return path
+
+        return f"{BASE_URL.rstrip('/')}/{path.lstrip('/')}"
+
+    def _is_redirect_response(self, response: requests.Response) -> bool:
+        """Check if response is a SingleFetchRedirect indicating incomplete auth."""
+        try:
+            data = response.json()
+            if isinstance(data, list) and len(data) > 0:
+                return data[0] == ["SingleFetchRedirect", 1]
+            return False
+        except (ValueError, TypeError, IndexError):
+            return False
+
+
+def _safe_payload(response: requests.Response) -> Any:
+    try:
+        return response.json()
+    except ValueError:
+        return response.text
