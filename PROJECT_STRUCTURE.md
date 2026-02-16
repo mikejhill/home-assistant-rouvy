@@ -12,6 +12,9 @@ rouvy-api/
 │   └── rouvy_api_client/       # Core API client library
 │       ├── __init__.py         # Module exports
 │       ├── __main__.py         # CLI entry point (python -m rouvy_api_client)
+│       ├── appdaemon/           # Optional AppDaemon integration
+│       │   ├── __init__.py       # Integration exports
+│       │   └── rouvy_app.py      # AppDaemon Hass app
 │       ├── client.py           # HTTP client with authentication
 │       ├── config.py           # Configuration dataclass
 │       ├── errors.py           # Custom exception classes

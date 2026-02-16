@@ -24,6 +24,67 @@ Or for production use (without test dependencies):
 pip install -e .
 ```
 
+### AppDaemon Integration (Optional)
+
+Install the AppDaemon extra when running as a Home Assistant AppDaemon app:
+
+```bash
+python -m pip install -e ".[appdaemon]"
+```
+
+Example `apps.yaml` entry:
+
+```yaml
+rouvy_api:
+  module: rouvy_api_client.appdaemon.rouvy_app
+  class: RouvyApp
+  sensor: sensor.dummy
+  endpoint: user-settings.data
+  target_sensor: sensor.rouvy_api_status
+  command_sensor: input_text.appdaemon_app_trigger
+  service_domain: rouvy_api
+  service_name: fetch
+  email: !secret rouvy_email
+  password: !secret rouvy_password
+```
+
+**Three ways to trigger API fetches:**
+
+1. **Pseudo-service via call_service (RECOMMENDED)** - Call from automations/scripts:
+
+   ```yaml
+   service: rouvy_api.fetch
+   data:
+     endpoint: user-settings/zones.data
+   ```
+
+   Note: This service won't appear in the HA UI service picker, but it works when called. You can wrap it in a script for better UI integration with type validation.
+
+2. **JSON Command Sensor** - Write JSON to text helper:
+
+   ```json
+   { "app_name": "rouvy_api", "endpoint": "user-settings.data" }
+   ```
+
+3. **Sensor State Change** - Traditional listener on configured sensor
+
+**Creating a HA script wrapper for type safety:**
+
+```yaml
+# scripts.yaml
+rouvy_fetch_data:
+  alias: "Rouvy: Fetch Data"
+  fields:
+    endpoint:
+      description: "API endpoint to fetch"
+      example: "user-settings/zones.data"
+      required: true
+  sequence:
+    - service: rouvy_api.fetch
+      data:
+        endpoint: "{{ endpoint }}"
+```
+
 This project uses a `src/` layout with the package located in `src/rouvy_api_client/`.
 
 ## Setup
