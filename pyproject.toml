@@ -13,7 +13,6 @@ dependencies = ["requests>=2.31.0", "python-dotenv>=1.0.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0.0", "responses>=0.25.0"]
-appdaemon = ["appdaemon>=4.4.0"]
 
 [project.scripts]
 rouvy-api = "rouvy_api_client.__main__:main"

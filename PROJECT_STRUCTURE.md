@@ -9,16 +9,21 @@ rouvy-api/
 ├── main.py                     # Convenience CLI wrapper (imports from package)
 │
 ├── src/                        # Source code directory (src layout)
-│   └── rouvy_api_client/       # Core API client library
+│   └── rouvy_api_client/       # Core API client library (pure Python, no HASS deps)
 │       ├── __init__.py         # Module exports
 │       ├── __main__.py         # CLI entry point (python -m rouvy_api_client)
-│       ├── appdaemon/           # Optional AppDaemon integration
-│       │   ├── __init__.py       # Integration exports
-│       │   └── rouvy_app.py      # AppDaemon Hass app
 │       ├── client.py           # HTTP client with authentication
 │       ├── config.py           # Configuration dataclass
 │       ├── errors.py           # Custom exception classes
 │       └── parser.py           # Turbo-stream decoder
+│
+├── integrations/               # Platform-specific integrations (separate from core)
+│   └── home-assistant/         # Home Assistant / AppDaemon integration
+│       ├── README.md           # HASS integration documentation
+│       ├── pyproject.toml      # HASS integration package config
+│       └── appdaemon/          # AppDaemon app module
+│           ├── __init__.py     # Integration exports
+│           └── rouvy_app.py    # AppDaemon Hass app
 │
 ├── scripts/                    # Utility and example scripts
 │   ├── demo_parser.py          # Parser demonstrations
@@ -34,18 +39,42 @@ rouvy-api/
 │       ├── sample_profile_overview_data.txt
 │       └── sample_resources_activities-pagination_data.txt
 │
-├── tests/                      # Unit tests
+├── tests/                      # Unit tests for core library
 │   ├── __init__.py
 │   └── test_client.py
 │
 ├── .github/                    # GitHub workflows and configuration
 ├── .env.example                # Example environment variables
-├── pyproject.toml              # Package configuration and dependencies
+├── pyproject.toml              # Core package configuration (no HASS dependencies)
 └── README.md                   # Project documentation
 
 ```
 
-**Note:** The project uses a modern `src/` layout with `pyproject.toml` for package management. The package can be installed in editable mode using `pip install -e .` or `pip install -e ".[dev]"` for development dependencies.
+**Note:** The project uses a modern `src/` layout with `pyproject.toml` for package management. The core API client library has zero Home Assistant dependencies. The package can be installed in editable mode using `pip install -e .` or `pip install -e ".[dev]"` for development dependencies.
+
+## Architecture: Clean Separation of Concerns
+
+This project follows industry best practices by cleanly separating the core API client from platform-specific integrations:
+
+### Core API Client (`src/rouvy_api_client/`)
+- **Pure Python library** with zero dependencies on Home Assistant, AppDaemon, or any platform-specific code
+- Can be used in any Python project, web service, data pipeline, or automation tool
+- Installable via `pip install -e .` or published to PyPI as `rouvy-api-client`
+- Dependencies: Only `requests` and `python-dotenv`
+
+### Home Assistant Integration (`integrations/home-assistant/`)
+- **Separate optional integration** that depends on the core library
+- Only needed for Home Assistant users
+- Has its own `pyproject.toml` with AppDaemon dependencies
+- Can be installed separately via `pip install -e integrations/home-assistant/`
+- Dependencies: `rouvy-api-client` + `appdaemon`
+
+This separation provides several benefits:
+1. **Clarity**: Clear boundary between API client and HASS integration
+2. **Reusability**: Core library can be used in non-HASS contexts
+3. **Maintainability**: Changes to HASS integration don't affect core library
+4. **Dependencies**: Core library stays lightweight with minimal dependencies
+5. **Testing**: Core library can be tested independently
 
 ## Core Library (src/rouvy_api_client/)
 
@@ -83,6 +112,29 @@ Reference and analysis materials:
 
 - **`TURBO_STREAM.md`** - Complete analysis of the turbo-stream format used by Rouvy
 - **`samples/`** - Real sample responses from various endpoints for offline analysis
+
+## Integrations (integrations/)
+
+Platform-specific integrations that depend on the core library:
+
+### Home Assistant / AppDaemon (integrations/home-assistant/)
+
+AppDaemon integration for Home Assistant users:
+
+- **`appdaemon/rouvy_app.py`** - AppDaemon app that listens for triggers and calls the API
+- **`README.md`** - Complete documentation for HASS integration setup and usage
+- **`pyproject.toml`** - Package configuration with AppDaemon dependencies
+
+**Installation:**
+```bash
+# Install core library first
+pip install -e .
+
+# Then install HASS integration
+pip install -e integrations/home-assistant/
+```
+
+See [integrations/home-assistant/README.md](integrations/home-assistant/README.md) for detailed setup and configuration instructions.
 
 ## Development
 
