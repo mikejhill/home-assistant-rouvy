@@ -8,19 +8,12 @@ version = "0.1.0"
 description = "A Python client for the Rouvy API with support for authentication, session management, and parsing of turbo-stream formatted responses"
 readme = "README.md"
 requires-python = ">=3.10"
-authors = [
-    { name = "Mike Hill" }
-]
-dependencies = [
-    "requests>=2.31.0",
-    "python-dotenv>=1.0.0",
-]
+authors = [{ name = "Mike Hill" }]
+dependencies = ["requests>=2.31.0", "python-dotenv>=1.0.0"]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=8.0.0",
-    "responses>=0.25.0",
-]
+dev = ["pytest>=8.0.0", "responses>=0.25.0"]
+appdaemon = ["appdaemon>=4.4.0"]
 
 [project.scripts]
 rouvy-api = "rouvy_api_client.__main__:main"
