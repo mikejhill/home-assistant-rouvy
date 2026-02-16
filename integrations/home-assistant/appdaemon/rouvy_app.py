@@ -30,12 +30,6 @@ class RouvyApp(hass.Hass):
     """Listen to a Home Assistant sensor and call the Rouvy API on changes."""
 
     def initialize(self) -> None:
-        # Testing
-        if True:
-            self.register_service("rouvy_api", "fetch", self._on_service_called)
-            a = self.get_entity("sensor.dummy")  # Ensure sensor exists for testing
-            a.call_service
-
         self._app_name = self.name  # AppDaemon app instance name
         self._sensor = str(self.args.get("sensor", DEFAULT_SENSOR))
         self._endpoint = str(self.args.get("endpoint", DEFAULT_ENDPOINT))
