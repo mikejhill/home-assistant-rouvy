@@ -195,6 +195,37 @@ class RouvyClient:
 
         return response
 
+    def get_user_profile(self) -> "UserProfile":
+        """Fetch and return a typed UserProfile model."""
+        from .parser import extract_user_profile_model
+
+        response = self.get_user_settings()
+        return extract_user_profile_model(response.text)
+
+    def get_training_zones(self) -> "TrainingZones":
+        """Fetch and return typed TrainingZones from the zones endpoint."""
+        from .parser import extract_training_zones_model
+
+        LOGGER.debug("Fetching training zones")
+        response = self.get(f"{BASE_URL}/user-settings/zones.data")
+        return extract_training_zones_model(response.text)
+
+    def get_connected_apps(self) -> list["ConnectedApp"]:
+        """Fetch and return a list of typed ConnectedApp models."""
+        from .parser import extract_connected_apps_model
+
+        LOGGER.debug("Fetching connected apps")
+        response = self.get(f"{BASE_URL}/user-settings/connected-apps.data")
+        return extract_connected_apps_model(response.text)
+
+    def get_activity_summary(self) -> "ActivitySummary":
+        """Fetch and return a typed ActivitySummary from the profile overview."""
+        from .parser import extract_activities_model
+
+        LOGGER.debug("Fetching activity summary")
+        response = self.get(f"{BASE_URL}/profile/overview.data")
+        return extract_activities_model(response.text)
+
     def _send_request(self, method: str, path: str, **kwargs: Any) -> requests.Response:
         if "timeout" not in kwargs:
             kwargs["timeout"] = self._config.timeout_seconds
