@@ -1,50 +1,45 @@
 # Rouvy API Client (Python)
 
-A pure Python client library for the Rouvy API with support for authentication, session management, and parsing of turbo-stream formatted responses.
+A pure Python client library for the Rouvy indoor cycling platform with a CLI tool and a native Home Assistant integration (HACS-compatible).
 
 ## Features
 
-- **Automatic Authentication**: Handles login and session initialization
-- **Session Management**: Automatically re-authenticates on 401 responses
-- **Incomplete Auth Handling**: Detects and resolves 202 redirect responses
-- **Turbo-Stream Parser**: Decodes Remix turbo-stream formatted responses
-- **Structured Logging**: Comprehensive debug and info-level logging with extra context
-- **Zero Platform Dependencies**: Pure Python library with no Home Assistant or platform-specific dependencies
+- **Typed Data Models**: Frozen dataclasses for user profiles, training zones, connected apps, and activities
+- **CLI with Subcommands**: `profile`, `zones`, `apps`, `activities`, `set`, and `raw` commands
+- **Automatic Authentication**: Session-based login with automatic re-auth on 401
+- **Turbo-Stream Parser**: Full decoder for the Remix turbo-stream response format
+- **Home Assistant Integration**: Native config-flow integration with sensors and write services
+- **HACS Compatible**: Installable directly from HACS as a custom repository
+- **Structured Logging**: Debug and info-level logging with extra context
 
 ## Installation
 
-For development, install the package in editable mode with dev dependencies:
-
 ```bash
+# Development (with test dependencies)
 pip install -e ".[dev]"
-```
 
-Or for production use (without test dependencies):
-
-```bash
+# Production
 pip install -e .
 ```
 
 ## Home Assistant Integration
 
-The Home Assistant / AppDaemon integration has been moved to a separate location to maintain clean separation between the core library and platform-specific integrations.
+A native Home Assistant custom integration is provided in `custom_components/rouvy/`. It is installable via [HACS](https://hacs.xyz/) as a custom repository.
 
-**For Home Assistant users**, see the [integrations/home-assistant/](integrations/home-assistant/) directory for:
-- Complete installation instructions
-- AppDaemon app configuration
-- Usage examples and documentation
+### Features
 
-Quick start for HASS integration:
+- **Config Flow**: Add via the HA UI with email/password credentials
+- **Sensors**: Weight, height, FTP, max heart rate, units, display name
+- **Services**: `rouvy.update_weight`, `rouvy.update_height`, `rouvy.update_settings`
+- **Polling**: Automatic hourly data refresh via DataUpdateCoordinator
 
-```bash
-# Install core library first
-pip install -e .
+### HACS Installation
 
-# Then install HASS integration
-pip install -e integrations/home-assistant/
-```
-
-See [integrations/home-assistant/README.md](integrations/home-assistant/README.md) for detailed setup instructions.
+1. In HACS, go to **Integrations** → **⋮** → **Custom repositories**
+2. Add this repository URL with category **Integration**
+3. Install the **Rouvy** integration
+4. Restart Home Assistant
+5. Go to **Settings** → **Devices & Services** → **Add Integration** → search for **Rouvy**
 
 ## Setup
 
@@ -75,73 +70,47 @@ Note: `base_url` and `auth_url` are hardcoded to `https://riders.rouvy.com` as t
 
 ### Command-Line Interface
 
-The CLI tool can be run in multiple ways:
-
 ```bash
-# Using the package module (recommended after installation)
-python -m rouvy_api_client
+# Using the package module (recommended)
+python -m rouvy_api_client <command>
 
 # Using the convenience wrapper
-python main.py
+python main.py <command>
 
-# Or if installed with pip, using the console script
-rouvy-api
+# Using the console script (after pip install)
+rouvy-api <command>
 ```
 
-The main CLI tool supports multiple endpoints:
+#### Subcommands
 
 ```bash
-# Default: fetch user profile
-python -m rouvy_api_client
+# View user profile
+rouvy-api profile
 
-# Fetch training zones
-python main.py --endpoint user-settings/zones.data
+# View training zones
+rouvy-api zones
 
-# Fetch profile overview (large response)
-python main.py --endpoint profile/overview.data
+# View connected apps
+rouvy-api apps
 
-# Show raw decoded structure
-python main.py --endpoint user-settings.data --raw
+# View recent activities
+rouvy-api activities
 
-# Enable debug logging
+# Update settings
+rouvy-api set weight=86 height=178
+
+# Raw decoded response from any endpoint
+rouvy-api raw user-settings/zones.data
+```
+
+#### Legacy Flags (backward compatible)
+
+```bash
+python main.py --endpoint user-settings.data
+python main.py --set weight=86
+python main.py --raw
 python main.py --debug
 ```
-
-Available options:
-
-- `--endpoint, -e` - API endpoint to call (default: user-settings.data)
-- `--raw` - Show raw decoded response instead of formatted output
-- `--debug` - Enable debug logging
-- `--log-level` - Set specific log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-- `--set KEY=VALUE` - Update user settings (can be used multiple times)
-
-### Updating User Settings
-
-You can update user profile settings using the `--set` flag:
-
-```bash
-# Update weight
-python main.py --set weight=86
-
-# Update multiple fields at once
-python main.py --set weight=86 --set height=178
-
-# Change units system
-python main.py --set units=IMPERIAL
-```
-
-**Supported fields:**
-
-- `weight` - Weight in kg (METRIC) or lbs (IMPERIAL)
-- `height` - Height in cm (METRIC) or inches (IMPERIAL)
-- `units` - Measurement system: `METRIC` or `IMPERIAL`
-
-The CLI automatically:
-
-1. Fetches your current settings
-2. Merges your updates with existing values
-3. POSTs the complete update to the API
-4. Displays the updated profile with changed fields highlighted
 
 ### Scripts
 
@@ -170,18 +139,26 @@ client = RouvyClient(
     )
 )
 
-# Fetch data
+# Typed model access
+profile = client.get_user_profile()
+print(f"{profile.first_name} {profile.last_name}: {profile.weight_kg} kg")
+
+zones = client.get_training_zones()
+print(f"FTP: {zones.ftp_watts}W, Max HR: {zones.max_heart_rate} bpm")
+
+apps = client.get_connected_apps()
+for app in apps:
+    print(f"{app.name}: {'connected' if app.connected else 'not connected'}")
+
+summary = client.get_activity_summary()
+print(f"{summary.total_count} activities, {summary.total_distance_km:.1f} km total")
+
+# Update settings
+client.update_user_settings({"weight": 86, "height": 178})
+
+# Low-level access
 response = client.get("user-settings.data")
-print(response.text)
-
-# Update user settings
-client.update_user_settings({
-    "weight": 86,
-    "height": 178
-})
-
-# Get updated settings
-updated = client.get_user_settings()
+decoded = parse_response(response.text)
 ```
 
 ## Turbo-Stream Response Format
