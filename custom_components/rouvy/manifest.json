@@ -1,0 +1,13 @@
+{
+  "domain": "rouvy",
+  "name": "Rouvy",
+  "codeowners": ["@mikejhill"],
+  "config_flow": true,
+  "documentation": "https://github.com/mikejhill/rouvy-api",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/mikejhill/rouvy-api/issues",
+  "requirements": ["rouvy-api-client==0.1.0"],
+  "single_config_entry": true,
+  "version": "0.1.0"
+}
