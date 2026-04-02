@@ -6,8 +6,6 @@ This document describes the organization of the Rouvy API Client project.
 
 ```
 rouvy-api/
-├── main.py                     # Convenience CLI wrapper (imports from package)
-│
 ├── src/                        # Source code directory (src layout)
 │   └── rouvy_api_client/       # Core API client library (pure Python, no HA deps)
 │       ├── __init__.py         # Module exports
@@ -34,25 +32,24 @@ rouvy-api/
 │       └── translations/
 │           └── en.json         # English translations
 │
-├── integrations/               # Legacy platform-specific integrations
-│   └── home-assistant/         # AppDaemon integration (superseded by custom_components)
-│
 ├── scripts/                    # Utility and example scripts
 │   ├── demo_parser.py          # Parser demonstrations
 │   ├── debug_parser.py         # Debug utilities
 │   └── test_endpoints.py       # Endpoint discovery tool
 │
 ├── docs/                       # Documentation and reference materials
-│   ├── TURBO_STREAM.md         # Turbo-stream format analysis
+│   ├── architecture/           # Architecture and design documentation
+│   │   ├── project-structure.md  # This file
+│   │   └── turbo-stream.md     # Turbo-stream format analysis
+│   ├── examples/               # Usage examples
 │   └── samples/                # Sample API responses for reference
 │
-├── tests/                      # Unit tests
-│   ├── __init__.py
-│   ├── test_client.py          # Client auth/session tests
-│   └── test_models.py          # Typed model extraction tests
+├── tests/                      # Unit and integration tests
 │
+├── .python-version             # Python version for uv toolchain
 ├── hacs.json                   # HACS repository configuration
-├── pyproject.toml              # Core package configuration
+├── pyproject.toml              # Package configuration (hatchling build)
+├── uv.lock                     # Dependency lock file
 └── README.md                   # Project documentation
 ```
 
@@ -66,7 +63,7 @@ The project follows a monorepo layout with a shared core library used by both th
 - Sync HTTP client using `requests` for CLI usage
 - Typed frozen dataclass models for all API response types
 - Full turbo-stream decoder with indexed reference resolution
-- Installable via `pip install -e .` or published to PyPI as `rouvy-api-client`
+- Installable via `uv sync` or published to PyPI as `rouvy-api-client`
 - Dependencies: `requests`, `python-dotenv`
 
 ### Home Assistant Integration (`custom_components/rouvy/`)
@@ -87,8 +84,8 @@ The project follows a monorepo layout with a shared core library used by both th
 
 ```bash
 # Run all tests
-python -m pytest tests/ -v
+uv run pytest -v
 
-# Run just model tests
-python -m pytest tests/test_models.py -v
+# Run with coverage
+uv run pytest --cov=rouvy_api_client -v
 ```

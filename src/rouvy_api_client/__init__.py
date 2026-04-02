@@ -1,3 +1,7 @@
+"""Rouvy API client library for authentication, session management, and data parsing."""
+
+from __future__ import annotations
+
 from .client import RouvyClient
 from .config import RouvyConfig
 from .errors import ApiResponseError, AuthenticationError, RouvyApiError

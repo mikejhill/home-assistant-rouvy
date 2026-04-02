@@ -18,7 +18,6 @@ from rouvy_api_client.__main__ import (
     load_credentials,
 )
 
-
 # ===================================================================
 # _coerce_value
 # ===================================================================
@@ -35,9 +34,7 @@ class TestCoerceValue:
 
     def test_negative_integer_string_becomes_int(self) -> None:
         result = _coerce_value("-5")
-        assert result == -5 and isinstance(result, int), (
-            f"Expected int -5, got {result!r}"
-        )
+        assert result == -5 and isinstance(result, int), f"Expected int -5, got {result!r}"
 
     def test_float_string_becomes_float(self) -> None:
         result = _coerce_value("3.14")
@@ -53,15 +50,11 @@ class TestCoerceValue:
 
     def test_zero_becomes_int(self) -> None:
         result = _coerce_value("0")
-        assert result == 0 and isinstance(result, int), (
-            f"Expected int 0, got {result!r}"
-        )
+        assert result == 0 and isinstance(result, int), f"Expected int 0, got {result!r}"
 
     def test_empty_string_stays_string(self) -> None:
         result = _coerce_value("")
-        assert result == "" and isinstance(result, str), (
-            f"Expected empty string, got {result!r}"
-        )
+        assert result == "" and isinstance(result, str), f"Expected empty string, got {result!r}"
 
 
 # ===================================================================
@@ -74,9 +67,7 @@ class TestParseSettings:
 
     def test_single_setting_parsed(self) -> None:
         result = _parse_settings(["weight=86"])
-        assert result == {"weight": 86}, (
-            f"Expected {{'weight': 86}}, got {result}"
-        )
+        assert result == {"weight": 86}, f"Expected {{'weight': 86}}, got {result}"
 
     def test_multiple_settings_parsed(self) -> None:
         result = _parse_settings(["weight=86", "height=178"])
@@ -86,9 +77,7 @@ class TestParseSettings:
 
     def test_string_value_parsed(self) -> None:
         result = _parse_settings(["units=IMPERIAL"])
-        assert result == {"units": "IMPERIAL"}, (
-            f"Expected {{'units': 'IMPERIAL'}}, got {result}"
-        )
+        assert result == {"units": "IMPERIAL"}, f"Expected {{'units': 'IMPERIAL'}}, got {result}"
 
     def test_value_with_equals_sign(self) -> None:
         result = _parse_settings(["formula=a=b+c"])
@@ -99,9 +88,7 @@ class TestParseSettings:
 
     def test_invalid_format_returns_none(self, capsys: pytest.CaptureFixture[str]) -> None:
         result = _parse_settings(["no_equals_here"])
-        assert result is None, (
-            f"Expected None for invalid format, got {result}"
-        )
+        assert result is None, f"Expected None for invalid format, got {result}"
         captured = capsys.readouterr()
         assert "Invalid format" in captured.out, (
             f"Expected error message in stdout, got: {captured.out}"
@@ -109,9 +96,7 @@ class TestParseSettings:
 
     def test_float_value_parsed(self) -> None:
         result = _parse_settings(["weight=85.5"])
-        assert result == {"weight": 85.5}, (
-            f"Expected {{'weight': 85.5}}, got {result}"
-        )
+        assert result == {"weight": 85.5}, f"Expected {{'weight': 85.5}}, got {result}"
 
 
 # ===================================================================
@@ -128,9 +113,7 @@ class TestFormatProfileField:
         )
 
     def test_known_field_email(self) -> None:
-        assert _format_profile_field("email") == "Email", (
-            "Expected 'Email' for email"
-        )
+        assert _format_profile_field("email") == "Email", "Expected 'Email' for email"
 
     def test_known_field_ftp(self) -> None:
         assert _format_profile_field("ftp_watts") == "FTP (watts)", (
@@ -139,9 +122,7 @@ class TestFormatProfileField:
 
     def test_unknown_field_uses_title_case(self) -> None:
         result = _format_profile_field("custom_field_name")
-        assert result == "Custom Field Name", (
-            f"Expected 'Custom Field Name' fallback, got {result}"
-        )
+        assert result == "Custom Field Name", f"Expected 'Custom Field Name' fallback, got {result}"
 
 
 # ===================================================================
@@ -153,14 +134,10 @@ class TestFormatTime:
     """Verify seconds-to-time string formatting."""
 
     def test_zero_seconds(self) -> None:
-        assert _format_time(0) == "0:00", (
-            f"Expected '0:00' for 0 seconds, got {_format_time(0)}"
-        )
+        assert _format_time(0) == "0:00", f"Expected '0:00' for 0 seconds, got {_format_time(0)}"
 
     def test_seconds_only(self) -> None:
-        assert _format_time(45) == "0:45", (
-            f"Expected '0:45' for 45 seconds, got {_format_time(45)}"
-        )
+        assert _format_time(45) == "0:45", f"Expected '0:45' for 45 seconds, got {_format_time(45)}"
 
     def test_minutes_and_seconds(self) -> None:
         assert _format_time(125) == "2:05", (
@@ -179,9 +156,7 @@ class TestFormatTime:
 
     def test_large_duration(self) -> None:
         result = _format_time(36000)  # 10 hours
-        assert result == "10:00:00", (
-            f"Expected '10:00:00' for 36000 seconds, got {result}"
-        )
+        assert result == "10:00:00", f"Expected '10:00:00' for 36000 seconds, got {result}"
 
 
 # ===================================================================
@@ -200,16 +175,19 @@ class TestLoadCredentials:
 
     @patch.dict(os.environ, {"ROUVY_EMAIL": "", "ROUVY_PASSWORD": "pass123"}, clear=False)
     def test_raises_when_email_empty(self) -> None:
-        # Clear ROUVY_EMAIL to ensure empty
-        with patch.dict(os.environ, {"ROUVY_EMAIL": ""}, clear=False):
-            with pytest.raises(ValueError, match="ROUVY_EMAIL"):
-                load_credentials()
+        with (
+            patch.dict(os.environ, {"ROUVY_EMAIL": ""}, clear=False),
+            pytest.raises(ValueError, match="ROUVY_EMAIL"),
+        ):
+            load_credentials()
 
     @patch.dict(os.environ, {"ROUVY_EMAIL": "a@b.com"}, clear=False)
     def test_raises_when_password_missing(self) -> None:
-        with patch.dict(os.environ, {"ROUVY_PASSWORD": ""}, clear=False):
-            with pytest.raises(ValueError, match="ROUVY_EMAIL"):
-                load_credentials()
+        with (
+            patch.dict(os.environ, {"ROUVY_PASSWORD": ""}, clear=False),
+            pytest.raises(ValueError, match="ROUVY_EMAIL"),
+        ):
+            load_credentials()
 
 
 # ===================================================================
@@ -226,10 +204,7 @@ class TestConfigureLogging:
         _configure_logging("WARNING")
 
     def test_invalid_level_falls_back_to_warning(self) -> None:
-        import logging
         _configure_logging("INVALID_LEVEL")
-        # getattr(logging, "INVALID_LEVEL", logging.WARNING) → WARNING
-        root = logging.getLogger()
         # Just verify no exception was raised
         assert True
 
@@ -244,55 +219,49 @@ class TestParseArgs:
 
     def test_profile_subcommand(self) -> None:
         from rouvy_api_client.__main__ import _parse_args
+
         with patch("sys.argv", ["rouvy-api", "profile"]):
             args = _parse_args()
-        assert args.subcommand == "profile", (
-            f"Expected subcommand 'profile', got {args.subcommand}"
-        )
+        assert args.subcommand == "profile", f"Expected subcommand 'profile', got {args.subcommand}"
 
     def test_zones_subcommand(self) -> None:
         from rouvy_api_client.__main__ import _parse_args
+
         with patch("sys.argv", ["rouvy-api", "zones"]):
             args = _parse_args()
-        assert args.subcommand == "zones", (
-            f"Expected subcommand 'zones', got {args.subcommand}"
-        )
+        assert args.subcommand == "zones", f"Expected subcommand 'zones', got {args.subcommand}"
 
     def test_set_subcommand_with_settings(self) -> None:
         from rouvy_api_client.__main__ import _parse_args
+
         with patch("sys.argv", ["rouvy-api", "set", "weight=86", "height=178"]):
             args = _parse_args()
-        assert args.subcommand == "set", (
-            f"Expected subcommand 'set', got {args.subcommand}"
-        )
+        assert args.subcommand == "set", f"Expected subcommand 'set', got {args.subcommand}"
         assert args.settings == ["weight=86", "height=178"], (
             f"Expected settings list, got {args.settings}"
         )
 
     def test_raw_subcommand_with_endpoint(self) -> None:
         from rouvy_api_client.__main__ import _parse_args
+
         with patch("sys.argv", ["rouvy-api", "raw", "user-settings.data"]):
             args = _parse_args()
-        assert args.subcommand == "raw", (
-            f"Expected subcommand 'raw', got {args.subcommand}"
-        )
+        assert args.subcommand == "raw", f"Expected subcommand 'raw', got {args.subcommand}"
         assert args.raw_endpoint == "user-settings.data", (
             f"Expected raw_endpoint, got {args.raw_endpoint}"
         )
 
     def test_legacy_endpoint_flag(self) -> None:
         from rouvy_api_client.__main__ import _parse_args
+
         with patch("sys.argv", ["rouvy-api", "--endpoint", "zones.data"]):
             args = _parse_args()
-        assert args.endpoint == "zones.data", (
-            f"Expected endpoint 'zones.data', got {args.endpoint}"
-        )
-        assert args.subcommand is None, (
-            f"Expected no subcommand, got {args.subcommand}"
-        )
+        assert args.endpoint == "zones.data", f"Expected endpoint 'zones.data', got {args.endpoint}"
+        assert args.subcommand is None, f"Expected no subcommand, got {args.subcommand}"
 
     def test_debug_flag(self) -> None:
         from rouvy_api_client.__main__ import _parse_args
+
         # --debug is a common flag on both main parser and subcommand parsers
         with patch("sys.argv", ["rouvy-api", "profile", "--debug"]):
             args = _parse_args()
@@ -300,11 +269,10 @@ class TestParseArgs:
 
     def test_default_no_subcommand(self) -> None:
         from rouvy_api_client.__main__ import _parse_args
+
         with patch("sys.argv", ["rouvy-api"]):
             args = _parse_args()
-        assert args.subcommand is None, (
-            f"Expected None subcommand, got {args.subcommand}"
-        )
+        assert args.subcommand is None, f"Expected None subcommand, got {args.subcommand}"
 
 
 # ===================================================================
@@ -313,22 +281,37 @@ class TestParseArgs:
 
 
 from unittest.mock import MagicMock
-from rouvy_api_client.models import (
-    UserProfile, TrainingZones, ConnectedApp, Activity, ActivitySummary,
-)
+
 from rouvy_api_client.__main__ import (
-    _cmd_profile, _cmd_zones, _cmd_apps, _cmd_activities,
-    _cmd_set, _cmd_raw, _ZONE_LABELS,
+    _cmd_activities,
+    _cmd_apps,
+    _cmd_profile,
+    _cmd_raw,
+    _cmd_set,
+    _cmd_zones,
+)
+from rouvy_api_client.models import (
+    Activity,
+    ActivitySummary,
+    ConnectedApp,
+    TrainingZones,
+    UserProfile,
 )
 
 
 def _mock_profile(**overrides) -> UserProfile:
     defaults = dict(
-        email="user@test.com", username="tester",
-        first_name="Test", last_name="User",
-        weight_kg=80.0, height_cm=175.0,
-        units="METRIC", ftp_watts=200, ftp_source="MANUAL",
-        max_heart_rate=185, gender="MALE",
+        email="user@test.com",
+        username="tester",
+        first_name="Test",
+        last_name="User",
+        weight_kg=80.0,
+        height_cm=175.0,
+        units="METRIC",
+        ftp_watts=200,
+        ftp_source="MANUAL",
+        max_heart_rate=185,
+        gender="MALE",
     )
     defaults.update(overrides)
     return UserProfile(**defaults)
@@ -336,7 +319,8 @@ def _mock_profile(**overrides) -> UserProfile:
 
 def _mock_zones(**overrides) -> TrainingZones:
     defaults = dict(
-        ftp_watts=200, max_heart_rate=185,
+        ftp_watts=200,
+        max_heart_rate=185,
         power_zone_values=[55, 75, 90, 105, 120, 150],
         power_zone_defaults=[55, 75, 90, 105, 120, 150],
         hr_zone_values=[60, 70, 80, 90, 95, 100],
@@ -354,18 +338,14 @@ class TestCmdProfile:
         client.get_user_profile.return_value = _mock_profile()
         _cmd_profile(client)
         output = capsys.readouterr().out
-        assert "USER PROFILE" in output, (
-            f"Expected 'USER PROFILE' in output, got: {output[:200]}"
-        )
+        assert "USER PROFILE" in output, f"Expected 'USER PROFILE' in output, got: {output[:200]}"
 
     def test_prints_weight(self, capsys: pytest.CaptureFixture[str]) -> None:
         client = MagicMock()
         client.get_user_profile.return_value = _mock_profile(weight_kg=85.5)
         _cmd_profile(client)
         output = capsys.readouterr().out
-        assert "85.5" in output, (
-            f"Expected weight 85.5 in output, got: {output[:200]}"
-        )
+        assert "85.5" in output, f"Expected weight 85.5 in output, got: {output[:200]}"
 
     def test_skips_none_fields(self, capsys: pytest.CaptureFixture[str]) -> None:
         client = MagicMock()
@@ -383,9 +363,7 @@ class TestCmdProfile:
         _cmd_profile(client)
         output = capsys.readouterr().out
         for expected in ["Email", "Username", "Weight (kg)", "Height (cm)", "FTP (watts)"]:
-            assert expected in output, (
-                f"Expected '{expected}' in profile output"
-            )
+            assert expected in output, f"Expected '{expected}' in profile output"
 
 
 class TestCmdZones:
@@ -396,16 +374,14 @@ class TestCmdZones:
         client.get_training_zones.return_value = _mock_zones()
         _cmd_zones(client)
         output = capsys.readouterr().out
-        assert "TRAINING ZONES" in output, (
-            f"Expected 'TRAINING ZONES' in output"
-        )
+        assert "TRAINING ZONES" in output, "Expected 'TRAINING ZONES' in output"
 
     def test_prints_ftp(self, capsys: pytest.CaptureFixture[str]) -> None:
         client = MagicMock()
         client.get_training_zones.return_value = _mock_zones(ftp_watts=250)
         _cmd_zones(client)
         output = capsys.readouterr().out
-        assert "250" in output, f"Expected FTP 250 in output"
+        assert "250" in output, "Expected FTP 250 in output"
 
     def test_prints_power_zone_labels(self, capsys: pytest.CaptureFixture[str]) -> None:
         client = MagicMock()
@@ -413,16 +389,17 @@ class TestCmdZones:
         _cmd_zones(client)
         output = capsys.readouterr().out
         for label in ["Recovery", "Endurance", "Tempo", "Threshold"]:
-            assert label in output, (
-                f"Expected zone label '{label}' in output"
-            )
+            assert label in output, f"Expected zone label '{label}' in output"
 
     def test_no_zones_when_values_empty(self, capsys: pytest.CaptureFixture[str]) -> None:
         client = MagicMock()
         client.get_training_zones.return_value = _mock_zones(
-            power_zone_values=None, power_zone_defaults=None,
-            hr_zone_values=None, hr_zone_defaults=None,
-            ftp_watts=0, max_heart_rate=0,
+            power_zone_values=None,
+            power_zone_defaults=None,
+            hr_zone_values=None,
+            hr_zone_defaults=None,
+            ftp_watts=0,
+            max_heart_rate=0,
         )
         _cmd_zones(client)
         output = capsys.readouterr().out
@@ -448,9 +425,7 @@ class TestCmdApps:
         client.get_connected_apps.return_value = apps
         _cmd_apps(client)
         output = capsys.readouterr().out
-        assert "2 app integrations" in output, (
-            f"Expected '2 app integrations' in output"
-        )
+        assert "2 app integrations" in output, "Expected '2 app integrations' in output"
 
     def test_connected_app_shows_checkmark(self, capsys: pytest.CaptureFixture[str]) -> None:
         apps = [ConnectedApp(name="Strava", provider_id="strava", status="connected")]
@@ -484,14 +459,16 @@ class TestCmdActivities:
         client.get_activity_summary.return_value = ActivitySummary(recent_activities=[])
         _cmd_activities(client)
         output = capsys.readouterr().out
-        assert "No recent activities" in output, (
-            "Expected 'No recent activities' message"
-        )
+        assert "No recent activities" in output, "Expected 'No recent activities' message"
 
     def test_activity_title_and_distance(self, capsys: pytest.CaptureFixture[str]) -> None:
         act = Activity(
-            activity_id="a1", title="Morning Ride", training_type="ROUTE",
-            distance_m=25000.0, moving_time_seconds=3600, elevation_m=300.0,
+            activity_id="a1",
+            title="Morning Ride",
+            training_type="ROUTE",
+            distance_m=25000.0,
+            moving_time_seconds=3600,
+            elevation_m=300.0,
             start_utc="2024-01-15",
         )
         client = MagicMock()
@@ -503,8 +480,12 @@ class TestCmdActivities:
 
     def test_long_title_truncated(self, capsys: pytest.CaptureFixture[str]) -> None:
         act = Activity(
-            activity_id="a1", title="A" * 35, training_type="",
-            distance_m=0, moving_time_seconds=0, elevation_m=0,
+            activity_id="a1",
+            title="A" * 35,
+            training_type="",
+            distance_m=0,
+            moving_time_seconds=0,
+            elevation_m=0,
         )
         client = MagicMock()
         client.get_activity_summary.return_value = ActivitySummary(recent_activities=[act])
@@ -525,9 +506,7 @@ class TestCmdSet:
 
         _cmd_set(client, ["weight=86"])
         output = capsys.readouterr().out
-        assert "updated successfully" in output.lower(), (
-            "Expected success message in output"
-        )
+        assert "updated successfully" in output.lower(), "Expected success message in output"
         assert "UPDATED" in output, "Expected UPDATED marker in output"
 
     def test_invalid_settings_format(self, capsys: pytest.CaptureFixture[str]) -> None:
@@ -585,10 +564,11 @@ class TestMain:
 
     @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
     @patch("rouvy_api_client.__main__.RouvyClient")
-    def test_main_default_calls_profile(self, mock_client_cls: MagicMock,
-                                         mock_creds: MagicMock,
-                                         capsys: pytest.CaptureFixture[str]) -> None:
+    def test_main_default_calls_profile(
+        self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         from rouvy_api_client.__main__ import main
+
         mock_client = mock_client_cls.return_value
         mock_client.get_user_profile.return_value = _mock_profile()
 
@@ -598,10 +578,11 @@ class TestMain:
 
     @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
     @patch("rouvy_api_client.__main__.RouvyClient")
-    def test_main_zones_subcommand(self, mock_client_cls: MagicMock,
-                                    mock_creds: MagicMock,
-                                    capsys: pytest.CaptureFixture[str]) -> None:
+    def test_main_zones_subcommand(
+        self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         from rouvy_api_client.__main__ import main
+
         mock_client = mock_client_cls.return_value
         mock_client.get_training_zones.return_value = _mock_zones()
 
@@ -611,10 +592,11 @@ class TestMain:
 
     @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
     @patch("rouvy_api_client.__main__.RouvyClient")
-    def test_main_apps_subcommand(self, mock_client_cls: MagicMock,
-                                   mock_creds: MagicMock,
-                                   capsys: pytest.CaptureFixture[str]) -> None:
+    def test_main_apps_subcommand(
+        self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         from rouvy_api_client.__main__ import main
+
         mock_client = mock_client_cls.return_value
         mock_client.get_connected_apps.return_value = []
 
@@ -624,10 +606,11 @@ class TestMain:
 
     @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
     @patch("rouvy_api_client.__main__.RouvyClient")
-    def test_main_activities_subcommand(self, mock_client_cls: MagicMock,
-                                         mock_creds: MagicMock,
-                                         capsys: pytest.CaptureFixture[str]) -> None:
+    def test_main_activities_subcommand(
+        self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         from rouvy_api_client.__main__ import main
+
         mock_client = mock_client_cls.return_value
         mock_client.get_activity_summary.return_value = ActivitySummary(recent_activities=[])
 
@@ -637,10 +620,11 @@ class TestMain:
 
     @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
     @patch("rouvy_api_client.__main__.RouvyClient")
-    def test_main_set_subcommand(self, mock_client_cls: MagicMock,
-                                  mock_creds: MagicMock,
-                                  capsys: pytest.CaptureFixture[str]) -> None:
+    def test_main_set_subcommand(
+        self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         from rouvy_api_client.__main__ import main
+
         mock_client = mock_client_cls.return_value
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -653,10 +637,11 @@ class TestMain:
 
     @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
     @patch("rouvy_api_client.__main__.RouvyClient")
-    def test_main_raw_subcommand(self, mock_client_cls: MagicMock,
-                                  mock_creds: MagicMock,
-                                  capsys: pytest.CaptureFixture[str]) -> None:
+    def test_main_raw_subcommand(
+        self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         from rouvy_api_client.__main__ import main
+
         mock_client = mock_client_cls.return_value
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -669,11 +654,12 @@ class TestMain:
 
     @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
     @patch("rouvy_api_client.__main__.RouvyClient")
-    def test_main_api_error_handled(self, mock_client_cls: MagicMock,
-                                     mock_creds: MagicMock,
-                                     capsys: pytest.CaptureFixture[str]) -> None:
+    def test_main_api_error_handled(
+        self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         from rouvy_api_client.__main__ import main
         from rouvy_api_client.errors import ApiResponseError
+
         mock_client = mock_client_cls.return_value
         mock_client.get_user_profile.side_effect = ApiResponseError(
             "Server error", status_code=500, payload="internal"
@@ -686,10 +672,11 @@ class TestMain:
 
     @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
     @patch("rouvy_api_client.__main__.RouvyClient")
-    def test_main_legacy_endpoint(self, mock_client_cls: MagicMock,
-                                   mock_creds: MagicMock,
-                                   capsys: pytest.CaptureFixture[str]) -> None:
+    def test_main_legacy_endpoint(
+        self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         from rouvy_api_client.__main__ import main
+
         mock_client = mock_client_cls.return_value
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -702,10 +689,11 @@ class TestMain:
 
     @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
     @patch("rouvy_api_client.__main__.RouvyClient")
-    def test_main_legacy_raw(self, mock_client_cls: MagicMock,
-                              mock_creds: MagicMock,
-                              capsys: pytest.CaptureFixture[str]) -> None:
+    def test_main_legacy_raw(
+        self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         from rouvy_api_client.__main__ import main
+
         mock_client = mock_client_cls.return_value
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -719,10 +707,11 @@ class TestMain:
 
     @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
     @patch("rouvy_api_client.__main__.RouvyClient")
-    def test_main_legacy_set(self, mock_client_cls: MagicMock,
-                              mock_creds: MagicMock,
-                              capsys: pytest.CaptureFixture[str]) -> None:
+    def test_main_legacy_set(
+        self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         from rouvy_api_client.__main__ import main
+
         mock_client = mock_client_cls.return_value
         mock_resp = MagicMock()
         mock_resp.status_code = 200

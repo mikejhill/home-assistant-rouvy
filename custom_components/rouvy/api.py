@@ -13,17 +13,17 @@ from typing import Any
 import aiohttp
 
 from rouvy_api_client.errors import AuthenticationError, RouvyApiError
-from rouvy_api_client.parser import (
-    extract_activities_model,
-    extract_connected_apps_model,
-    extract_training_zones_model,
-    extract_user_profile_model,
-)
 from rouvy_api_client.models import (
     ActivitySummary,
     ConnectedApp,
     TrainingZones,
     UserProfile,
+)
+from rouvy_api_client.parser import (
+    extract_activities_model,
+    extract_connected_apps_model,
+    extract_training_zones_model,
+    extract_user_profile_model,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -55,13 +55,9 @@ class RouvyAsyncApiClient:
             data=payload,
         ) as resp:
             if resp.status >= 400:
-                raise AuthenticationError(
-                    f"Login failed with status {resp.status}"
-                )
+                raise AuthenticationError(f"Login failed with status {resp.status}")
             # Capture cookies
-            self._cookies.update(
-                {k: v.value for k, v in resp.cookies.items()}
-            )
+            self._cookies.update({k: v.value for k, v in resp.cookies.items()})
 
         # Initialize session
         async with self._session.get(
@@ -72,9 +68,7 @@ class RouvyAsyncApiClient:
                 raise AuthenticationError(
                     f"Session initialization failed with status {resp.status}"
                 )
-            self._cookies.update(
-                {k: v.value for k, v in resp.cookies.items()}
-            )
+            self._cookies.update({k: v.value for k, v in resp.cookies.items()})
 
         self._authenticated = True
         LOGGER.info("Async authentication successful")
@@ -94,15 +88,11 @@ class RouvyAsyncApiClient:
                 kwargs["cookies"] = self._cookies
                 async with self._session.request(method, url, **kwargs) as retry:
                     if retry.status >= 400:
-                        raise RouvyApiError(
-                            f"Request failed with status {retry.status}"
-                        )
+                        raise RouvyApiError(f"Request failed with status {retry.status}")
                     return await retry.text()
 
             if resp.status >= 400:
-                raise RouvyApiError(
-                    f"Request failed with status {resp.status}"
-                )
+                raise RouvyApiError(f"Request failed with status {resp.status}")
             return await resp.text()
 
     async def async_get_user_profile(self) -> UserProfile:
@@ -149,9 +139,7 @@ class RouvyAsyncApiClient:
             "POST",
             "user-settings.data?index",
             data=payload,
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
-            },
+            headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
         )
         LOGGER.info("User settings updated")
 

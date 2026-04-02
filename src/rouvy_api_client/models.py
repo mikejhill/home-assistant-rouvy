@@ -9,8 +9,7 @@ both the sync CLI client and the async Home Assistant integration.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, datetime
-from typing import Optional
+from datetime import date
 
 
 @dataclass(frozen=True)
@@ -26,13 +25,13 @@ class UserProfile:
     units: str = "METRIC"
     ftp_watts: int = 0
     ftp_source: str = ""
-    max_heart_rate: Optional[int] = None
-    gender: Optional[str] = None
-    birth_date: Optional[date] = None
-    country: Optional[str] = None
-    timezone: Optional[str] = None
-    account_privacy: Optional[str] = None
-    user_id: Optional[str] = None
+    max_heart_rate: int | None = None
+    gender: str | None = None
+    birth_date: date | None = None
+    country: str | None = None
+    timezone: str | None = None
+    account_privacy: str | None = None
+    user_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -58,9 +57,9 @@ class ConnectedApp:
     provider_id: str = ""
     name: str = ""
     status: str = ""
-    upload_mode: Optional[str] = None
-    description: Optional[str] = None
-    logo_path: Optional[str] = None
+    upload_mode: str | None = None
+    description: str | None = None
+    logo_path: str | None = None
     permissions: list[str] = field(default_factory=list)
 
 
@@ -70,12 +69,12 @@ class Activity:
 
     activity_id: str = ""
     title: str = ""
-    start_utc: Optional[str] = None
+    start_utc: str | None = None
     training_type: str = ""
     distance_m: float = 0.0
     elevation_m: float = 0.0
     moving_time_seconds: int = 0
-    intensity_factor: Optional[float] = None
+    intensity_factor: float | None = None
 
 
 @dataclass(frozen=True)

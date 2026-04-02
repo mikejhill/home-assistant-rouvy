@@ -7,10 +7,9 @@ without requiring a live Home Assistant instance or network access.
 import json
 import sys
 from types import ModuleType
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
-import pytest_asyncio
 
 from rouvy_api_client.errors import AuthenticationError, RouvyApiError
 from rouvy_api_client.models import UserProfile
@@ -18,14 +17,19 @@ from rouvy_api_client.models import UserProfile
 # Mock homeassistant modules so custom_components.rouvy can be imported
 # without an actual HA installation.
 _HA_MODULES = [
-    "homeassistant", "homeassistant.const", "homeassistant.core",
-    "homeassistant.config_entries", "homeassistant.helpers",
+    "homeassistant",
+    "homeassistant.const",
+    "homeassistant.core",
+    "homeassistant.config_entries",
+    "homeassistant.helpers",
     "homeassistant.helpers.update_coordinator",
     "homeassistant.helpers.entity_platform",
     "homeassistant.helpers.device_registry",
     "homeassistant.helpers.aiohttp_client",
-    "homeassistant.components", "homeassistant.components.sensor",
-    "homeassistant.exceptions", "homeassistant.loader",
+    "homeassistant.components",
+    "homeassistant.components.sensor",
+    "homeassistant.exceptions",
+    "homeassistant.loader",
 ]
 for _mod in _HA_MODULES:
     if _mod not in sys.modules:
@@ -33,8 +37,14 @@ for _mod in _HA_MODULES:
 
 # homeassistant.const
 _m = sys.modules["homeassistant.const"]
-for attr in ("Platform", "UnitOfLength", "UnitOfMass", "UnitOfPower",
-             "CONF_EMAIL", "CONF_PASSWORD"):
+for attr in (
+    "Platform",
+    "UnitOfLength",
+    "UnitOfMass",
+    "UnitOfPower",
+    "CONF_EMAIL",
+    "CONF_PASSWORD",
+):
     setattr(_m, attr, MagicMock())
 # homeassistant.core
 _m = sys.modules["homeassistant.core"]
@@ -54,12 +64,12 @@ for attr in ("SensorDeviceClass", "SensorEntity", "SensorEntityDescription", "Se
     setattr(_m, attr, MagicMock())
 # homeassistant.helpers.update_coordinator
 _m = sys.modules["homeassistant.helpers.update_coordinator"]
-setattr(_m, "DataUpdateCoordinator", MagicMock())
-setattr(_m, "UpdateFailed", type("UpdateFailed", (Exception,), {}))
-setattr(_m, "CoordinatorEntity", MagicMock())
+_m.DataUpdateCoordinator = MagicMock()
+_m.UpdateFailed = type("UpdateFailed", (Exception,), {})
+_m.CoordinatorEntity = MagicMock()
 # homeassistant.helpers.entity_platform
 _m = sys.modules["homeassistant.helpers.entity_platform"]
-setattr(_m, "AddEntitiesCallback", MagicMock())
+_m.AddEntitiesCallback = MagicMock()
 # homeassistant.helpers.device_registry
 _m = sys.modules["homeassistant.helpers.device_registry"]
 for attr in ("DeviceEntryType", "DeviceInfo"):
@@ -139,9 +149,7 @@ class TestAsyncLogin:
         )
         client = RouvyAsyncApiClient("user@test.com", "pass", session)
         await client.async_login()
-        assert client._authenticated is True, (
-            "Expected _authenticated=True after successful login"
-        )
+        assert client._authenticated is True, "Expected _authenticated=True after successful login"
 
     @pytest.mark.asyncio
     async def test_successful_login_captures_cookies(self) -> None:
@@ -154,9 +162,7 @@ class TestAsyncLogin:
         assert "session" in client._cookies, (
             f"Expected 'session' cookie captured, got {client._cookies}"
         )
-        assert "csrf" in client._cookies, (
-            f"Expected 'csrf' cookie captured, got {client._cookies}"
-        )
+        assert "csrf" in client._cookies, f"Expected 'csrf' cookie captured, got {client._cookies}"
 
     @pytest.mark.asyncio
     async def test_login_failure_raises_auth_error(self) -> None:
@@ -196,12 +202,8 @@ class TestAsyncRequest:
         )
         client = RouvyAsyncApiClient("u@e.com", "pw", session)
         text = await client._request("GET", "user-settings.data")
-        assert "userProfile" in text, (
-            f"Expected turbo-stream response, got {text[:100]}"
-        )
-        assert client._authenticated is True, (
-            "Expected authenticated after auto-login"
-        )
+        assert "userProfile" in text, f"Expected turbo-stream response, got {text[:100]}"
+        assert client._authenticated is True, "Expected authenticated after auto-login"
 
     @pytest.mark.asyncio
     async def test_401_triggers_reauth_and_retry(self) -> None:
@@ -216,9 +218,7 @@ class TestAsyncRequest:
         )
         client = RouvyAsyncApiClient("u@e.com", "pw", session)
         text = await client._request("GET", "user-settings.data")
-        assert "userProfile" in text, (
-            "Expected successful response after re-auth"
-        )
+        assert "userProfile" in text, "Expected successful response after re-auth"
 
     @pytest.mark.asyncio
     async def test_non_401_error_raises(self) -> None:
@@ -248,74 +248,93 @@ class TestAsyncTypedAccessors:
 
     @pytest.mark.asyncio
     async def test_get_user_profile_returns_model(self) -> None:
-        turbo = json.dumps([
-            "email", "u@e.com",
-            "userProfile", {
-                "userName": "testuser", "userId": "1",
-                "firstName": "T", "lastName": "U",
-                "ftp": 200, "ftpSource": "MANUAL",
-                "weight": 80, "height": 175,
-                "gender": "MALE", "maxHeartRate": 185,
-                "countryIsoCode": "US", "timezone": "UTC",
-                "units": "METRIC", "accountPrivacy": "PUBLIC",
-            },
-        ])
+        turbo = json.dumps(
+            [
+                "email",
+                "u@e.com",
+                "userProfile",
+                {
+                    "userName": "testuser",
+                    "userId": "1",
+                    "firstName": "T",
+                    "lastName": "U",
+                    "ftp": 200,
+                    "ftpSource": "MANUAL",
+                    "weight": 80,
+                    "height": 175,
+                    "gender": "MALE",
+                    "maxHeartRate": 185,
+                    "countryIsoCode": "US",
+                    "timezone": "UTC",
+                    "units": "METRIC",
+                    "accountPrivacy": "PUBLIC",
+                },
+            ]
+        )
         session = _make_session(_FakeResponse(200, body=turbo))
         client = self._pre_auth_client(session)
         profile = await client.async_get_user_profile()
-        assert isinstance(profile, UserProfile), (
-            f"Expected UserProfile, got {type(profile)}"
-        )
-        assert profile.username == "testuser", (
-            f"Expected username testuser, got {profile.username}"
-        )
+        assert isinstance(profile, UserProfile), f"Expected UserProfile, got {type(profile)}"
+        assert profile.username == "testuser", f"Expected username testuser, got {profile.username}"
 
     @pytest.mark.asyncio
     async def test_get_training_zones_returns_model(self) -> None:
         from rouvy_api_client.models import TrainingZones
-        turbo = json.dumps([
-            "userProfile", {"ftp": 250, "maxHeartRate": 195},
-            "zones", {
-                "power": {"values": [55, 75], "defaultValues": [55, 75]},
-                "heartRate": {"values": [60, 65], "defaultValues": [60, 65]},
-            },
-        ])
+
+        turbo = json.dumps(
+            [
+                "userProfile",
+                {"ftp": 250, "maxHeartRate": 195},
+                "zones",
+                {
+                    "power": {"values": [55, 75], "defaultValues": [55, 75]},
+                    "heartRate": {"values": [60, 65], "defaultValues": [60, 65]},
+                },
+            ]
+        )
         session = _make_session(_FakeResponse(200, body=turbo))
         client = self._pre_auth_client(session)
         zones = await client.async_get_training_zones()
-        assert isinstance(zones, TrainingZones), (
-            f"Expected TrainingZones, got {type(zones)}"
-        )
-        assert zones.ftp_watts == 250, (
-            f"Expected ftp 250, got {zones.ftp_watts}"
-        )
+        assert isinstance(zones, TrainingZones), f"Expected TrainingZones, got {type(zones)}"
+        assert zones.ftp_watts == 250, f"Expected ftp 250, got {zones.ftp_watts}"
 
     @pytest.mark.asyncio
     async def test_get_connected_apps_returns_list(self) -> None:
         from rouvy_api_client.models import ConnectedApp
-        turbo = json.dumps([
-            "activeProviders", [
-                {"providerId": "strava", "name": "Strava", "status": "active"},
-            ],
-            "availableProviders", [],
-        ])
+
+        turbo = json.dumps(
+            [
+                "activeProviders",
+                [
+                    {"providerId": "strava", "name": "Strava", "status": "active"},
+                ],
+                "availableProviders",
+                [],
+            ]
+        )
         session = _make_session(_FakeResponse(200, body=turbo))
         client = self._pre_auth_client(session)
         apps = await client.async_get_connected_apps()
         assert len(apps) == 1, f"Expected 1 app, got {len(apps)}"
-        assert isinstance(apps[0], ConnectedApp), (
-            f"Expected ConnectedApp, got {type(apps[0])}"
-        )
+        assert isinstance(apps[0], ConnectedApp), f"Expected ConnectedApp, got {type(apps[0])}"
 
     @pytest.mark.asyncio
     async def test_get_activity_summary_returns_model(self) -> None:
         from rouvy_api_client.models import ActivitySummary
-        turbo = json.dumps([
-            "activities", [{
-                "id": "a1", "title": "Ride", "trainingType": "WORKOUT",
-                "total": {"distance": 10000, "movingTime": 1800, "elevationGain": 0},
-            }],
-        ])
+
+        turbo = json.dumps(
+            [
+                "activities",
+                [
+                    {
+                        "id": "a1",
+                        "title": "Ride",
+                        "trainingType": "WORKOUT",
+                        "total": {"distance": 10000, "movingTime": 1800, "elevationGain": 0},
+                    }
+                ],
+            ]
+        )
         session = _make_session(_FakeResponse(200, body=turbo))
         client = self._pre_auth_client(session)
         summary = await client.async_get_activity_summary()
@@ -362,13 +381,19 @@ class TestAsyncUpdateUserSettings:
 
     @pytest.mark.asyncio
     async def test_update_fetches_current_then_posts(self) -> None:
-        turbo = json.dumps([
-            "email", "u@e.com",
-            "userProfile", {
-                "userName": "t", "weight": 80, "height": 175,
-                "units": "METRIC",
-            },
-        ])
+        turbo = json.dumps(
+            [
+                "email",
+                "u@e.com",
+                "userProfile",
+                {
+                    "userName": "t",
+                    "weight": 80,
+                    "height": 175,
+                    "units": "METRIC",
+                },
+            ]
+        )
         session = _make_session(
             _FakeResponse(200, body=turbo),  # GET current
             _FakeResponse(200, body="ok"),  # POST update

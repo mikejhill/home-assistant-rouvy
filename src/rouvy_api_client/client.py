@@ -1,23 +1,38 @@
+"""HTTP client for the Rouvy API with authentication and typed accessors."""
+
+from __future__ import annotations
+
 import logging
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 
 from .config import RouvyConfig
 from .errors import ApiResponseError, AuthenticationError
 
+if TYPE_CHECKING:
+    from .models import ActivitySummary, ConnectedApp, TrainingZones, UserProfile
+
 LOGGER = logging.getLogger(__name__)
 BASE_URL = "https://riders.rouvy.com"
 
 
 class RouvyClient:
+    """Synchronous HTTP client for the Rouvy indoor cycling API.
+
+    Handles session-based authentication, automatic re-auth on 401,
+    and provides typed accessor methods for profile, zones, apps, and
+    activity data.
+    """
+
     def __init__(self, config: RouvyConfig) -> None:
         self._config = config
         self._session = requests.Session()
         self._authenticated = False
 
     def login(self) -> None:
+        """Authenticate with Rouvy and establish a session."""
         LOGGER.debug("Starting authentication process")
         payload = {"email": self._config.email, "password": self._config.password}
         response = self._session.post(
@@ -30,9 +45,7 @@ class RouvyClient:
                 "Authentication failed",
                 extra={"status_code": response.status_code},
             )
-            raise AuthenticationError(
-                f"Login failed with status {response.status_code}"
-            )
+            raise AuthenticationError(f"Login failed with status {response.status_code}")
 
         LOGGER.debug(
             "Login request successful",
@@ -62,6 +75,20 @@ class RouvyClient:
         self._authenticated = True
 
     def request(self, method: str, path: str, **kwargs: Any) -> requests.Response:
+        """Send an HTTP request to the Rouvy API with automatic re-auth.
+
+        Args:
+            method: HTTP method (GET, POST, etc.).
+            path: API endpoint path or full URL.
+            **kwargs: Additional arguments passed to ``requests.Session.request``.
+
+        Returns:
+            Response from the Rouvy API.
+
+        Raises:
+            AuthenticationError: If authentication fails.
+            ApiResponseError: If the API returns an error status.
+        """
         LOGGER.debug(
             "Initiating request",
             extra={"method": method, "path": path},
@@ -133,12 +160,15 @@ class RouvyClient:
         return response
 
     def get(self, path: str, **kwargs: Any) -> requests.Response:
+        """Send a GET request to the Rouvy API."""
         return self.request("GET", path, **kwargs)
 
     def post(self, path: str, **kwargs: Any) -> requests.Response:
+        """Send a POST request to the Rouvy API."""
         return self.request("POST", path, **kwargs)
 
     def get_user_settings(self) -> requests.Response:
+        """Fetch raw user settings response from the API."""
         LOGGER.debug("Fetching user settings")
         return self.get(f"{BASE_URL}/user-settings.data")
 
@@ -155,7 +185,7 @@ class RouvyClient:
             The API requires height, weight, units, and intent parameters.
             Current values are fetched if not provided in updates.
         """
-        from .parser import parse_response, extract_user_profile
+        from .parser import extract_user_profile
 
         LOGGER.debug("Updating user settings", extra={"updates": updates})
 
@@ -166,12 +196,8 @@ class RouvyClient:
         # Build the payload with current values as defaults
         # Map from extracted profile keys to API parameter names
         payload = {
-            "height": current_settings.get(
-                "height_cm", current_settings.get("height", 170)
-            ),
-            "weight": current_settings.get(
-                "weight_kg", current_settings.get("weight", 70)
-            ),
+            "height": current_settings.get("height_cm", current_settings.get("height", 170)),
+            "weight": current_settings.get("weight_kg", current_settings.get("weight", 70)),
             "units": current_settings.get("units", "METRIC"),
             "intent": "update-units",  # Default intent for user settings updates
         }
@@ -195,14 +221,14 @@ class RouvyClient:
 
         return response
 
-    def get_user_profile(self) -> "UserProfile":
+    def get_user_profile(self) -> UserProfile:
         """Fetch and return a typed UserProfile model."""
         from .parser import extract_user_profile_model
 
         response = self.get_user_settings()
         return extract_user_profile_model(response.text)
 
-    def get_training_zones(self) -> "TrainingZones":
+    def get_training_zones(self) -> TrainingZones:
         """Fetch and return typed TrainingZones from the zones endpoint."""
         from .parser import extract_training_zones_model
 
@@ -210,7 +236,7 @@ class RouvyClient:
         response = self.get(f"{BASE_URL}/user-settings/zones.data")
         return extract_training_zones_model(response.text)
 
-    def get_connected_apps(self) -> list["ConnectedApp"]:
+    def get_connected_apps(self) -> list[ConnectedApp]:
         """Fetch and return a list of typed ConnectedApp models."""
         from .parser import extract_connected_apps_model
 
@@ -218,7 +244,7 @@ class RouvyClient:
         response = self.get(f"{BASE_URL}/user-settings/connected-apps.data")
         return extract_connected_apps_model(response.text)
 
-    def get_activity_summary(self) -> "ActivitySummary":
+    def get_activity_summary(self) -> ActivitySummary:
         """Fetch and return a typed ActivitySummary from the profile overview."""
         from .parser import extract_activities_model
 
