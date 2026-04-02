@@ -15,11 +15,11 @@ A pure Python client library for the Rouvy indoor cycling platform with a CLI to
 ## Installation
 
 ```bash
-# Development (with test dependencies)
-pip install -e ".[dev]"
+# Development (install with dev dependencies)
+uv sync
 
-# Production
-pip install -e .
+# Production only
+uv sync --no-dev
 ```
 
 ## Home Assistant Integration
@@ -71,13 +71,13 @@ Note: `base_url` and `auth_url` are hardcoded to `https://riders.rouvy.com` as t
 ### Command-Line Interface
 
 ```bash
-# Using the package module (recommended)
+# Using uv (recommended)
+uv run rouvy-api <command>
+
+# Using the package module
 python -m rouvy_api_client <command>
 
-# Using the convenience wrapper
-python main.py <command>
-
-# Using the console script (after pip install)
+# Using the console script (after install)
 rouvy-api <command>
 ```
 
@@ -106,10 +106,10 @@ rouvy-api raw user-settings/zones.data
 #### Legacy Flags (backward compatible)
 
 ```bash
-python main.py --endpoint user-settings.data
-python main.py --set weight=86
-python main.py --raw
-python main.py --debug
+rouvy-api --endpoint user-settings.data
+rouvy-api --set weight=86
+rouvy-api --raw
+rouvy-api --debug
 ```
 
 ### Scripts
@@ -123,7 +123,7 @@ The `scripts/` directory contains additional utility and demo scripts:
 Run scripts with:
 
 ```bash
-python scripts/demo_parser.py
+uv run python scripts/demo_parser.py
 ```
 
 ### Programmatic Usage
@@ -213,7 +213,7 @@ See `scripts/demo_parser.py` for comprehensive examples of parsing different end
 
 Comprehensive documentation and reference materials are in the `docs/` directory:
 
-- [**docs/TURBO_STREAM.md**](docs/TURBO_STREAM.md) - Detailed explanation of the turbo-stream format discovery and implementation
+- [**docs/architecture/turbo-stream.md**](docs/architecture/turbo-stream.md) - Detailed explanation of the turbo-stream format discovery and implementation
 - [**docs/samples/**](docs/samples/) - Sample API responses for reference
 
 ## Logging
@@ -243,5 +243,5 @@ with a JSON formatter might look like:
 ## Testing
 
 ```bash
-python -m pytest -q
+uv run pytest -q
 ```

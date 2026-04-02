@@ -13,9 +13,7 @@ class TestRouvyConfig:
         assert config.email == "user@test.com", (
             f"Expected email 'user@test.com', got {config.email}"
         )
-        assert config.password == "secret", (
-            f"Expected password 'secret', got {config.password}"
-        )
+        assert config.password == "secret", f"Expected password 'secret', got {config.password}"
 
     def test_default_timeout(self) -> None:
         config = RouvyConfig(email="a@b.com", password="p")

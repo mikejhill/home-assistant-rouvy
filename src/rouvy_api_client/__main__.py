@@ -6,32 +6,28 @@ Supports both subcommands (profile, zones, apps, activities, set, raw)
 and legacy flags (--endpoint, --set, --raw) for backward compatibility.
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import logging
 import os
-import sys
-from typing import Any, Optional
+from typing import Any
 
 from dotenv import load_dotenv
 
 from rouvy_api_client import (
-    ApiResponseError,
-    RouvyClient,
-    RouvyConfig,
-    extract_user_profile,
-    extract_user_profile_model,
-    extract_training_zones_model,
-    extract_connected_apps_model,
-    extract_activities_model,
-    parse_response,
-    UserProfile,
-    TrainingZones,
-    ConnectedApp,
     Activity,
     ActivitySummary,
+    ApiResponseError,
+    ConnectedApp,
+    RouvyClient,
+    RouvyConfig,
+    TrainingZones,
+    UserProfile,
+    extract_user_profile,
+    parse_response,
 )
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -49,11 +45,12 @@ _ZONE_LABELS: list[str] = [
 # Credentials & logging helpers
 # ---------------------------------------------------------------------------
 
+
 def load_credentials() -> tuple[str, str]:
     """Load email and password from .env file."""
     load_dotenv()
-    email: Optional[str] = os.getenv("ROUVY_EMAIL")
-    password: Optional[str] = os.getenv("ROUVY_PASSWORD")
+    email: str | None = os.getenv("ROUVY_EMAIL")
+    password: str | None = os.getenv("ROUVY_PASSWORD")
 
     if not email or not password:
         raise ValueError("ROUVY_EMAIL and ROUVY_PASSWORD must be set in .env file")
@@ -71,6 +68,7 @@ def _configure_logging(log_level: str) -> None:
 # ---------------------------------------------------------------------------
 # Argument parsing
 # ---------------------------------------------------------------------------
+
 
 def _add_common_flags(parser: argparse.ArgumentParser) -> None:
     """Add --debug and --log-level flags shared by all subcommands."""
@@ -162,6 +160,7 @@ def _parse_args() -> argparse.Namespace:
 # Formatting helpers
 # ---------------------------------------------------------------------------
 
+
 def _coerce_value(value: str) -> int | float | str:
     """Try to convert a string value to int, then float, else keep as string."""
     try:
@@ -222,17 +221,29 @@ def _format_time(seconds: int) -> str:
 # Subcommand handlers
 # ---------------------------------------------------------------------------
 
+
 def _cmd_profile(client: RouvyClient) -> None:
     profile: UserProfile = client.get_user_profile()
     print("=" * 70)
     print("USER PROFILE")
     print("=" * 70)
     for field_name in [
-        "email", "username", "first_name", "last_name",
-        "weight_kg", "height_cm", "units",
-        "ftp_watts", "ftp_source", "max_heart_rate",
-        "gender", "birth_date", "country", "timezone",
-        "account_privacy", "user_id",
+        "email",
+        "username",
+        "first_name",
+        "last_name",
+        "weight_kg",
+        "height_cm",
+        "units",
+        "ftp_watts",
+        "ftp_source",
+        "max_heart_rate",
+        "gender",
+        "birth_date",
+        "country",
+        "timezone",
+        "account_privacy",
+        "user_id",
     ]:
         value = getattr(profile, field_name)
         if value is None:
@@ -329,19 +340,29 @@ def _cmd_set(client: RouvyClient, settings: list[str]) -> None:
         print("UPDATED USER PROFILE")
         print("=" * 70)
         for field_name in [
-            "email", "username", "first_name", "last_name",
-            "weight_kg", "height_cm", "units",
-            "ftp_watts", "ftp_source", "max_heart_rate",
-            "gender", "birth_date", "country", "timezone",
-            "account_privacy", "user_id",
+            "email",
+            "username",
+            "first_name",
+            "last_name",
+            "weight_kg",
+            "height_cm",
+            "units",
+            "ftp_watts",
+            "ftp_source",
+            "max_heart_rate",
+            "gender",
+            "birth_date",
+            "country",
+            "timezone",
+            "account_privacy",
+            "user_id",
         ]:
             value = getattr(profile, field_name)
             if value is None:
                 continue
             label = _format_profile_field(field_name)
             is_updated = any(
-                uk in field_name.lower() or field_name.lower() in uk.lower()
-                for uk in update_keys
+                uk in field_name.lower() or field_name.lower() in uk.lower() for uk in update_keys
             )
             marker = " ← UPDATED" if is_updated else ""
             print(f"{label:25s}: {value}{marker}")
@@ -366,6 +387,7 @@ def _cmd_raw(client: RouvyClient, endpoint: str) -> None:
 # ---------------------------------------------------------------------------
 # Legacy flag handler (backward compatibility)
 # ---------------------------------------------------------------------------
+
 
 def _legacy_main(client: RouvyClient, args: argparse.Namespace) -> None:
     """Handle invocations using the old --endpoint / --set / --raw flags."""
@@ -393,8 +415,7 @@ def _legacy_main(client: RouvyClient, args: argparse.Namespace) -> None:
             for key, value in sorted(user_info.items()):
                 formatted_key = key.replace("_", " ").title()
                 is_updated = any(
-                    uk in key.lower() or key.lower() in uk.lower()
-                    for uk in update_keys
+                    uk in key.lower() or key.lower() in uk.lower() for uk in update_keys
                 )
                 marker = " \u2190 UPDATED" if is_updated else ""
                 print(f"{formatted_key:25s}: {value}{marker}")
@@ -446,12 +467,11 @@ def _legacy_main(client: RouvyClient, args: argparse.Namespace) -> None:
                                         for idx, val in enumerate(values):
                                             if idx < len(_ZONE_LABELS):
                                                 print(
-                                                    f"  Zone {idx+1} ({_ZONE_LABELS[idx]:12s}): {val}% FTP"
+                                                    f"  Zone {idx + 1}"
+                                                    f" ({_ZONE_LABELS[idx]:12s}): {val}% FTP"
                                                 )
                                 if "defaultValues" in power:
-                                    print(
-                                        f"  Default values: {power['defaultValues']}"
-                                    )
+                                    print(f"  Default values: {power['defaultValues']}")
 
                         if "heartRate" in zones_data:
                             hr = zones_data["heartRate"]
@@ -480,11 +500,7 @@ def _legacy_main(client: RouvyClient, args: argparse.Namespace) -> None:
                             if isinstance(app, dict):
                                 name = app.get("name", "Unknown")
                                 connected = app.get("connected", False)
-                                status = (
-                                    "✓ Connected"
-                                    if connected
-                                    else "  Not connected"
-                                )
+                                status = "✓ Connected" if connected else "  Not connected"
                                 print(f"  {status:20s} - {name}")
                     break
 
@@ -510,6 +526,7 @@ def _legacy_main(client: RouvyClient, args: argparse.Namespace) -> None:
 # Entry point
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     args = _parse_args()
     log_level = "DEBUG" if args.debug else args.log_level
@@ -521,9 +538,8 @@ def main() -> None:
 
     try:
         # Determine whether we're using legacy flags or subcommands
-        using_legacy = (
-            args.subcommand is None
-            and (args.endpoint is not None or args.legacy_set is not None or args.raw)
+        using_legacy = args.subcommand is None and (
+            args.endpoint is not None or args.legacy_set is not None or args.raw
         )
 
         if using_legacy:

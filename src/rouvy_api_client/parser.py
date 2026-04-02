@@ -15,10 +15,15 @@ Format characteristics:
 - Multi-line responses: First line is main data, subsequent lines resolve promises
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .models import ActivitySummary, ConnectedApp, TrainingZones, UserProfile
 
 LOGGER = logging.getLogger(__name__)
 
@@ -30,7 +35,7 @@ NULL = None  # Represents JavaScript null
 class TurboStreamDecoder:
     """Decoder for turbo-stream formatted responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.index_map: dict[int, Any] = {}
         self.promise_values: dict[int, Any] = {}
 
@@ -98,17 +103,18 @@ class TurboStreamDecoder:
             elif value == -7:
                 return NULL
             # Only resolve as index if explicitly requested (for indexed object values)
-            elif resolve_int_as_index and value in self.index_map:
+            elif (
+                resolve_int_as_index
+                and value in self.index_map
+                and value not in getattr(self, "_resolving", set())
+            ):
                 # Avoid infinite recursion
-                if value not in getattr(self, "_resolving", set()):
-                    if not hasattr(self, "_resolving"):
-                        self._resolving = set()
-                    self._resolving.add(value)
-                    result = self._decode_value(
-                        self.index_map[value], resolve_int_as_index=False
-                    )
-                    self._resolving.discard(value)
-                    return result
+                if not hasattr(self, "_resolving"):
+                    self._resolving = set()
+                self._resolving.add(value)
+                result = self._decode_value(self.index_map[value], resolve_int_as_index=False)
+                self._resolving.discard(value)
+                return result
             return value
 
         # Handle arrays
@@ -135,9 +141,7 @@ class TurboStreamDecoder:
                         return f"<Promise:{promise_id}>"
 
             # Regular array - decode each element (don't resolve ints as indices)
-            return [
-                self._decode_value(item, resolve_int_as_index=False) for item in value
-            ]
+            return [self._decode_value(item, resolve_int_as_index=False) for item in value]
 
         # Handle objects with indexed references
         if isinstance(value, dict):
@@ -152,9 +156,7 @@ class TurboStreamDecoder:
                             actual_key = self.index_map[index]
                             if isinstance(actual_key, str):
                                 # VALUE of indexed keys should be resolved as index references
-                                decoded_val = self._decode_value(
-                                    val, resolve_int_as_index=True
-                                )
+                                decoded_val = self._decode_value(val, resolve_int_as_index=True)
                                 result[actual_key] = decoded_val
                             else:
                                 # Key itself needs decoding
@@ -162,22 +164,16 @@ class TurboStreamDecoder:
                                     actual_key, resolve_int_as_index=False
                                 )
                                 if isinstance(decoded_key, str):
-                                    decoded_val = self._decode_value(
-                                        val, resolve_int_as_index=True
-                                    )
+                                    decoded_val = self._decode_value(val, resolve_int_as_index=True)
                                     result[decoded_key] = decoded_val
                                 else:
                                     result[key] = self._decode_value(
                                         val, resolve_int_as_index=False
                                     )
                         else:
-                            result[key] = self._decode_value(
-                                val, resolve_int_as_index=False
-                            )
+                            result[key] = self._decode_value(val, resolve_int_as_index=False)
                     except ValueError:
-                        result[key] = self._decode_value(
-                            val, resolve_int_as_index=False
-                        )
+                        result[key] = self._decode_value(val, resolve_int_as_index=False)
                 else:
                     # Regular key - value is literal
                     result[key] = self._decode_value(val, resolve_int_as_index=False)
@@ -186,9 +182,7 @@ class TurboStreamDecoder:
         # Return other types as-is
         return value
 
-    def extract_data_section(
-        self, decoded: Any, path: str = "root.data"
-    ) -> dict[str, Any]:
+    def extract_data_section(self, decoded: Any, path: str = "root.data") -> dict[str, Any]:
         """
         Extract a specific data section from the decoded structure.
 
@@ -264,15 +258,9 @@ def extract_user_profile(response_text: str) -> dict[str, Any]:
                     user_data["username"] = profile_obj["userName"]
                 if "userId" in profile_obj:
                     user_data["user_id"] = profile_obj["userId"]
-                if (
-                    "firstName" in profile_obj
-                    and profile_obj["firstName"] is not UNDEFINED
-                ):
+                if "firstName" in profile_obj and profile_obj["firstName"] is not UNDEFINED:
                     user_data["first_name"] = profile_obj["firstName"]
-                if (
-                    "lastName" in profile_obj
-                    and profile_obj["lastName"] is not UNDEFINED
-                ):
+                if "lastName" in profile_obj and profile_obj["lastName"] is not UNDEFINED:
                     user_data["last_name"] = profile_obj["lastName"]
                 if "ftp" in profile_obj:
                     user_data["ftp_watts"] = profile_obj["ftp"]
@@ -310,6 +298,7 @@ def extract_user_profile(response_text: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Typed model extraction functions
 # ---------------------------------------------------------------------------
+
 
 def _resolve_index(value: Any, index_map: dict[int, Any], depth: int = 0) -> Any:
     """Resolve an integer index reference from the turbo-stream index map.
@@ -391,7 +380,7 @@ def _safe_str(value: Any) -> str:
     return ""
 
 
-def extract_user_profile_model(response_text: str) -> "UserProfile":
+def extract_user_profile_model(response_text: str) -> UserProfile:
     """Extract a typed UserProfile from a user-settings.data response."""
     from .models import UserProfile
 
@@ -401,6 +390,7 @@ def extract_user_profile_model(response_text: str) -> "UserProfile":
     if isinstance(birth_date_val, str):
         try:
             from datetime import date as date_cls
+
             birth_date = date_cls.fromisoformat(birth_date_val)
         except ValueError:
             pass
@@ -425,7 +415,7 @@ def extract_user_profile_model(response_text: str) -> "UserProfile":
     )
 
 
-def extract_training_zones_model(response_text: str) -> "TrainingZones":
+def extract_training_zones_model(response_text: str) -> TrainingZones:
     """Extract typed TrainingZones from a user-settings/zones.data response."""
     from .models import TrainingZones
 
@@ -455,15 +445,9 @@ def extract_training_zones_model(response_text: str) -> "TrainingZones":
             raw_vals = power.get("values")
             raw_defs = power.get("defaultValues")
             if isinstance(raw_vals, list):
-                power_values = [
-                    _safe_int(_resolve_index(v, decoder.index_map))
-                    for v in raw_vals
-                ]
+                power_values = [_safe_int(_resolve_index(v, decoder.index_map)) for v in raw_vals]
             if isinstance(raw_defs, list):
-                power_defaults = [
-                    _safe_int(_resolve_index(v, decoder.index_map))
-                    for v in raw_defs
-                ]
+                power_defaults = [_safe_int(_resolve_index(v, decoder.index_map)) for v in raw_defs]
 
         # Heart rate zones
         hr = zones_obj.get("heartRate")
@@ -471,15 +455,9 @@ def extract_training_zones_model(response_text: str) -> "TrainingZones":
             raw_vals = hr.get("values")
             raw_defs = hr.get("defaultValues")
             if isinstance(raw_vals, list):
-                hr_values = [
-                    _safe_int(_resolve_index(v, decoder.index_map))
-                    for v in raw_vals
-                ]
+                hr_values = [_safe_int(_resolve_index(v, decoder.index_map)) for v in raw_vals]
             if isinstance(raw_defs, list):
-                hr_defaults = [
-                    _safe_int(_resolve_index(v, decoder.index_map))
-                    for v in raw_defs
-                ]
+                hr_defaults = [_safe_int(_resolve_index(v, decoder.index_map)) for v in raw_defs]
 
     return TrainingZones(
         ftp_watts=ftp_watts,
@@ -491,7 +469,7 @@ def extract_training_zones_model(response_text: str) -> "TrainingZones":
     )
 
 
-def extract_connected_apps_model(response_text: str) -> list["ConnectedApp"]:
+def extract_connected_apps_model(response_text: str) -> list[ConnectedApp]:
     """Extract typed ConnectedApp list from a connected-apps.data response."""
     from .models import ConnectedApp
 
@@ -530,7 +508,7 @@ def extract_connected_apps_model(response_text: str) -> list["ConnectedApp"]:
     return apps
 
 
-def extract_activities_model(response_text: str) -> "ActivitySummary":
+def extract_activities_model(response_text: str) -> ActivitySummary:
     """Extract typed ActivitySummary from a profile/overview.data response."""
     from .models import Activity, ActivitySummary
 

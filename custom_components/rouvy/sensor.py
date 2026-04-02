@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -24,6 +24,9 @@ from rouvy_api_client.models import UserProfile
 
 from .data import RouvyConfigEntry
 from .entity import RouvyEntity
+
+if TYPE_CHECKING:
+    from .coordinator import RouvyDataUpdateCoordinator
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -75,9 +78,7 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
     RouvySensorDescription(
         key="name",
         translation_key="name",
-        value_fn=lambda p: (
-            f"{p.first_name} {p.last_name}".strip() or p.username or None
-        ),
+        value_fn=lambda p: f"{p.first_name} {p.last_name}".strip() or p.username or None,
     ),
 )
 
@@ -89,9 +90,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Rouvy sensors from a config entry."""
     coordinator = entry.runtime_data.coordinator
-    async_add_entities(
-        RouvySensor(coordinator, description) for description in SENSOR_DESCRIPTIONS
-    )
+    async_add_entities(RouvySensor(coordinator, description) for description in SENSOR_DESCRIPTIONS)
 
 
 class RouvySensor(RouvyEntity, SensorEntity):
@@ -101,14 +100,12 @@ class RouvySensor(RouvyEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator: "RouvyDataUpdateCoordinator",
+        coordinator: RouvyDataUpdateCoordinator,
         description: RouvySensorDescription,
     ) -> None:
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_unique_id = (
-            f"{coordinator.config_entry.entry_id}_{description.key}"
-        )
+        self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{description.key}"
 
     @property
     def native_value(self) -> Any:

@@ -49,9 +49,9 @@ def test_login_failure_raises_auth_error() -> None:
 
     try:
         client.login()
-        assert False, "Expected AuthenticationError"
+        raise AssertionError("Expected AuthenticationError")
     except AuthenticationError:
-        assert True
+        pass
 
 
 @responses.activate
@@ -172,7 +172,7 @@ def test_get_user_settings_helper_error() -> None:
 
     try:
         client.get_user_settings()
-        assert False, "Expected ApiResponseError"
+        raise AssertionError("Expected ApiResponseError")
     except ApiResponseError as exc:
         assert exc.status_code == 500
         assert exc.payload == {"error": "boom"}

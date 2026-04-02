@@ -16,9 +16,7 @@ class TestRouvyApiError:
 
     def test_message_accessible(self) -> None:
         err = RouvyApiError("something broke")
-        assert str(err) == "something broke", (
-            f"Expected message 'something broke', got '{err}'"
-        )
+        assert str(err) == "something broke", f"Expected message 'something broke', got '{err}'"
 
 
 class TestAuthenticationError:
@@ -36,9 +34,7 @@ class TestAuthenticationError:
 
     def test_message_accessible(self) -> None:
         err = AuthenticationError("auth failed")
-        assert str(err) == "auth failed", (
-            f"Expected message 'auth failed', got '{err}'"
-        )
+        assert str(err) == "auth failed", f"Expected message 'auth failed', got '{err}'"
 
 
 class TestApiResponseError:
@@ -46,22 +42,16 @@ class TestApiResponseError:
 
     def test_status_code_stored(self) -> None:
         err = ApiResponseError("error", status_code=404)
-        assert err.status_code == 404, (
-            f"Expected status_code 404, got {err.status_code}"
-        )
+        assert err.status_code == 404, f"Expected status_code 404, got {err.status_code}"
 
     def test_payload_stored(self) -> None:
         payload = {"detail": "not found"}
         err = ApiResponseError("error", status_code=404, payload=payload)
-        assert err.payload == {"detail": "not found"}, (
-            f"Expected payload dict, got {err.payload}"
-        )
+        assert err.payload == {"detail": "not found"}, f"Expected payload dict, got {err.payload}"
 
     def test_payload_defaults_to_none(self) -> None:
         err = ApiResponseError("error", status_code=500)
-        assert err.payload is None, (
-            f"Expected None default payload, got {err.payload}"
-        )
+        assert err.payload is None, f"Expected None default payload, got {err.payload}"
 
     def test_inherits_rouvy_api_error(self) -> None:
         err = ApiResponseError("error", status_code=500)
@@ -71,18 +61,12 @@ class TestApiResponseError:
 
     def test_message_accessible(self) -> None:
         err = ApiResponseError("request failed", status_code=500)
-        assert str(err) == "request failed", (
-            f"Expected message 'request failed', got '{err}'"
-        )
+        assert str(err) == "request failed", f"Expected message 'request failed', got '{err}'"
 
     def test_payload_with_string(self) -> None:
         err = ApiResponseError("error", status_code=502, payload="gateway error")
-        assert err.payload == "gateway error", (
-            f"Expected string payload, got {err.payload}"
-        )
+        assert err.payload == "gateway error", f"Expected string payload, got {err.payload}"
 
     def test_payload_with_list(self) -> None:
         err = ApiResponseError("error", status_code=400, payload=["field1", "field2"])
-        assert err.payload == ["field1", "field2"], (
-            f"Expected list payload, got {err.payload}"
-        )
+        assert err.payload == ["field1", "field2"], f"Expected list payload, got {err.payload}"

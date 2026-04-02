@@ -1,6 +1,5 @@
 """Tests for typed model extraction from sample API responses."""
 
-import os
 from pathlib import Path
 
 import pytest
@@ -27,9 +26,7 @@ def _has_samples() -> bool:
     return SAMPLES_DIR.is_dir() and any(SAMPLES_DIR.iterdir())
 
 
-needs_samples = pytest.mark.skipif(
-    not _has_samples(), reason="Sample data files not present"
-)
+needs_samples = pytest.mark.skipif(not _has_samples(), reason="Sample data files not present")
 
 
 # ---------------------------------------------------------------------------
@@ -40,7 +37,7 @@ needs_samples = pytest.mark.skipif(
 @needs_samples
 class TestUserProfile:
     def _load(self) -> str:
-        return (SAMPLES_DIR / "sample_user-settings_data.txt").read_text()
+        return (SAMPLES_DIR / "user-settings-data.txt").read_text()
 
     def test_returns_user_profile_model(self) -> None:
         profile = extract_user_profile_model(self._load())
@@ -92,7 +89,7 @@ class TestUserProfile:
 @needs_samples
 class TestTrainingZones:
     def _load(self) -> str:
-        return (SAMPLES_DIR / "sample_user-settings_zones_data.txt").read_text()
+        return (SAMPLES_DIR / "user-settings-zones-data.txt").read_text()
 
     def test_returns_training_zones_model(self) -> None:
         zones = extract_training_zones_model(self._load())
@@ -128,9 +125,7 @@ class TestTrainingZones:
 @needs_samples
 class TestConnectedApps:
     def _load(self) -> str:
-        return (
-            SAMPLES_DIR / "sample_user-settings_connected-apps_data.txt"
-        ).read_text()
+        return (SAMPLES_DIR / "user-settings-connected-apps-data.txt").read_text()
 
     def test_returns_list_of_connected_app(self) -> None:
         apps = extract_connected_apps_model(self._load())
@@ -170,7 +165,7 @@ class TestConnectedApps:
 @needs_samples
 class TestActivities:
     def _load(self) -> str:
-        return (SAMPLES_DIR / "sample_profile_overview_data.txt").read_text()
+        return (SAMPLES_DIR / "profile-overview-data.txt").read_text()
 
     def test_returns_activity_summary(self) -> None:
         summary = extract_activities_model(self._load())

@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from dotenv import load_dotenv
+
 from rouvy_api_client import RouvyClient, RouvyConfig
 
 logging.basicConfig(level=logging.WARNING)

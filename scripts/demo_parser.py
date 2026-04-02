@@ -13,11 +13,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from dotenv import load_dotenv
+
 from rouvy_api_client import (
     RouvyClient,
     RouvyConfig,
-    parse_response,
     extract_user_profile,
+    parse_response,
 )
 
 logging.basicConfig(level=logging.WARNING)
@@ -100,9 +101,7 @@ try:
                 print(f"\nFound {len(apps_data)} connected app entries")
                 for app in apps_data[:3]:  # Show first 3
                     if isinstance(app, dict):
-                        print(
-                            f"  - {app.get('name', 'Unknown')}: {app.get('connected', False)}"
-                        )
+                        print(f"  - {app.get('name', 'Unknown')}: {app.get('connected', False)}")
             break
 except Exception as e:
     print(f"Could not fetch connected apps: {e}")
@@ -130,7 +129,7 @@ try:
                     if isinstance(activity, dict):
                         name = activity.get("name", "Unknown")
                         distance = activity.get("distance", 0)
-                        print(f"  - {name}: {distance/1000:.1f} km")
+                        print(f"  - {name}: {distance / 1000:.1f} km")
             break
 except Exception as e:
     print(f"Could not fetch profile overview: {e}")
@@ -145,12 +144,12 @@ The TurboStreamDecoder handles these format features:
 1. Indexed References:
    - Objects use {"_N": value} where N is the array index of the key
    - Values can also be indices pointing to other array elements
-   
+
 2. Special Types:
    - Dates: ["D", timestamp_ms] → datetime object
    - Promises: ["P", id] → resolved from subsequent lines
    - Sentinels: -5 (undefined), -7 (null)
-   
+
 3. Multi-line Responses:
    - Line 1: Main JSON array with encoded data
    - Line 2+: Promise resolutions (e.g., "P132:[...]")
