@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      force-patch:
+        description: "Force a patch bump when no feat/fix commits exist"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine next version
+        id: version
+        uses: go-semantic-release/action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          allow-initial-development-versions: true
+          force-bump-patch-version: ${{ inputs.force-patch }}
+          dry: true
+
+      - name: Require version bump
+        if: steps.version.outputs.version == ''
+        run: |
+          echo "::error::No releasable commits found. Add feat:/fix: commits or use force-patch."
+          exit 1
+
+      # ── Validation ──────────────────────────────────────────
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --group dev
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy src --ignore-missing-imports
+      - run: uv run pytest
+
+      # ── CHANGELOG ───────────────────────────────────────────
+      - name: Validate CHANGELOG structure
+        run: |
+          grep -q "^## \[Unreleased\]" CHANGELOG.md || {
+            echo "::error::CHANGELOG.md missing [Unreleased] section"
+            exit 1
+          }
+
+      - name: Update CHANGELOG.md
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          sed -i "s/^## \[Unreleased\]$/## [Unreleased]\n\n## [$VERSION] - $DATE/" CHANGELOG.md
+          grep -q "## \[$VERSION\]" CHANGELOG.md || {
+            echo "::error::CHANGELOG.md update failed — version header not found after sed"
+            exit 1
+          }
+
+      # ── Version bump ────────────────────────────────────────
+      - name: Update pyproject.toml version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" pyproject.toml
+
+      # ── Build ───────────────────────────────────────────────
+      - run: uv build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 90
+
+      # ── Tag and Release ─────────────────────────────────────
+      - name: Commit release changes and push tag
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(release): v$VERSION"
+          git tag "v$VERSION"
+          git push origin HEAD "v$VERSION"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.version.outputs.version }}"
+          name: "v${{ steps.version.outputs.version }}"
+          generate_release_notes: true
+          files: |
+            dist/*
