@@ -1,0 +1,19 @@
+# markdownlint-cli2 configuration
+# https://github.com/DavidAnson/markdownlint-cli2
+
+config:
+  # Allow long lines (common in tables and URLs)
+  MD013: false
+  # Allow duplicate headings in different sections
+  MD024:
+    siblings_only: true
+  # Allow HTML in markdown (needed for some docs)
+  MD033: false
+  # Allow bare URLs
+  MD034: false
+
+ignores:
+  - "CHANGELOG.md"
+  - "docs/samples/**"
+  - ".venv/**"
+  - "node_modules/**"
