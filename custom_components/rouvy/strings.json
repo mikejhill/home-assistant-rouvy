@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Rouvy Account",
+        "description": "Enter your Rouvy account credentials.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid email or password.",
+      "cannot_connect": "Unable to connect to Rouvy. Please check your network.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This Rouvy account is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "weight": { "name": "Weight" },
+      "height": { "name": "Height" },
+      "ftp": { "name": "FTP" },
+      "max_heart_rate": { "name": "Max Heart Rate" },
+      "units": { "name": "Units" },
+      "name": { "name": "Name" }
+    }
+  }
+}
