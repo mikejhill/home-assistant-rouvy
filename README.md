@@ -1,5 +1,9 @@
 # Rouvy API Client (Python)
 
+[![CI](https://github.com/mikejhill/rouvy-api/actions/workflows/ci.yml/badge.svg)](https://github.com/mikejhill/rouvy-api/actions/workflows/ci.yml)
+[![Release](https://github.com/mikejhill/rouvy-api/actions/workflows/release.yml/badge.svg)](https://github.com/mikejhill/rouvy-api/actions/workflows/release.yml)
+[![License](https://img.shields.io/github/license/mikejhill/rouvy-api)](LICENSE)
+
 A pure Python client library for the Rouvy indoor cycling platform with a CLI tool and a native Home Assistant integration (HACS-compatible).
 
 ## Features
