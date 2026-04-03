@@ -1,0 +1,31 @@
+#!/bin/sh
+# Pre-commit hook: validates markdown files before committing.
+# Activate: git config core.hooksPath .githooks
+
+# Check if any staged files are markdown
+STAGED_MD=$(git diff --cached --name-only --diff-filter=ACMR -- '*.md')
+if [ -z "$STAGED_MD" ]; then
+  exit 0
+fi
+
+echo "[pre-commit] Markdown files staged — running markdownlint..."
+
+if command -v npx >/dev/null 2>&1; then
+  npx --yes markdownlint-cli2
+  STATUS=$?
+elif command -v markdownlint-cli2 >/dev/null 2>&1; then
+  markdownlint-cli2
+  STATUS=$?
+else
+  echo "[pre-commit] WARNING: markdownlint-cli2 not available (install Node.js or npm i -g markdownlint-cli2)"
+  exit 0
+fi
+
+if [ $STATUS -ne 0 ]; then
+  echo ""
+  echo "[pre-commit] Markdown lint failed. Fix violations before committing."
+  echo "[pre-commit] To bypass: git commit --no-verify"
+  exit 1
+fi
+
+exit 0
