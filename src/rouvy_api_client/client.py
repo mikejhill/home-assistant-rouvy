@@ -284,7 +284,7 @@ class RouvyClient:
         try:
             data = response.json()
             if isinstance(data, list) and len(data) > 0:
-                return data[0] == ["SingleFetchRedirect", 1]
+                return bool(data[0] == ["SingleFetchRedirect", 1])
             return False
         except (ValueError, TypeError, IndexError):
             return False

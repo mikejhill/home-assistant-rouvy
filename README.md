@@ -55,7 +55,7 @@ cp .env.example .env
 
 Then edit `.env` with your credentials:
 
-```
+```ini
 ROUVY_EMAIL=your-email@example.com
 ROUVY_PASSWORD=your-password
 ```
@@ -240,7 +240,7 @@ default to avoid leaking sensitive data.
 Structured log context is attached to log records via `extra`. Example output
 with a JSON formatter might look like:
 
-```
+```json
 {"level":"DEBUG","name":"rouvy_api_client.client","message":"HTTP request completed","method":"GET","url":"https://riders.rouvy.com/user-settings.data","status_code":200,"duration_ms":12.34}
 ```
 

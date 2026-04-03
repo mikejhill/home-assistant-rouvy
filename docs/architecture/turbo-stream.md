@@ -61,7 +61,7 @@ Successfully identified that Rouvy uses the **turbo-stream** format from the Rem
 
 4. **Multi-line Responses**:
 
-   ```
+   ```text
    Line 1: [{main json array}, ...rest of data]
    Line 2: P132:{"resolved":"data"}
    Line 3: P134:[1,2,3]
@@ -76,7 +76,7 @@ Successfully identified that Rouvy uses the **turbo-stream** format from the Rem
 
 ### Module Structure
 
-```
+```text
 rouvy_api_client/
   __init__.py         # Exports parser functions
   parser.py           # TurboStreamDecoder + utilities

@@ -39,7 +39,7 @@ class TurboStreamDecoder:
         self.index_map: dict[int, Any] = {}
         self.promise_values: dict[int, Any] = {}
 
-    def decode(self, response_text: str) -> dict[str, Any]:
+    def decode(self, response_text: str) -> dict[str, Any] | list[Any] | Any:
         """
         Decode a turbo-stream formatted response.
 
@@ -209,7 +209,7 @@ class TurboStreamDecoder:
         return current if isinstance(current, dict) else {}
 
 
-def parse_response(response_text: str) -> dict[str, Any]:
+def parse_response(response_text: str) -> dict[str, Any] | list[Any] | Any:
     """
     Parse a Rouvy API response in turbo-stream format.
 
@@ -238,7 +238,7 @@ def extract_user_profile(response_text: str) -> dict[str, Any]:
 
     # Find the userProfile object in the decoded array
     user_data = {}
-    array_data = decoded if isinstance(decoded, list) else []
+    array_data: list[Any] = decoded if isinstance(decoded, list) else []
 
     # First pass: find top-level email
     for i in range(len(array_data)):
@@ -421,7 +421,7 @@ def extract_training_zones_model(response_text: str) -> TrainingZones:
 
     decoder = TurboStreamDecoder()
     decoded = decoder.decode(response_text)
-    array_data = decoded if isinstance(decoded, list) else []
+    array_data: list[Any] = decoded if isinstance(decoded, list) else []
 
     ftp_watts = 0
     max_heart_rate = 0
@@ -475,7 +475,7 @@ def extract_connected_apps_model(response_text: str) -> list[ConnectedApp]:
 
     decoder = TurboStreamDecoder()
     decoded = decoder.decode(response_text)
-    array_data = decoded if isinstance(decoded, list) else []
+    array_data: list[Any] = decoded if isinstance(decoded, list) else []
     apps: list[ConnectedApp] = []
 
     for key in ("activeProviders", "availableProviders"):
@@ -514,7 +514,7 @@ def extract_activities_model(response_text: str) -> ActivitySummary:
 
     decoder = TurboStreamDecoder()
     decoded = decoder.decode(response_text)
-    array_data = decoded if isinstance(decoded, list) else []
+    array_data: list[Any] = decoded if isinstance(decoded, list) else []
     activities: list[Activity] = []
 
     raw_list = _find_key_value(array_data, "activities")

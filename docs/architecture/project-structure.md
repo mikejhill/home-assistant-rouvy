@@ -4,7 +4,7 @@ This document describes the organization of the Rouvy API Client project.
 
 ## Directory Layout
 
-```
+```text
 rouvy-api/
 ├── src/                        # Source code directory (src layout)
 │   └── rouvy_api_client/       # Core API client library (pure Python, no HA deps)
