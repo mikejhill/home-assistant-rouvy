@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync --group dev
       - run: uv run ruff check .
       - run: uv run ruff format --check .
@@ -54,7 +54,7 @@ jobs:
     name: "Test (${{ matrix.os }}, Python ${{ matrix.python-version }})"
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - run: uv python install ${{ matrix.python-version }}
       - run: uv sync --group dev --python ${{ matrix.python-version }}
 
@@ -82,7 +82,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - run: uv build
       - uses: actions/upload-artifact@v4
         with:
