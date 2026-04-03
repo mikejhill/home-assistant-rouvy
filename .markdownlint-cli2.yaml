@@ -1,6 +1,9 @@
 # markdownlint-cli2 configuration
 # https://github.com/DavidAnson/markdownlint-cli2
 
+globs:
+  - "**/*.md"
+
 config:
   # Allow long lines (common in tables and URLs)
   MD013: false
