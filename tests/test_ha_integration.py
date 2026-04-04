@@ -239,7 +239,7 @@ class TestSetupEntry:
         assert entry.state is ConfigEntryState.LOADED
 
     async def test_setup_entry_auth_failure(self, hass: HomeAssistant) -> None:
-        """Test that auth failure during first refresh sets up auth required."""
+        """Test that a single auth failure during first refresh retries (not permanent)."""
         entry = _mock_entry()
         entry.add_to_hass(hass)
 
@@ -252,7 +252,8 @@ class TestSetupEntry:
             await hass.config_entries.async_setup(entry.entry_id)
             await hass.async_block_till_done()
 
-        assert entry.state is ConfigEntryState.SETUP_ERROR
+        # Single auth failure triggers retry (not permanent auth error)
+        assert entry.state is ConfigEntryState.SETUP_RETRY
 
     async def test_setup_entry_api_failure(self, hass: HomeAssistant) -> None:
         """Test that API error during first refresh sets up retry."""

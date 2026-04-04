@@ -34,12 +34,36 @@ class RouvyDataUpdateCoordinator(DataUpdateCoordinator[UserProfile]):
             name="rouvy",
             update_interval=timedelta(hours=DEFAULT_SCAN_INTERVAL_HOURS),
         )
+        self._consecutive_auth_failures = 0
 
     async def _async_update_data(self) -> UserProfile:
-        """Fetch the latest user profile from the API."""
+        """Fetch the latest user profile from the API.
+
+        Session expiry is expected — the client handles re-auth automatically.
+        Only escalate to ConfigEntryAuthFailed after multiple consecutive auth
+        failures, which indicates the credentials themselves are invalid.
+        """
         try:
-            return await self.config_entry.runtime_data.client.async_get_user_profile()
+            result = await self.config_entry.runtime_data.client.async_get_user_profile()
+            self._consecutive_auth_failures = 0
+            LOGGER.debug("Coordinator update successful")
+            return result
         except AuthenticationError as err:
-            raise ConfigEntryAuthFailed(err) from err
+            self._consecutive_auth_failures += 1
+            LOGGER.warning(
+                "Authentication failed during update (attempt %d): %s",
+                self._consecutive_auth_failures,
+                err,
+            )
+            if self._consecutive_auth_failures >= 3:
+                raise ConfigEntryAuthFailed(
+                    f"Authentication failed {self._consecutive_auth_failures} consecutive "
+                    f"times — credentials may be invalid: {err}"
+                ) from err
+            raise UpdateFailed(
+                f"Authentication failed (attempt {self._consecutive_auth_failures}/3, "
+                f"will retry): {err}"
+            ) from err
         except RouvyApiError as err:
+            LOGGER.warning("API error during update: %s", err)
             raise UpdateFailed(err) from err

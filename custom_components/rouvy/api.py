@@ -8,6 +8,7 @@ sub-package.
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 import aiohttp
@@ -47,23 +48,31 @@ class RouvyAsyncApiClient:
 
     async def async_login(self) -> None:
         """Authenticate with Rouvy and establish a session."""
-        LOGGER.debug("Starting async authentication")
+        LOGGER.debug("Starting async authentication for %s", self._email)
+        self._cookies.clear()
         payload = {"email": self._email, "password": self._password}
 
         async with self._session.post(
             f"{BASE_URL}/login.data",
             data=payload,
         ) as resp:
+            LOGGER.debug(
+                "Login response: status=%s",
+                resp.status,
+            )
             if resp.status >= 400:
                 raise AuthenticationError(f"Login failed with status {resp.status}")
-            # Capture cookies
             self._cookies.update({k: v.value for k, v in resp.cookies.items()})
 
-        # Initialize session
+        # Initialize session via _root.data
         async with self._session.get(
             f"{BASE_URL}/_root.data",
             cookies=self._cookies,
         ) as resp:
+            LOGGER.debug(
+                "Session init (_root.data) response: status=%s",
+                resp.status,
+            )
             if resp.status >= 400:
                 raise AuthenticationError(
                     f"Session initialization failed with status {resp.status}"
@@ -71,29 +80,105 @@ class RouvyAsyncApiClient:
             self._cookies.update({k: v.value for k, v in resp.cookies.items()})
 
         self._authenticated = True
-        LOGGER.info("Async authentication successful")
+        LOGGER.info("Async authentication successful for %s", self._email)
 
     async def _request(self, method: str, path: str, **kwargs: Any) -> str:
-        """Make an authenticated request, returning the response body text."""
+        """Make an authenticated request, returning the response body text.
+
+        Handles 401 (session expired) and 202 redirect (incomplete auth)
+        by re-authenticating and retrying once.
+        """
         if not self._authenticated:
+            LOGGER.debug("Not authenticated, logging in before request")
             await self.async_login()
 
         url = f"{BASE_URL}/{path.lstrip('/')}"
         kwargs.setdefault("cookies", self._cookies)
 
+        start = time.monotonic()
         async with self._session.request(method, url, **kwargs) as resp:
+            elapsed_ms = (time.monotonic() - start) * 1000
+            LOGGER.debug(
+                "HTTP %s %s -> %s (%.0fms)",
+                method,
+                path,
+                resp.status,
+                elapsed_ms,
+            )
+
+            # 401 Unauthorized — session expired, re-auth and retry
             if resp.status == 401:
+                LOGGER.info("Got 401 on %s %s, re-authenticating", method, path)
                 self._authenticated = False
                 await self.async_login()
                 kwargs["cookies"] = self._cookies
-                async with self._session.request(method, url, **kwargs) as retry:
-                    if retry.status >= 400:
-                        raise RouvyApiError(f"Request failed with status {retry.status}")
-                    return await retry.text()
+                return await self._retry_request(method, url, path, **kwargs)
+
+            # 202 with redirect payload — incomplete auth state
+            if resp.status == 202:
+                body = await resp.text()
+                if self._is_redirect_body(body):
+                    LOGGER.info(
+                        "Got 202 redirect on %s %s, re-initializing session",
+                        method,
+                        path,
+                    )
+                    self._authenticated = False
+                    await self.async_login()
+                    kwargs["cookies"] = self._cookies
+                    return await self._retry_request(method, url, path, **kwargs)
 
             if resp.status >= 400:
-                raise RouvyApiError(f"Request failed with status {resp.status}")
+                body = await resp.text()
+                LOGGER.error(
+                    "Request failed: %s %s -> %s, body=%s",
+                    method,
+                    path,
+                    resp.status,
+                    body[:200],
+                )
+                raise RouvyApiError(f"Request {method} {path} failed with status {resp.status}")
+
             return await resp.text()
+
+    async def _retry_request(self, method: str, url: str, path: str, **kwargs: Any) -> str:
+        """Retry a request once after re-authentication."""
+        start = time.monotonic()
+        async with self._session.request(method, url, **kwargs) as retry:
+            elapsed_ms = (time.monotonic() - start) * 1000
+            LOGGER.debug(
+                "HTTP %s %s (retry) -> %s (%.0fms)",
+                method,
+                path,
+                retry.status,
+                elapsed_ms,
+            )
+            if retry.status >= 400:
+                body = await retry.text()
+                LOGGER.error(
+                    "Retry failed: %s %s -> %s, body=%s",
+                    method,
+                    path,
+                    retry.status,
+                    body[:200],
+                )
+                raise RouvyApiError(
+                    f"Request {method} {path} failed with status {retry.status} after re-auth"
+                )
+            return await retry.text()
+
+    @staticmethod
+    def _is_redirect_body(body: str) -> bool:
+        """Check if a response body is a SingleFetchRedirect (incomplete auth)."""
+        try:
+            import json
+
+            data = json.loads(body)
+            if isinstance(data, list) and len(data) > 0:
+                return bool(data[0] == ["SingleFetchRedirect", 1])
+        except ValueError, TypeError, IndexError:
+            pass
+        return False
 
     async def async_get_user_profile(self) -> UserProfile:
         """Fetch the user profile."""

@@ -161,6 +161,104 @@ class TestAsyncRequest:
         with pytest.raises(RouvyApiError, match="500"):
             await client._request("GET", "bad-endpoint")
 
+    @pytest.mark.asyncio
+    async def test_202_redirect_triggers_reauth_and_retry(self) -> None:
+        """Verify that a 202 response with SingleFetchRedirect body re-authenticates."""
+        redirect_body = json.dumps([["SingleFetchRedirect", 1]])
+        turbo = json.dumps(["email", "u@e.com", "userProfile", {"userName": "t"}])
+        session = _make_session(
+            _FakeResponse(200, cookies={"s": "v"}),  # initial login
+            _FakeResponse(200, cookies={}),  # initial root
+            _FakeResponse(202, body=redirect_body),  # request → 202 redirect
+            _FakeResponse(200, cookies={"s": "v2"}),  # re-login
+            _FakeResponse(200, cookies={}),  # re-root
+            _FakeResponse(200, body=turbo),  # retry succeeds
+        )
+        client = RouvyAsyncApiClient("u@e.com", "pw", session)
+        text = await client._request("GET", "user-settings.data")
+        assert "userProfile" in text, "Expected successful response after 202 redirect re-auth"
+
+    @pytest.mark.asyncio
+    async def test_202_non_redirect_body_raises_error(self) -> None:
+        """Verify that a 202 without redirect body returns normally."""
+        normal_body = json.dumps({"status": "accepted"})
+        session = _make_session(
+            _FakeResponse(200, cookies={"s": "v"}),  # login
+            _FakeResponse(200, cookies={}),  # root
+            _FakeResponse(202, body=normal_body),  # 202 but not a redirect
+        )
+        client = RouvyAsyncApiClient("u@e.com", "pw", session)
+        text = await client._request("GET", "some-endpoint")
+        assert "accepted" in text, "Expected 202 non-redirect body returned as-is"
+
+    @pytest.mark.asyncio
+    async def test_retry_failure_after_401_raises(self) -> None:
+        """Verify that if retry after re-auth also fails, an error is raised."""
+        session = _make_session(
+            _FakeResponse(200, cookies={"s": "v"}),  # initial login
+            _FakeResponse(200, cookies={}),  # initial root
+            _FakeResponse(401),  # first request → 401
+            _FakeResponse(200, cookies={"s": "v2"}),  # re-login
+            _FakeResponse(200, cookies={}),  # re-root
+            _FakeResponse(500, body="Server Error"),  # retry also fails
+        )
+        client = RouvyAsyncApiClient("u@e.com", "pw", session)
+        with pytest.raises(RouvyApiError, match="after re-auth"):
+            await client._request("GET", "user-settings.data")
+
+
+# ===================================================================
+# _is_redirect_body
+# ===================================================================
+
+
+class TestIsRedirectBody:
+    """Verify redirect body detection."""
+
+    def test_valid_redirect_body(self) -> None:
+        body = json.dumps([["SingleFetchRedirect", 1]])
+        assert RouvyAsyncApiClient._is_redirect_body(body) is True
+
+    def test_non_redirect_list(self) -> None:
+        body = json.dumps([["SomethingElse", 1]])
+        assert RouvyAsyncApiClient._is_redirect_body(body) is False
+
+    def test_empty_list(self) -> None:
+        assert RouvyAsyncApiClient._is_redirect_body("[]") is False
+
+    def test_non_json(self) -> None:
+        assert RouvyAsyncApiClient._is_redirect_body("<html>not json</html>") is False
+
+    def test_object_not_list(self) -> None:
+        assert RouvyAsyncApiClient._is_redirect_body('{"key": "value"}') is False
+
+
+# ===================================================================
+# Cookie clearing on re-login
+# ===================================================================
+
+
+class TestCookieClearing:
+    """Verify that cookies are cleared on re-login."""
+
+    @pytest.mark.asyncio
+    async def test_login_clears_stale_cookies(self) -> None:
+        """Verify that async_login clears cookies before establishing a new session."""
+        session = _make_session(
+            _FakeResponse(200, cookies={"session": "first"}),
+            _FakeResponse(200, cookies={"csrf": "first"}),
+            _FakeResponse(200, cookies={"session": "second"}),
+            _FakeResponse(200, cookies={"csrf": "second"}),
+        )
+        client = RouvyAsyncApiClient("u@e.com", "pw", session)
+        # First login
+        await client.async_login()
+        assert client._cookies["session"] == "first"
+        # Second login should clear and replace
+        await client.async_login()
+        assert client._cookies["session"] == "second"
+        assert client._cookies["csrf"] == "second"
+
 
 # ===================================================================
 # Typed accessor methods
