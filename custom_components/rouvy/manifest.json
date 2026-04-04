@@ -3,10 +3,10 @@
   "name": "Rouvy",
   "codeowners": ["@mikejhill"],
   "config_flow": true,
-  "documentation": "https://github.com/mikejhill/rouvy-api",
+  "documentation": "https://github.com/mikejhill/home-assistant-rouvy",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/mikejhill/rouvy-api/issues",
+  "issue_tracker": "https://github.com/mikejhill/home-assistant-rouvy/issues",
   "requirements": [],
   "single_config_entry": true,
   "version": "0.1.0"

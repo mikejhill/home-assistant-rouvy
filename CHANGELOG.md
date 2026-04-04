@@ -16,5 +16,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Native Home Assistant integration (HACS-compatible) with sensors and write services
 - Async `aiohttp` API client for Home Assistant
 - Comprehensive test suite (274 tests, 80%+ coverage)
-- CI workflow with ruff, mypy, pytest matrix, and markdown lint
+- CI workflow with ruff, ty, pytest matrix, and markdown lint
 - Release workflow with automated versioning and CHANGELOG promotion

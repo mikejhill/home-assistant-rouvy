@@ -17,14 +17,14 @@ The Rouvy integration provides:
 
 ### Prerequisites
 
-1. A running Home Assistant instance (2024.1 or later recommended)
+1. A running Home Assistant instance (2026.4 or later)
 2. [HACS installed](https://hacs.xyz/docs/use/) in your HA instance
 
 ### Steps
 
 1. Open Home Assistant and go to **HACS** in the sidebar
 2. Click the **⋮** menu (top right) → **Custom repositories**
-3. Enter the repository URL: `https://github.com/mikejhill/rouvy-api`
+3. Enter the repository URL: `https://github.com/mikejhill/home-assistant-rouvy`
 4. Select category: **Integration**
 5. Click **Add**
 6. The **Rouvy** integration now appears in HACS — click **Download**
@@ -56,18 +56,8 @@ For development or testing without HACS.
    cp -r custom_components/rouvy /path/to/homeassistant/config/custom_components/
    ```
 
-2. Install the core library dependency. The `manifest.json` lists `rouvy-api-client==0.1.0` as a requirement. Since this package is not yet on PyPI, install it manually in the HA Python environment:
-
-   ```bash
-   # Find the HA Python environment
-   # For HA OS / Supervised: use the HA terminal add-on
-   # For HA Core: activate the venv
-
-   pip install /path/to/rouvy-api  # or pip install -e /path/to/rouvy-api
-   ```
-
-3. Restart Home Assistant
-4. Add the integration via **Settings** → **Devices & Services** → **Add Integration** → **Rouvy**
+2. Restart Home Assistant
+3. Add the integration via **Settings** → **Devices & Services** → **Add Integration** → **Rouvy**
 
 ### Development with HA Core (Docker)
 
@@ -86,10 +76,7 @@ source venv/bin/activate
 pip install -e ".[dev]"
 
 # Symlink the Rouvy integration
-ln -s /path/to/rouvy-api/custom_components/rouvy config/custom_components/rouvy
-
-# Install the core library
-pip install -e /path/to/rouvy-api
+ln -s /path/to/home-assistant-rouvy/custom_components/rouvy config/custom_components/rouvy
 
 # Run HA
 hass -c config

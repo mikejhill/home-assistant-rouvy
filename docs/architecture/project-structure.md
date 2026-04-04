@@ -1,11 +1,11 @@
 # Project Structure
 
-This document describes the organization of the Rouvy API project.
+This document describes the organization of the Home Assistant Rouvy integration project.
 
 ## Directory Layout
 
 ```text
-rouvy-api/
+home-assistant-rouvy/
 ├── custom_components/          # Home Assistant integration (HACS-compatible)
 │   └── rouvy/
 │       ├── __init__.py         # Integration setup + service registration

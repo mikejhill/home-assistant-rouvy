@@ -1,14 +1,14 @@
-# Rouvy API Client (Python)
+# Home Assistant Rouvy Integration
 
-[![CI](https://github.com/mikejhill/rouvy-api/actions/workflows/ci.yml/badge.svg)](https://github.com/mikejhill/rouvy-api/actions/workflows/ci.yml)
-[![Release](https://github.com/mikejhill/rouvy-api/actions/workflows/release.yml/badge.svg)](https://github.com/mikejhill/rouvy-api/actions/workflows/release.yml)
+[![CI](https://github.com/mikejhill/home-assistant-rouvy/actions/workflows/ci.yml/badge.svg)](https://github.com/mikejhill/home-assistant-rouvy/actions/workflows/ci.yml)
+[![Release](https://github.com/mikejhill/home-assistant-rouvy/actions/workflows/release.yml/badge.svg)](https://github.com/mikejhill/home-assistant-rouvy/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **⚠️ Alpha** — This project is under active development. The API
-> client, CLI, and Home Assistant integration are functional but not yet
-> fully tested in production. Expect breaking changes.
+> **⚠️ Alpha** — This project is under active development. The Home
+> Assistant integration and CLI are functional but not yet fully tested
+> in production. Expect breaking changes.
 
-A pure Python client library for the Rouvy indoor cycling platform with a CLI tool and a native Home Assistant integration (HACS-compatible).
+A native [Home Assistant](https://www.home-assistant.io/) integration for the [Rouvy](https://rouvy.com/) indoor cycling platform, installable via [HACS](https://hacs.xyz/). Includes an embedded API client library and a standalone CLI tool.
 
 ## Features
 
@@ -17,6 +17,7 @@ A pure Python client library for the Rouvy indoor cycling platform with a CLI to
 - **Automatic Authentication**: Session-based login with automatic re-auth on 401
 - **Turbo-Stream Parser**: Full decoder for the Remix turbo-stream response format
 - **Home Assistant Integration**: Native config-flow integration with sensors and write services
+- **Reauth Support**: Automatic re-authentication flow when credentials expire
 - **HACS Compatible**: Installable directly from HACS as a custom repository
 - **Structured Logging**: Debug and info-level logging with extra context
 
