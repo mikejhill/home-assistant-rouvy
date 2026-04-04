@@ -30,7 +30,7 @@ async def async_setup_entry(
         session=async_get_clientsession(hass),
     )
 
-    coordinator = RouvyDataUpdateCoordinator(hass)
+    coordinator = RouvyDataUpdateCoordinator(hass, entry)
     entry.runtime_data = RouvyData(
         client=client,
         coordinator=coordinator,

@@ -8,6 +8,14 @@
           "email": "Email",
           "password": "Password"
         }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate Rouvy",
+        "description": "Your Rouvy credentials are no longer valid. Please re-enter them.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
       }
     },
     "error": {
@@ -16,7 +24,8 @@
       "unknown": "An unexpected error occurred."
     },
     "abort": {
-      "already_configured": "This Rouvy account is already configured."
+      "already_configured": "This Rouvy account is already configured.",
+      "reauth_successful": "Re-authentication successful."
     }
   },
   "entity": {

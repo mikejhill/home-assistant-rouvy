@@ -7,7 +7,7 @@ name = "rouvy-api"
 version = "0.1.0"
 description = "A Home Assistant integration and CLI for the Rouvy indoor cycling platform with turbo-stream API support"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14.2"
 authors = [{ name = "Mike Hill" }]
 dependencies = ["requests>=2.31.0", "python-dotenv>=1.0.0"]
 
@@ -24,6 +24,7 @@ dev = [
     "ruff>=0.7",
     "ty>=0.0.1",
     "types-requests>=2.31.0",
+    "pytest-homeassistant-custom-component>=0.13.320",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -31,7 +32,7 @@ packages = ["custom_components"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py314"
 src = ["custom_components", "tests"]
 
 [tool.ruff.lint]
@@ -58,13 +59,12 @@ known-first-party = ["custom_components"]
 "custom_components/rouvy/api_client/parser.py" = ["ANN401"]
 
 [tool.ty.environment]
-python-version = "3.12"
+python-version = "3.14"
 
 [tool.ty.src]
-# Only type-check the standalone API client; HA integration modules and tests
-# require homeassistant stubs which are not available in the dev environment.
-include = ["custom_components/rouvy/api_client/"]
+include = ["custom_components/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+addopts = ["-p", "tests.windows_compat"]

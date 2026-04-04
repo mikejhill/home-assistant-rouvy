@@ -122,7 +122,7 @@ class TurboStreamDecoder:
                 if value[0] == "D" and isinstance(value[1], (int, float)):
                     try:
                         return datetime.fromtimestamp(value[1] / 1000)
-                    except (ValueError, OSError):
+                    except ValueError, OSError:
                         LOGGER.warning(f"Invalid timestamp: {value[1]}")
                         return value
 
@@ -350,7 +350,7 @@ def _safe_int(value: Any) -> int:
         return int(value)
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 0
 
 
@@ -360,7 +360,7 @@ def _safe_float(value: Any) -> float:
         return float(value)
     try:
         return float(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 0.0
 
 

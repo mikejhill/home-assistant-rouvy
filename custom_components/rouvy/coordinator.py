@@ -26,10 +26,11 @@ class RouvyDataUpdateCoordinator(DataUpdateCoordinator[UserProfile]):
 
     config_entry: RouvyConfigEntry
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(self, hass: HomeAssistant, config_entry: RouvyConfigEntry) -> None:
         super().__init__(
             hass,
             LOGGER,
+            config_entry=config_entry,
             name="rouvy",
             update_interval=timedelta(hours=DEFAULT_SCAN_INTERVAL_HOURS),
         )

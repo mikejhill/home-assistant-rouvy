@@ -46,10 +46,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.14"]
         include:
           - os: ubuntu-latest
-            python-version: "3.13"
+            python-version: "3.14"
             coverage: true
     name: "Test (${{ matrix.os }}, Python ${{ matrix.python-version }})"
     steps:
@@ -61,7 +61,7 @@ jobs:
       - name: Run tests
         run: >-
           uv run pytest --junit-xml=test-results.xml
-          ${{ matrix.coverage && '--cov=custom_components/rouvy/api_client --cov=custom_components/rouvy/api.py --cov-report=xml --cov-fail-under=80' || '' }}
+          ${{ matrix.coverage && '--cov=custom_components --cov-report=xml --cov-fail-under=80' || '' }}
 
       - name: Publish test report
         if: always()

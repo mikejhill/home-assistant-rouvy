@@ -59,6 +59,52 @@ class RouvyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_reauth(
+        self,
+        _entry_data: dict[str, Any],
+    ) -> config_entries.ConfigFlowResult:
+        """Handle reauth when credentials become invalid."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self,
+        user_input: dict[str, Any] | None = None,
+    ) -> config_entries.ConfigFlowResult:
+        """Handle reauth confirmation with new credentials."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            try:
+                valid = await self._test_credentials(
+                    email=user_input[CONF_EMAIL],
+                    password=user_input[CONF_PASSWORD],
+                )
+                if not valid:
+                    errors["base"] = "invalid_auth"
+            except aiohttp.ClientError:
+                LOGGER.exception("Connection error during reauth")
+                errors["base"] = "cannot_connect"
+            except Exception:
+                LOGGER.exception("Unexpected error during reauth")
+                errors["base"] = "unknown"
+
+            if not errors:
+                return self.async_update_reload_and_abort(
+                    self._get_reauth_entry(),
+                    data_updates=user_input,
+                )
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_EMAIL): str,
+                    vol.Required(CONF_PASSWORD): str,
+                }
+            ),
+            errors=errors,
+        )
+
     async def _test_credentials(self, email: str, password: str) -> bool:
         """Validate credentials by attempting to log in."""
         session = async_create_clientsession(self.hass)

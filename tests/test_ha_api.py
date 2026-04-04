@@ -1,91 +1,19 @@
 """Tests for the Home Assistant async API client.
 
 Uses pytest-asyncio and unittest.mock to test RouvyAsyncApiClient
-without requiring a live Home Assistant instance or network access.
+without requiring a live Rouvy API or network access.
 """
 
 from __future__ import annotations
 
 import json
-import sys
-from types import ModuleType
 from unittest.mock import MagicMock
 
 import pytest
 
+from custom_components.rouvy.api import RouvyAsyncApiClient
 from custom_components.rouvy.api_client.errors import AuthenticationError, RouvyApiError
 from custom_components.rouvy.api_client.models import UserProfile
-
-# Mock homeassistant modules so custom_components.rouvy can be imported
-# without an actual HA installation.
-_HA_MODULES = [
-    "homeassistant",
-    "homeassistant.const",
-    "homeassistant.core",
-    "homeassistant.config_entries",
-    "homeassistant.helpers",
-    "homeassistant.helpers.update_coordinator",
-    "homeassistant.helpers.entity_platform",
-    "homeassistant.helpers.device_registry",
-    "homeassistant.helpers.aiohttp_client",
-    "homeassistant.components",
-    "homeassistant.components.sensor",
-    "homeassistant.exceptions",
-    "homeassistant.loader",
-]
-for _mod in _HA_MODULES:
-    if _mod not in sys.modules:
-        sys.modules[_mod] = ModuleType(_mod)
-
-# homeassistant.const
-_m = sys.modules["homeassistant.const"]
-for attr in (
-    "Platform",
-    "UnitOfLength",
-    "UnitOfMass",
-    "UnitOfPower",
-    "CONF_EMAIL",
-    "CONF_PASSWORD",
-):
-    setattr(_m, attr, MagicMock())
-# homeassistant.core
-_m = sys.modules["homeassistant.core"]
-for attr in ("HomeAssistant", "ServiceCall"):
-    setattr(_m, attr, MagicMock())
-# homeassistant.exceptions
-_m = sys.modules["homeassistant.exceptions"]
-for attr in ("ConfigEntryAuthFailed", "HomeAssistantError"):
-    setattr(_m, attr, type(attr, (Exception,), {}))
-# homeassistant.config_entries
-_m = sys.modules["homeassistant.config_entries"]
-for attr in ("ConfigEntry", "ConfigFlow"):
-    setattr(_m, attr, MagicMock())
-# homeassistant.components.sensor
-_m = sys.modules["homeassistant.components.sensor"]
-for attr in ("SensorDeviceClass", "SensorEntity", "SensorEntityDescription", "SensorStateClass"):
-    setattr(_m, attr, MagicMock())
-# homeassistant.helpers.update_coordinator
-_m = sys.modules["homeassistant.helpers.update_coordinator"]
-_m.DataUpdateCoordinator = MagicMock()
-_m.UpdateFailed = type("UpdateFailed", (Exception,), {})
-_m.CoordinatorEntity = MagicMock()
-# homeassistant.helpers.entity_platform
-_m = sys.modules["homeassistant.helpers.entity_platform"]
-_m.AddEntitiesCallback = MagicMock()
-# homeassistant.helpers.device_registry
-_m = sys.modules["homeassistant.helpers.device_registry"]
-for attr in ("DeviceEntryType", "DeviceInfo"):
-    setattr(_m, attr, MagicMock())
-# homeassistant.helpers.aiohttp_client
-_m = sys.modules["homeassistant.helpers.aiohttp_client"]
-for attr in ("async_get_clientsession", "async_create_clientsession"):
-    setattr(_m, attr, MagicMock())
-# homeassistant.loader
-_m = sys.modules["homeassistant.loader"]
-for attr in ("async_get_loaded_integration", "Integration"):
-    setattr(_m, attr, MagicMock())
-
-from custom_components.rouvy.api import RouvyAsyncApiClient
 
 
 class _FakeResponse:
