@@ -3,16 +3,16 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "rouvy-api-client"
+name = "rouvy-api"
 version = "0.1.0"
-description = "A Python client for the Rouvy API with support for authentication, session management, and parsing of turbo-stream formatted responses"
+description = "A Home Assistant integration and CLI for the Rouvy indoor cycling platform with turbo-stream API support"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Mike Hill" }]
 dependencies = ["requests>=2.31.0", "python-dotenv>=1.0.0"]
 
 [project.scripts]
-rouvy-api = "rouvy_api_client.__main__:main"
+rouvy-api = "custom_components.rouvy.api_client.__main__:main"
 
 [dependency-groups]
 dev = [
@@ -27,7 +27,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/rouvy_api_client"]
+packages = ["custom_components"]
 
 [tool.ruff]
 line-length = 100

@@ -11,9 +11,8 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 
-from rouvy_api_client.errors import AuthenticationError, RouvyApiError
-from rouvy_api_client.models import UserProfile
-
+from .api_client.errors import AuthenticationError, RouvyApiError
+from .api_client.models import UserProfile
 from .const import DEFAULT_SCAN_INTERVAL_HOURS, LOGGER
 
 if TYPE_CHECKING:

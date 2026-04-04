@@ -2,7 +2,11 @@
 
 import pytest
 
-from rouvy_api_client.errors import ApiResponseError, AuthenticationError, RouvyApiError
+from custom_components.rouvy.api_client.errors import (
+    ApiResponseError,
+    AuthenticationError,
+    RouvyApiError,
+)
 
 
 class TestRouvyApiError:

@@ -11,8 +11,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from rouvy_api_client.errors import AuthenticationError, RouvyApiError
-from rouvy_api_client.models import UserProfile
+from custom_components.rouvy.api_client.errors import AuthenticationError, RouvyApiError
+from custom_components.rouvy.api_client.models import UserProfile
 
 # Mock homeassistant modules so custom_components.rouvy can be imported
 # without an actual HA installation.
@@ -279,7 +279,7 @@ class TestAsyncTypedAccessors:
 
     @pytest.mark.asyncio
     async def test_get_training_zones_returns_model(self) -> None:
-        from rouvy_api_client.models import TrainingZones
+        from custom_components.rouvy.api_client.models import TrainingZones
 
         turbo = json.dumps(
             [
@@ -300,7 +300,7 @@ class TestAsyncTypedAccessors:
 
     @pytest.mark.asyncio
     async def test_get_connected_apps_returns_list(self) -> None:
-        from rouvy_api_client.models import ConnectedApp
+        from custom_components.rouvy.api_client.models import ConnectedApp
 
         turbo = json.dumps(
             [
@@ -320,7 +320,7 @@ class TestAsyncTypedAccessors:
 
     @pytest.mark.asyncio
     async def test_get_activity_summary_returns_model(self) -> None:
-        from rouvy_api_client.models import ActivitySummary
+        from custom_components.rouvy.api_client.models import ActivitySummary
 
         turbo = json.dumps(
             [

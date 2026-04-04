@@ -4,7 +4,7 @@ Tests the value_fn lambdas from sensor descriptions in isolation,
 without requiring Home Assistant. We import only the pure data types.
 """
 
-from rouvy_api_client.models import UserProfile
+from custom_components.rouvy.api_client.models import UserProfile
 
 
 def _make_profile(**overrides) -> UserProfile:

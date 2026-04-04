@@ -3,17 +3,17 @@ import logging
 import pytest
 import responses
 
-from rouvy_api_client import (
+from custom_components.rouvy.api_client import (
     ApiResponseError,
     AuthenticationError,
     RouvyClient,
     RouvyConfig,
 )
-from rouvy_api_client import client as client_module
+from custom_components.rouvy.api_client import client as client_module
 
 
 def test_logger_name() -> None:
-    assert client_module.LOGGER.name == "rouvy_api_client.client"
+    assert client_module.LOGGER.name == "custom_components.rouvy.api_client.client"
 
 
 @responses.activate
@@ -68,7 +68,7 @@ def test_login_success_logs_info(caplog: pytest.LogCaptureFixture) -> None:
         )
     )
 
-    caplog.set_level(logging.INFO, logger="rouvy_api_client.client")
+    caplog.set_level(logging.INFO, logger="custom_components.rouvy.api_client.client")
 
     client.login()
 
@@ -90,7 +90,7 @@ def test_login_failure_logs_error(caplog: pytest.LogCaptureFixture) -> None:
         )
     )
 
-    caplog.set_level(logging.ERROR, logger="rouvy_api_client.client")
+    caplog.set_level(logging.ERROR, logger="custom_components.rouvy.api_client.client")
 
     with pytest.raises(AuthenticationError):
         client.login()
@@ -195,7 +195,7 @@ def test_request_logging_includes_context(caplog: pytest.LogCaptureFixture) -> N
         )
     )
 
-    caplog.set_level(logging.DEBUG, logger="rouvy_api_client.client")
+    caplog.set_level(logging.DEBUG, logger="custom_components.rouvy.api_client.client")
 
     response = client.get(api_url)
 
@@ -230,7 +230,7 @@ def test_logs_do_not_include_sensitive_data(caplog: pytest.LogCaptureFixture) ->
         )
     )
 
-    caplog.set_level(logging.DEBUG, logger="rouvy_api_client.client")
+    caplog.set_level(logging.DEBUG, logger="custom_components.rouvy.api_client.client")
 
     client.post(api_url, json={"token": "payload-secret"})
 

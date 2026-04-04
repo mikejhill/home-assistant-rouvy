@@ -1152,7 +1152,7 @@ wheels = [
 ]
 
 [[package]]
-name = "rouvy-api-client"
+name = "rouvy-api"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

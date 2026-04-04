@@ -77,7 +77,7 @@ Successfully identified that Rouvy uses the **turbo-stream** format from the Rem
 ### Module Structure
 
 ```text
-rouvy_api_client/
+custom_components/rouvy/api_client/
   __init__.py         # Exports parser functions
   parser.py           # TurboStreamDecoder + utilities
   client.py           # HTTP client with auth
@@ -108,7 +108,7 @@ rouvy_api_client/
 ### Usage Examples
 
 ```python
-from rouvy_api_client
+from custom_components.rouvy.api_client
 
  import RouvyClient, parse_response, extract_user_profile
 
@@ -184,7 +184,7 @@ All use the same turbo-stream format:
 
 ## Files
 
-- `rouvy_api_client/parser.py` - Full parser implementation
+- `custom_components/rouvy/api_client/parser.py` - Full parser implementation
 - `demo_parser.py` - Comprehensive usage examples
 - `test_endpoints.py` - Endpoint discovery/testing script
 - `debug_parser.py` - Debug tool for analyzing responses

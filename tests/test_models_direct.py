@@ -8,7 +8,7 @@ from datetime import date
 
 import pytest
 
-from rouvy_api_client.models import (
+from custom_components.rouvy.api_client.models import (
     Activity,
     ActivitySummary,
     ConnectedApp,

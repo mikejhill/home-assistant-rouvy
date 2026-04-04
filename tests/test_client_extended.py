@@ -6,7 +6,7 @@ import json
 import pytest
 import responses
 
-from rouvy_api_client import (
+from custom_components.rouvy.api_client import (
     ApiResponseError,
     RouvyClient,
     RouvyConfig,
@@ -288,7 +288,7 @@ class TestConvenienceMethods:
 
     @responses.activate
     def test_get_user_profile_returns_model(self) -> None:
-        from rouvy_api_client.models import UserProfile
+        from custom_components.rouvy.api_client.models import UserProfile
 
         _stub_auth()
         responses.add(
@@ -304,7 +304,7 @@ class TestConvenienceMethods:
 
     @responses.activate
     def test_get_training_zones_returns_model(self) -> None:
-        from rouvy_api_client.models import TrainingZones
+        from custom_components.rouvy.api_client.models import TrainingZones
 
         _stub_auth()
         zones_data = json.dumps(
@@ -326,7 +326,7 @@ class TestConvenienceMethods:
 
     @responses.activate
     def test_get_connected_apps_returns_list(self) -> None:
-        from rouvy_api_client.models import ConnectedApp
+        from custom_components.rouvy.api_client.models import ConnectedApp
 
         _stub_auth()
         apps_data = json.dumps(
@@ -347,7 +347,7 @@ class TestConvenienceMethods:
 
     @responses.activate
     def test_get_activity_summary_returns_model(self) -> None:
-        from rouvy_api_client.models import ActivitySummary
+        from custom_components.rouvy.api_client.models import ActivitySummary
 
         _stub_auth()
         act_data = json.dumps(

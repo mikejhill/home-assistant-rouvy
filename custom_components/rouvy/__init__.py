@@ -2,17 +2,12 @@
 
 from __future__ import annotations
 
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.loader import async_get_loaded_integration
+from typing import TYPE_CHECKING, Any
 
-from .api import RouvyAsyncApiClient
-from .const import CONF_EMAIL, CONF_PASSWORD, DOMAIN, LOGGER
-from .coordinator import RouvyDataUpdateCoordinator
-from .data import RouvyConfigEntry, RouvyData
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+    from .data import RouvyConfigEntry
 
 
 async def async_setup_entry(
@@ -20,6 +15,15 @@ async def async_setup_entry(
     entry: RouvyConfigEntry,
 ) -> bool:
     """Set up Rouvy from a config entry."""
+    from homeassistant.const import Platform
+    from homeassistant.helpers.aiohttp_client import async_get_clientsession
+    from homeassistant.loader import async_get_loaded_integration
+
+    from .api import RouvyAsyncApiClient
+    from .const import CONF_EMAIL, CONF_PASSWORD
+    from .coordinator import RouvyDataUpdateCoordinator
+    from .data import RouvyData
+
     client = RouvyAsyncApiClient(
         email=entry.data[CONF_EMAIL],
         password=entry.data[CONF_PASSWORD],
@@ -34,9 +38,10 @@ async def async_setup_entry(
     )
 
     await coordinator.async_config_entry_first_refresh()
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await hass.config_entries.async_forward_entry_setups(
+        entry, [Platform.SENSOR]
+    )
 
-    # Register services
     _register_services(hass)
 
     return True
@@ -47,13 +52,19 @@ async def async_unload_entry(
     entry: RouvyConfigEntry,
 ) -> bool:
     """Unload a Rouvy config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    from homeassistant.const import Platform
+
+    result: bool = await hass.config_entries.async_unload_platforms(
+        entry, [Platform.SENSOR]
+    )
+    return result
 
 
-def _register_services(hass: HomeAssistant) -> None:
+def _register_services(hass: Any) -> None:
     """Register Rouvy services (idempotent — safe to call multiple times)."""
+    from .const import DOMAIN, LOGGER
 
-    async def _handle_update_weight(call: ServiceCall) -> None:
+    async def _handle_update_weight(call: Any) -> None:
         weight = call.data["weight"]
         LOGGER.info("Service call: update_weight to %s", weight)
         for entry in hass.config_entries.async_entries(DOMAIN):
@@ -62,7 +73,7 @@ def _register_services(hass: HomeAssistant) -> None:
                 await client.async_update_user_settings({"weight": weight})
                 await entry.runtime_data.coordinator.async_request_refresh()
 
-    async def _handle_update_height(call: ServiceCall) -> None:
+    async def _handle_update_height(call: Any) -> None:
         height = call.data["height"]
         LOGGER.info("Service call: update_height to %s", height)
         for entry in hass.config_entries.async_entries(DOMAIN):
@@ -71,7 +82,7 @@ def _register_services(hass: HomeAssistant) -> None:
                 await client.async_update_user_settings({"height": height})
                 await entry.runtime_data.coordinator.async_request_refresh()
 
-    async def _handle_update_settings(call: ServiceCall) -> None:
+    async def _handle_update_settings(call: Any) -> None:
         settings = dict(call.data["settings"])
         LOGGER.info("Service call: update_settings %s", settings)
         for entry in hass.config_entries.async_entries(DOMAIN):

@@ -187,19 +187,18 @@ logger:
   default: warning
   logs:
     custom_components.rouvy: debug
-    rouvy_api_client: debug
 ```
 
 Restart HA and check the logs for detailed request/response information.
 
 ## Architecture Notes
 
-The integration is split into two layers:
+The integration is fully self-contained within `custom_components/rouvy/`:
 
-1. **Core library** (`rouvy_api_client`) — Pure Python, sync HTTP client, typed models, turbo-stream parser. No HA dependencies.
+1. **Embedded API client** (`custom_components/rouvy/api_client/`) — Pure Python, sync HTTP client, typed models, turbo-stream parser. No HA dependencies.
 2. **HA integration** (`custom_components/rouvy/`) — Async `aiohttp` client, ConfigFlow, DataUpdateCoordinator, sensor entities, services.
 
-The HA integration does NOT import the sync client. It has its own async API client (`api.py`) that uses `aiohttp` (required by HA) and shares the parser and models from the core library.
+The HA integration does NOT import the sync client. It has its own async API client (`api.py`) that uses `aiohttp` (provided by HA) and imports the parser and models from the embedded `api_client` sub-package.
 
 ## HACS Repository Requirements
 

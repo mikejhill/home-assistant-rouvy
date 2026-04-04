@@ -4,6 +4,10 @@
 [![Release](https://github.com/mikejhill/rouvy-api/actions/workflows/release.yml/badge.svg)](https://github.com/mikejhill/rouvy-api/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+> **⚠️ Alpha** — This project is under active development. The API
+> client, CLI, and Home Assistant integration are functional but not yet
+> fully tested in production. Expect breaking changes.
+
 A pure Python client library for the Rouvy indoor cycling platform with a CLI tool and a native Home Assistant integration (HACS-compatible).
 
 ## Features
@@ -79,7 +83,7 @@ Note: `base_url` and `auth_url` are hardcoded to `https://riders.rouvy.com` as t
 uv run rouvy-api <command>
 
 # Using the package module
-python -m rouvy_api_client <command>
+python -m custom_components.rouvy.api_client <command>
 
 # Using the console script (after install)
 rouvy-api <command>
@@ -133,7 +137,7 @@ uv run python scripts/demo_parser.py
 ### Programmatic Usage
 
 ```python
-from rouvy_api_client import RouvyClient, RouvyConfig
+from custom_components.rouvy.api_client import RouvyClient, RouvyConfig
 
 # Initialize client
 client = RouvyClient(
@@ -180,10 +184,10 @@ Rouvy API responses use the [turbo-stream format](https://github.com/jacob-ebey/
 
 ### Using the Parser
 
-The `rouvy_api_client` module provides a generic turbo-stream parser:
+The `custom_components.rouvy.api_client` module provides a generic turbo-stream parser:
 
 ```python
-from rouvy_api_client import parse_response, extract_user_profile
+from custom_components.rouvy.api_client import parse_response, extract_user_profile
 
 # Generic parsing of any endpoint
 response = client.get("user-settings/zones.data")
@@ -223,7 +227,7 @@ Comprehensive documentation and reference materials are in the `docs/` directory
 ## Logging
 
 The client uses Python's standard `logging` module. Enable logging by configuring
-the `rouvy_api_client` logger or the `rouvy_api_client.client` module logger.
+the `custom_components.rouvy.api_client` logger or the `custom_components.rouvy.api_client.client` module logger.
 
 ```python
 import logging
@@ -241,7 +245,7 @@ Structured log context is attached to log records via `extra`. Example output
 with a JSON formatter might look like:
 
 ```json
-{"level":"DEBUG","name":"rouvy_api_client.client","message":"HTTP request completed","method":"GET","url":"https://riders.rouvy.com/user-settings.data","status_code":200,"duration_ms":12.34}
+{"level":"DEBUG","name":"custom_components.rouvy.api_client.client","message":"HTTP request completed","method":"GET","url":"https://riders.rouvy.com/user-settings.data","status_code":200,"duration_ms":12.34}
 ```
 
 ## Testing

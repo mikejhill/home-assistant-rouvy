@@ -1,22 +1,12 @@
 # Project Structure
 
-This document describes the organization of the Rouvy API Client project.
+This document describes the organization of the Rouvy API project.
 
 ## Directory Layout
 
 ```text
 rouvy-api/
-├── src/                        # Source code directory (src layout)
-│   └── rouvy_api_client/       # Core API client library (pure Python, no HA deps)
-│       ├── __init__.py         # Module exports
-│       ├── __main__.py         # CLI entry point with subcommands
-│       ├── client.py           # HTTP client with authentication + typed accessors
-│       ├── config.py           # Configuration dataclass
-│       ├── errors.py           # Custom exception classes
-│       ├── models.py           # Frozen dataclass models (UserProfile, TrainingZones, etc.)
-│       └── parser.py           # Turbo-stream decoder + typed extraction functions
-│
-├── custom_components/          # Native Home Assistant integration (HACS-compatible)
+├── custom_components/          # Home Assistant integration (HACS-compatible)
 │   └── rouvy/
 │       ├── __init__.py         # Integration setup + service registration
 │       ├── api.py              # Async aiohttp API client
@@ -29,8 +19,16 @@ rouvy-api/
 │       ├── sensor.py           # Sensor entities (weight, height, FTP, max HR, etc.)
 │       ├── services.yaml       # Service definitions
 │       ├── strings.json        # UI strings
-│       └── translations/
-│           └── en.json         # English translations
+│       ├── translations/
+│       │   └── en.json         # English translations
+│       └── api_client/         # Embedded API client library (pure Python, no HA deps)
+│           ├── __init__.py     # Module exports
+│           ├── __main__.py     # CLI entry point with subcommands
+│           ├── client.py       # HTTP client with authentication + typed accessors
+│           ├── config.py       # Configuration dataclass
+│           ├── errors.py       # Custom exception classes
+│           ├── models.py       # Frozen dataclass models (UserProfile, TrainingZones, etc.)
+│           └── parser.py       # Turbo-stream decoder + typed extraction functions
 │
 ├── scripts/                    # Utility and example scripts
 │   ├── demo_parser.py          # Parser demonstrations
@@ -41,8 +39,7 @@ rouvy-api/
 │   ├── architecture/           # Architecture and design documentation
 │   │   ├── project-structure.md  # This file
 │   │   └── turbo-stream.md     # Turbo-stream format analysis
-│   ├── examples/               # Usage examples
-│   └── private-samples/         # Sample API responses (git-ignored, local only)
+│   └── private-samples/        # Sample API responses (git-ignored, local only)
 │
 ├── tests/                      # Unit and integration tests
 │
@@ -55,26 +52,25 @@ rouvy-api/
 
 ## Architecture
 
-The project follows a monorepo layout with a shared core library used by both the CLI and the Home Assistant integration.
+The project uses a monorepo layout with the API client library embedded inside the Home Assistant integration as a sub-package (`api_client/`). This ensures the HA integration is fully self-contained for HACS deployment while the CLI shares the same code.
 
-### Core API Client (`src/rouvy_api_client/`)
+### API Client (`custom_components/rouvy/api_client/`)
 
 - **Pure Python library** with zero HA dependencies
 - Sync HTTP client using `requests` for CLI usage
 - Typed frozen dataclass models for all API response types
 - Full turbo-stream decoder with indexed reference resolution
-- Installable via `uv sync` or published to PyPI as `rouvy-api-client`
 - Dependencies: `requests`, `python-dotenv`
 
 ### Home Assistant Integration (`custom_components/rouvy/`)
 
 - **Native HA integration** using ConfigFlow + DataUpdateCoordinator
-- Async HTTP client using `aiohttp` (required by HA)
-- Shares parser, models, and config from the core library
+- Async HTTP client using `aiohttp` (provided by HA)
+- Uses parser, models, and errors from the embedded `api_client` sub-package
 - Installable via HACS as a custom repository
 - Exposes sensors and write services for weight/height/settings updates
 
-### CLI (`src/rouvy_api_client/__main__.py`)
+### CLI (`custom_components/rouvy/api_client/__main__.py`)
 
 - Subcommand-based interface: `profile`, `zones`, `apps`, `activities`, `set`, `raw`
 - Backward compatible with legacy `--endpoint`, `--set`, `--raw` flags
@@ -87,5 +83,5 @@ The project follows a monorepo layout with a shared core library used by both th
 uv run pytest -v
 
 # Run with coverage
-uv run pytest --cov=rouvy_api_client -v
+uv run pytest --cov=custom_components -v
 ```

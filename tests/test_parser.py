@@ -9,7 +9,7 @@ import json
 from datetime import datetime
 from typing import Any
 
-from rouvy_api_client.parser import (
+from custom_components.rouvy.api_client.parser import (
     UNDEFINED,
     TurboStreamDecoder,
     _find_key_value,
@@ -544,7 +544,7 @@ class TestExtractUserProfileModelFromSynthetic:
     """Verify extract_user_profile_model with synthetic data."""
 
     def test_returns_user_profile_model(self) -> None:
-        from rouvy_api_client.models import UserProfile
+        from custom_components.rouvy.api_client.models import UserProfile
 
         profile = extract_user_profile_model(_build_user_settings_response())
         assert isinstance(profile, UserProfile), f"Expected UserProfile, got {type(profile)}"
@@ -614,7 +614,7 @@ class TestExtractTrainingZonesModelFromSynthetic:
     """Verify extract_training_zones_model with synthetic data."""
 
     def test_returns_training_zones_model(self) -> None:
-        from rouvy_api_client.models import TrainingZones
+        from custom_components.rouvy.api_client.models import TrainingZones
 
         zones = extract_training_zones_model(_build_zones_response())
         assert isinstance(zones, TrainingZones), f"Expected TrainingZones, got {type(zones)}"
@@ -680,7 +680,7 @@ class TestExtractConnectedAppsModelFromSynthetic:
     """Verify extract_connected_apps_model with synthetic data."""
 
     def test_returns_list_of_connected_app(self) -> None:
-        from rouvy_api_client.models import ConnectedApp
+        from custom_components.rouvy.api_client.models import ConnectedApp
 
         apps = extract_connected_apps_model(_build_connected_apps_response())
         assert all(isinstance(a, ConnectedApp) for a in apps), (
@@ -746,7 +746,7 @@ class TestExtractActivitiesModelFromSynthetic:
     """Verify extract_activities_model with synthetic data."""
 
     def test_returns_activity_summary(self) -> None:
-        from rouvy_api_client.models import ActivitySummary
+        from custom_components.rouvy.api_client.models import ActivitySummary
 
         summary = extract_activities_model(_build_activities_response())
         assert isinstance(summary, ActivitySummary), (

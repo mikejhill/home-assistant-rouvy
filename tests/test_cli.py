@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from rouvy_api_client.__main__ import (
+from custom_components.rouvy.api_client.__main__ import (
     _coerce_value,
     _configure_logging,
     _format_profile_field,
@@ -218,21 +218,21 @@ class TestParseArgs:
     """Verify argument parsing for subcommands and legacy flags."""
 
     def test_profile_subcommand(self) -> None:
-        from rouvy_api_client.__main__ import _parse_args
+        from custom_components.rouvy.api_client.__main__ import _parse_args
 
         with patch("sys.argv", ["rouvy-api", "profile"]):
             args = _parse_args()
         assert args.subcommand == "profile", f"Expected subcommand 'profile', got {args.subcommand}"
 
     def test_zones_subcommand(self) -> None:
-        from rouvy_api_client.__main__ import _parse_args
+        from custom_components.rouvy.api_client.__main__ import _parse_args
 
         with patch("sys.argv", ["rouvy-api", "zones"]):
             args = _parse_args()
         assert args.subcommand == "zones", f"Expected subcommand 'zones', got {args.subcommand}"
 
     def test_set_subcommand_with_settings(self) -> None:
-        from rouvy_api_client.__main__ import _parse_args
+        from custom_components.rouvy.api_client.__main__ import _parse_args
 
         with patch("sys.argv", ["rouvy-api", "set", "weight=86", "height=178"]):
             args = _parse_args()
@@ -242,7 +242,7 @@ class TestParseArgs:
         )
 
     def test_raw_subcommand_with_endpoint(self) -> None:
-        from rouvy_api_client.__main__ import _parse_args
+        from custom_components.rouvy.api_client.__main__ import _parse_args
 
         with patch("sys.argv", ["rouvy-api", "raw", "user-settings.data"]):
             args = _parse_args()
@@ -252,7 +252,7 @@ class TestParseArgs:
         )
 
     def test_legacy_endpoint_flag(self) -> None:
-        from rouvy_api_client.__main__ import _parse_args
+        from custom_components.rouvy.api_client.__main__ import _parse_args
 
         with patch("sys.argv", ["rouvy-api", "--endpoint", "zones.data"]):
             args = _parse_args()
@@ -260,7 +260,7 @@ class TestParseArgs:
         assert args.subcommand is None, f"Expected no subcommand, got {args.subcommand}"
 
     def test_debug_flag(self) -> None:
-        from rouvy_api_client.__main__ import _parse_args
+        from custom_components.rouvy.api_client.__main__ import _parse_args
 
         # --debug is a common flag on both main parser and subcommand parsers
         with patch("sys.argv", ["rouvy-api", "profile", "--debug"]):
@@ -268,7 +268,7 @@ class TestParseArgs:
         assert args.debug is True, f"Expected debug=True, got {args.debug}"
 
     def test_default_no_subcommand(self) -> None:
-        from rouvy_api_client.__main__ import _parse_args
+        from custom_components.rouvy.api_client.__main__ import _parse_args
 
         with patch("sys.argv", ["rouvy-api"]):
             args = _parse_args()
@@ -282,7 +282,9 @@ class TestParseArgs:
 
 from unittest.mock import MagicMock
 
-from rouvy_api_client.__main__ import (
+_CLI_MOD = "custom_components.rouvy.api_client.__main__"
+
+from custom_components.rouvy.api_client.__main__ import (
     _cmd_activities,
     _cmd_apps,
     _cmd_profile,
@@ -290,7 +292,7 @@ from rouvy_api_client.__main__ import (
     _cmd_set,
     _cmd_zones,
 )
-from rouvy_api_client.models import (
+from custom_components.rouvy.api_client.models import (
     Activity,
     ActivitySummary,
     ConnectedApp,
@@ -562,12 +564,12 @@ class TestCmdRaw:
 class TestMain:
     """Verify main() dispatches correctly."""
 
-    @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
-    @patch("rouvy_api_client.__main__.RouvyClient")
+    @patch(f"{_CLI_MOD}.load_credentials", return_value=("a@b.com", "pw"))
+    @patch(f"{_CLI_MOD}.RouvyClient")
     def test_main_default_calls_profile(
         self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        from rouvy_api_client.__main__ import main
+        from custom_components.rouvy.api_client.__main__ import main
 
         mock_client = mock_client_cls.return_value
         mock_client.get_user_profile.return_value = _mock_profile()
@@ -576,12 +578,12 @@ class TestMain:
             main()
         mock_client.get_user_profile.assert_called_once()
 
-    @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
-    @patch("rouvy_api_client.__main__.RouvyClient")
+    @patch(f"{_CLI_MOD}.load_credentials", return_value=("a@b.com", "pw"))
+    @patch(f"{_CLI_MOD}.RouvyClient")
     def test_main_zones_subcommand(
         self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        from rouvy_api_client.__main__ import main
+        from custom_components.rouvy.api_client.__main__ import main
 
         mock_client = mock_client_cls.return_value
         mock_client.get_training_zones.return_value = _mock_zones()
@@ -590,12 +592,12 @@ class TestMain:
             main()
         mock_client.get_training_zones.assert_called_once()
 
-    @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
-    @patch("rouvy_api_client.__main__.RouvyClient")
+    @patch(f"{_CLI_MOD}.load_credentials", return_value=("a@b.com", "pw"))
+    @patch(f"{_CLI_MOD}.RouvyClient")
     def test_main_apps_subcommand(
         self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        from rouvy_api_client.__main__ import main
+        from custom_components.rouvy.api_client.__main__ import main
 
         mock_client = mock_client_cls.return_value
         mock_client.get_connected_apps.return_value = []
@@ -604,12 +606,12 @@ class TestMain:
             main()
         mock_client.get_connected_apps.assert_called_once()
 
-    @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
-    @patch("rouvy_api_client.__main__.RouvyClient")
+    @patch(f"{_CLI_MOD}.load_credentials", return_value=("a@b.com", "pw"))
+    @patch(f"{_CLI_MOD}.RouvyClient")
     def test_main_activities_subcommand(
         self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        from rouvy_api_client.__main__ import main
+        from custom_components.rouvy.api_client.__main__ import main
 
         mock_client = mock_client_cls.return_value
         mock_client.get_activity_summary.return_value = ActivitySummary(recent_activities=[])
@@ -618,12 +620,12 @@ class TestMain:
             main()
         mock_client.get_activity_summary.assert_called_once()
 
-    @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
-    @patch("rouvy_api_client.__main__.RouvyClient")
+    @patch(f"{_CLI_MOD}.load_credentials", return_value=("a@b.com", "pw"))
+    @patch(f"{_CLI_MOD}.RouvyClient")
     def test_main_set_subcommand(
         self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        from rouvy_api_client.__main__ import main
+        from custom_components.rouvy.api_client.__main__ import main
 
         mock_client = mock_client_cls.return_value
         mock_resp = MagicMock()
@@ -635,12 +637,12 @@ class TestMain:
             main()
         mock_client.update_user_settings.assert_called_once()
 
-    @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
-    @patch("rouvy_api_client.__main__.RouvyClient")
+    @patch(f"{_CLI_MOD}.load_credentials", return_value=("a@b.com", "pw"))
+    @patch(f"{_CLI_MOD}.RouvyClient")
     def test_main_raw_subcommand(
         self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        from rouvy_api_client.__main__ import main
+        from custom_components.rouvy.api_client.__main__ import main
 
         mock_client = mock_client_cls.return_value
         mock_resp = MagicMock()
@@ -652,13 +654,13 @@ class TestMain:
             main()
         mock_client.get.assert_called_once()
 
-    @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
-    @patch("rouvy_api_client.__main__.RouvyClient")
+    @patch(f"{_CLI_MOD}.load_credentials", return_value=("a@b.com", "pw"))
+    @patch(f"{_CLI_MOD}.RouvyClient")
     def test_main_api_error_handled(
         self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        from rouvy_api_client.__main__ import main
-        from rouvy_api_client.errors import ApiResponseError
+        from custom_components.rouvy.api_client.__main__ import main
+        from custom_components.rouvy.api_client.errors import ApiResponseError
 
         mock_client = mock_client_cls.return_value
         mock_client.get_user_profile.side_effect = ApiResponseError(
@@ -670,12 +672,12 @@ class TestMain:
         output = capsys.readouterr().out
         assert "500" in output, "Expected status code in error output"
 
-    @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
-    @patch("rouvy_api_client.__main__.RouvyClient")
+    @patch(f"{_CLI_MOD}.load_credentials", return_value=("a@b.com", "pw"))
+    @patch(f"{_CLI_MOD}.RouvyClient")
     def test_main_legacy_endpoint(
         self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        from rouvy_api_client.__main__ import main
+        from custom_components.rouvy.api_client.__main__ import main
 
         mock_client = mock_client_cls.return_value
         mock_resp = MagicMock()
@@ -687,12 +689,12 @@ class TestMain:
             main()
         mock_client.get.assert_called()
 
-    @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
-    @patch("rouvy_api_client.__main__.RouvyClient")
+    @patch(f"{_CLI_MOD}.load_credentials", return_value=("a@b.com", "pw"))
+    @patch(f"{_CLI_MOD}.RouvyClient")
     def test_main_legacy_raw(
         self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        from rouvy_api_client.__main__ import main
+        from custom_components.rouvy.api_client.__main__ import main
 
         mock_client = mock_client_cls.return_value
         mock_resp = MagicMock()
@@ -705,12 +707,12 @@ class TestMain:
         output = capsys.readouterr().out
         assert "RAW DECODED RESPONSE" in output, "Expected raw header for legacy --raw"
 
-    @patch("rouvy_api_client.__main__.load_credentials", return_value=("a@b.com", "pw"))
-    @patch("rouvy_api_client.__main__.RouvyClient")
+    @patch(f"{_CLI_MOD}.load_credentials", return_value=("a@b.com", "pw"))
+    @patch(f"{_CLI_MOD}.RouvyClient")
     def test_main_legacy_set(
         self, mock_client_cls: MagicMock, mock_creds: MagicMock, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        from rouvy_api_client.__main__ import main
+        from custom_components.rouvy.api_client.__main__ import main
 
         mock_client = mock_client_cls.return_value
         mock_resp = MagicMock()

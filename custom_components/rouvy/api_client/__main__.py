@@ -16,7 +16,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-from rouvy_api_client import (
+from . import (
     Activity,
     ActivitySummary,
     ApiResponseError,

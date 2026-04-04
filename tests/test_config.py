@@ -2,7 +2,7 @@
 
 import pytest
 
-from rouvy_api_client.config import RouvyConfig
+from custom_components.rouvy.api_client.config import RouvyConfig
 
 
 class TestRouvyConfig:

@@ -9,12 +9,12 @@ import os
 import sys
 from pathlib import Path
 
-# Add src directory to path so we can import rouvy_api_client
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Add project root to path so we can import custom_components
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
 
-from rouvy_api_client import (
+from custom_components.rouvy.api_client import (
     RouvyClient,
     RouvyConfig,
     extract_user_profile,
@@ -159,7 +159,7 @@ The TurboStreamDecoder handles these format features:
    - Integer values elsewhere are treated as literals
    - Recursive resolution with cycle detection
 
-For implementation details, see: rouvy_api_client/parser.py
+For implementation details, see: custom_components/rouvy/api_client/parser.py
 """
 )
 

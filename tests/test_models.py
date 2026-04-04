@@ -4,14 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from rouvy_api_client.models import (
+from custom_components.rouvy.api_client.models import (
     Activity,
     ActivitySummary,
     ConnectedApp,
     TrainingZones,
     UserProfile,
 )
-from rouvy_api_client.parser import (
+from custom_components.rouvy.api_client.parser import (
     extract_activities_model,
     extract_connected_apps_model,
     extract_training_zones_model,

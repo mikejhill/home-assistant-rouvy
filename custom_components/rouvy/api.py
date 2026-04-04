@@ -1,8 +1,8 @@
 """Async API client for the Rouvy integration.
 
 Uses aiohttp (provided by Home Assistant) to communicate with the Rouvy API.
-Reuses the turbo-stream parser and typed models from the core rouvy_api_client
-library.
+Reuses the turbo-stream parser and typed models from the embedded api_client
+sub-package.
 """
 
 from __future__ import annotations
@@ -12,14 +12,14 @@ from typing import Any
 
 import aiohttp
 
-from rouvy_api_client.errors import AuthenticationError, RouvyApiError
-from rouvy_api_client.models import (
+from .api_client.errors import AuthenticationError, RouvyApiError
+from .api_client.models import (
     ActivitySummary,
     ConnectedApp,
     TrainingZones,
     UserProfile,
 )
-from rouvy_api_client.parser import (
+from .api_client.parser import (
     extract_activities_model,
     extract_connected_apps_model,
     extract_training_zones_model,
@@ -121,7 +121,7 @@ class RouvyAsyncApiClient:
         Fetches current values first to fill required fields, then posts
         the update.
         """
-        from rouvy_api_client.parser import extract_user_profile
+        from .api_client.parser import extract_user_profile
 
         LOGGER.debug("Updating user settings: %s", updates)
         current_text = await self._request("GET", "user-settings.data")

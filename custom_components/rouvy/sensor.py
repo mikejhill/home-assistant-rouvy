@@ -20,8 +20,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from rouvy_api_client.models import UserProfile
-
+from .api_client.models import UserProfile
 from .data import RouvyConfigEntry
 from .entity import RouvyEntity
 
