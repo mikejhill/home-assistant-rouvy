@@ -61,11 +61,11 @@ jobs:
       - name: Run tests
         run: >-
           uv run pytest --junit-xml=test-results.xml
-          ${{ matrix.coverage && '--cov=custom_components --cov-report=xml --cov-fail-under=80' || '' }}
+          ${{ matrix.coverage && '--cov=custom_components/rouvy/api_client --cov=custom_components/rouvy/api.py --cov-report=xml --cov-fail-under=80' || '' }}
 
       - name: Publish test report
         if: always()
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v3
         with:
           name: "Tests (${{ matrix.os }}, Python ${{ matrix.python-version }})"
           path: test-results.xml
