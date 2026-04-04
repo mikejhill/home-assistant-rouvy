@@ -42,7 +42,7 @@ rouvy-api/
 │   │   ├── project-structure.md  # This file
 │   │   └── turbo-stream.md     # Turbo-stream format analysis
 │   ├── examples/               # Usage examples
-│   └── samples/                # Sample API responses for reference
+│   └── private-samples/         # Sample API responses (git-ignored, local only)
 │
 ├── tests/                      # Unit and integration tests
 │

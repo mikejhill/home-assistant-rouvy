@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/mikejhill/rouvy-api/actions/workflows/ci.yml/badge.svg)](https://github.com/mikejhill/rouvy-api/actions/workflows/ci.yml)
 [![Release](https://github.com/mikejhill/rouvy-api/actions/workflows/release.yml/badge.svg)](https://github.com/mikejhill/rouvy-api/actions/workflows/release.yml)
-[![License](https://img.shields.io/github/license/mikejhill/rouvy-api)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A pure Python client library for the Rouvy indoor cycling platform with a CLI tool and a native Home Assistant integration (HACS-compatible).
 
@@ -218,7 +218,7 @@ See `scripts/demo_parser.py` for comprehensive examples of parsing different end
 Comprehensive documentation and reference materials are in the `docs/` directory:
 
 - [**docs/architecture/turbo-stream.md**](docs/architecture/turbo-stream.md) - Detailed explanation of the turbo-stream format discovery and implementation
-- [**docs/samples/**](docs/samples/) - Sample API responses for reference
+- [**docs/private-samples/**](docs/private-samples/) - Sample API responses for reference (git-ignored, local only)
 
 ## Logging
 

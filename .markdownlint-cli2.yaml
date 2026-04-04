@@ -17,6 +17,6 @@ config:
 
 ignores:
   - "CHANGELOG.md"
-  - "docs/samples/**"
+  - "docs/private-samples/**"
   - ".venv/**"
   - "node_modules/**"

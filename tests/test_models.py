@@ -19,7 +19,7 @@ from rouvy_api_client.parser import (
     extract_user_profile_model,
 )
 
-SAMPLES_DIR = Path(__file__).resolve().parent.parent / "docs" / "samples"
+SAMPLES_DIR = Path(__file__).resolve().parent.parent / "docs" / "private-samples"
 
 
 def _has_samples() -> bool:
