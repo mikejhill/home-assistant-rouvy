@@ -38,9 +38,7 @@ async def async_setup_entry(
     )
 
     await coordinator.async_config_entry_first_refresh()
-    await hass.config_entries.async_forward_entry_setups(
-        entry, [Platform.SENSOR]
-    )
+    await hass.config_entries.async_forward_entry_setups(entry, [Platform.SENSOR])
 
     _register_services(hass)
 
@@ -54,9 +52,7 @@ async def async_unload_entry(
     """Unload a Rouvy config entry."""
     from homeassistant.const import Platform
 
-    result: bool = await hass.config_entries.async_unload_platforms(
-        entry, [Platform.SENSOR]
-    )
+    result: bool = await hass.config_entries.async_unload_platforms(entry, [Platform.SENSOR])
     return result
 
 

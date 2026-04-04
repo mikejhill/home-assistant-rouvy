@@ -4,6 +4,8 @@ Uses pytest-asyncio and unittest.mock to test RouvyAsyncApiClient
 without requiring a live Home Assistant instance or network access.
 """
 
+from __future__ import annotations
+
 import json
 import sys
 from types import ModuleType

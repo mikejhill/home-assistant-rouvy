@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Rouvy API client - Command-line interface for making API calls.
+"""Rouvy API client - Command-line interface for making API calls.
 
 Supports both subcommands (profile, zones, apps, activities, set, raw)
 and legacy flags (--endpoint, --set, --raw) for backward compatibility.
@@ -528,6 +527,7 @@ def _legacy_main(client: RouvyClient, args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    """Parse arguments, configure logging, and dispatch the CLI command."""
     args = _parse_args()
     log_level = "DEBUG" if args.debug else args.log_level
     _configure_logging(log_level)

@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: amannn/action-semantic-pull-request@v5
+      - uses: amannn/action-semantic-pull-request@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -31,13 +31,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
       - run: uv sync --group dev
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - name: Type check (core library only)
-        run: uv run mypy src --ignore-missing-imports
+      - name: Type check
+        run: uv run ty check
 
   test:
     runs-on: ${{ matrix.os }}
@@ -53,15 +53,15 @@ jobs:
             coverage: true
     name: "Test (${{ matrix.os }}, Python ${{ matrix.python-version }})"
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
       - run: uv python install ${{ matrix.python-version }}
       - run: uv sync --group dev --python ${{ matrix.python-version }}
 
       - name: Run tests
         run: >-
           uv run pytest --junit-xml=test-results.xml
-          ${{ matrix.coverage && '--cov=src --cov-report=xml --cov-fail-under=80' || '' }}
+          ${{ matrix.coverage && '--cov=custom_components --cov-report=xml --cov-fail-under=80' || '' }}
 
       - name: Publish test report
         if: always()
@@ -81,8 +81,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
       - run: uv build
       - uses: actions/upload-artifact@v4
         with:
@@ -94,8 +94,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: DavidAnson/markdownlint-cli2-action@v20
+      - uses: actions/checkout@v6
+      - uses: DavidAnson/markdownlint-cli2-action@v23
 
   ci-pass:
     if: always()

@@ -4,6 +4,8 @@ These tests do NOT depend on sample files; they verify dataclass
 construction, defaults, immutability, and field types.
 """
 
+from __future__ import annotations
+
 from datetime import date
 
 import pytest

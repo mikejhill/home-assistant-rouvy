@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Test various Rouvy API endpoints to understand their response format."""
 
+from __future__ import annotations
+
 import logging
 import os
 import sys

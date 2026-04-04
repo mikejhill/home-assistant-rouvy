@@ -1,5 +1,7 @@
 """Tests for the RouvyConfig dataclass."""
 
+from __future__ import annotations
+
 import pytest
 
 from custom_components.rouvy.api_client.config import RouvyConfig

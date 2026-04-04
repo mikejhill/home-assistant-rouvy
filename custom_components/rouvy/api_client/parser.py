@@ -1,5 +1,4 @@
-"""
-Parser for Rouvy API responses using turbo-stream format.
+"""Parser for Rouvy API responses using turbo-stream format.
 
 Rouvy uses the turbo-stream format from Remix (https://github.com/jacob-ebey/turbo-stream),
 which is a streaming data format that supports more types than JSON and uses indexed
@@ -40,8 +39,7 @@ class TurboStreamDecoder:
         self.promise_values: dict[int, Any] = {}
 
     def decode(self, response_text: str) -> dict[str, Any] | list[Any] | Any:
-        """
-        Decode a turbo-stream formatted response.
+        """Decode a turbo-stream formatted response.
 
         Args:
             response_text: Raw response text (may be multi-line)
@@ -89,8 +87,7 @@ class TurboStreamDecoder:
             LOGGER.warning(f"Error parsing promise line '{line}': {e}")
 
     def _decode_value(self, value: Any, resolve_int_as_index: bool = False) -> Any:
-        """
-        Recursively decode a value, resolving references and special types.
+        """Recursively decode a value, resolving references and special types.
 
         Args:
             value: The value to decode
@@ -100,10 +97,10 @@ class TurboStreamDecoder:
         if isinstance(value, int):
             if value == -5:
                 return UNDEFINED
-            elif value == -7:
+            if value == -7:
                 return NULL
             # Only resolve as index if explicitly requested (for indexed object values)
-            elif (
+            if (
                 resolve_int_as_index
                 and value in self.index_map
                 and value not in getattr(self, "_resolving", set())
@@ -136,9 +133,8 @@ class TurboStreamDecoder:
                         return self._decode_value(
                             self.promise_values[promise_id], resolve_int_as_index=False
                         )
-                    else:
-                        # Promise not yet resolved
-                        return f"<Promise:{promise_id}>"
+                    # Promise not yet resolved
+                    return f"<Promise:{promise_id}>"
 
             # Regular array - decode each element (don't resolve ints as indices)
             return [self._decode_value(item, resolve_int_as_index=False) for item in value]
@@ -183,8 +179,7 @@ class TurboStreamDecoder:
         return value
 
     def extract_data_section(self, decoded: Any, path: str = "root.data") -> dict[str, Any]:
-        """
-        Extract a specific data section from the decoded structure.
+        """Extract a specific data section from the decoded structure.
 
         Args:
             decoded: Decoded turbo-stream data
@@ -210,8 +205,7 @@ class TurboStreamDecoder:
 
 
 def parse_response(response_text: str) -> dict[str, Any] | list[Any] | Any:
-    """
-    Parse a Rouvy API response in turbo-stream format.
+    """Parse a Rouvy API response in turbo-stream format.
 
     Args:
         response_text: Raw response text
@@ -224,8 +218,7 @@ def parse_response(response_text: str) -> dict[str, Any] | list[Any] | Any:
 
 
 def extract_user_profile(response_text: str) -> dict[str, Any]:
-    """
-    Extract user profile fields from user-settings response.
+    """Extract user profile fields from user-settings response.
 
     Args:
         response_text: Raw user-settings.data response

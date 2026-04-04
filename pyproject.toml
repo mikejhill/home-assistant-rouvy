@@ -7,7 +7,7 @@ name = "rouvy-api"
 version = "0.1.0"
 description = "A Home Assistant integration and CLI for the Rouvy indoor cycling platform with turbo-stream API support"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 authors = [{ name = "Mike Hill" }]
 dependencies = ["requests>=2.31.0", "python-dotenv>=1.0.0"]
 
@@ -16,13 +16,13 @@ rouvy-api = "custom_components.rouvy.api_client.__main__:main"
 
 [dependency-groups]
 dev = [
-    "pytest>=8.0.0",
-    "pytest-cov>=6.0.0",
+    "pytest>=8.0",
+    "pytest-cov>=6.0",
     "pytest-asyncio>=0.24.0",
     "responses>=0.25.0",
     "aiohttp>=3.9.0",
-    "ruff>=0.9.0",
-    "mypy>=1.14.0",
+    "ruff>=0.7",
+    "ty>=0.0.1",
     "types-requests>=2.31.0",
 ]
 
@@ -31,22 +31,39 @@ packages = ["custom_components"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py312"
+src = ["custom_components", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W", "UP", "B", "SIM"]
+select = ["E", "W", "F", "I", "N", "UP", "B", "SIM", "RUF", "D", "ANN", "PT", "RET", "ARG", "FA"]
+ignore = ["D100", "D104", "D107", "D203", "D213"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/test_cli.py" = ["E402"]
-"tests/test_ha_api.py" = ["E402"]
-"scripts/*" = ["E501"]
+"tests/*" = ["D101", "D102", "D103", "ANN", "ARG", "E402", "PT017"]
+"scripts/*" = ["D102", "D103", "ANN", "E501"]
+"custom_components/rouvy/__init__.py" = ["ANN401"]
+"custom_components/rouvy/coordinator.py" = ["ANN401"]
+"custom_components/rouvy/sensor.py" = ["ANN401", "ARG001"]
+"custom_components/rouvy/config_flow.py" = ["ANN401"]
+"custom_components/rouvy/entity.py" = ["ANN401"]
+"custom_components/rouvy/api.py" = ["ANN401"]
+"custom_components/rouvy/api_client/client.py" = ["ANN401"]
+"custom_components/rouvy/api_client/errors.py" = ["ANN401"]
+"custom_components/rouvy/api_client/parser.py" = ["ANN401"]
 
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-check_untyped_defs = true
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.ty.src]
+# Only type-check the standalone API client; HA integration modules and tests
+# require homeassistant stubs which are not available in the dev environment.
+include = ["custom_components/rouvy/api_client/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

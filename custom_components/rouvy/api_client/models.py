@@ -1,5 +1,4 @@
-"""
-Typed data models for Rouvy API responses.
+"""Typed data models for Rouvy API responses.
 
 These frozen dataclasses represent the structured data returned by various
 Rouvy API endpoints. They are HTTP-library-agnostic and can be used by

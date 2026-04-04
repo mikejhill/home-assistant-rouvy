@@ -1,5 +1,10 @@
-"""Extended client tests covering update_user_settings, convenience
-methods, URL building, redirect detection, and 202 handling."""
+"""Extended client tests.
+
+Covers update_user_settings, convenience methods, URL building,
+redirect detection, and 202 handling.
+"""
+
+from __future__ import annotations
 
 import json
 

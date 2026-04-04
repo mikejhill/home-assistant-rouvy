@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Debug script to understand turbo-stream structure."""
 
+from __future__ import annotations
+
 import json
 import os
 import sys
@@ -37,7 +39,7 @@ for i in range(len(raw_data)):
         end = min(len(raw_data), i + 10)
         for j in range(start, end):
             marker = " <-- HERE" if j == i else ""
-            print(f"  [{j}]: {repr(raw_data[j])}{marker}")
+            print(f"  [{j}]: {raw_data[j]!r}{marker}")
         break
 
 # Find userProfile section
@@ -48,7 +50,7 @@ for i in range(len(raw_data)):
         end = min(len(raw_data), i + 5)
         for j in range(start, end):
             marker = " <-- HERE" if j == i else ""
-            print(f"  [{j}]: {repr(raw_data[j])}{marker}")
+            print(f"  [{j}]: {raw_data[j]!r}{marker}")
 
         # The value should be an object
         if i + 1 < len(raw_data):
@@ -66,4 +68,4 @@ decoded = decoder.decode(response.text)
 # Show just the first 20 elements decoded
 if isinstance(decoded, list):
     for i in range(min(20, len(decoded))):
-        print(f"[{i}]: {repr(decoded[i])}")
+        print(f"[{i}]: {decoded[i]!r}")

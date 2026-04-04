@@ -38,8 +38,12 @@ for _mod in _HA_MODULES:
 # Populate commonly referenced attributes on the mock modules
 _const = sys.modules["homeassistant.const"]
 for _attr in (
-    "Platform", "UnitOfLength", "UnitOfMass", "UnitOfPower",
-    "CONF_EMAIL", "CONF_PASSWORD",
+    "Platform",
+    "UnitOfLength",
+    "UnitOfMass",
+    "UnitOfPower",
+    "CONF_EMAIL",
+    "CONF_PASSWORD",
 ):
     setattr(_const, _attr, MagicMock())
 

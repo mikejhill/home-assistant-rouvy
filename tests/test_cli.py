@@ -4,6 +4,8 @@ Tests pure functions from __main__.py without requiring live API access
 or environment variables.
 """
 
+from __future__ import annotations
+
 import os
 from unittest.mock import patch
 
@@ -28,33 +30,33 @@ class TestCoerceValue:
 
     def test_integer_string_becomes_int(self) -> None:
         result = _coerce_value("42")
-        assert result == 42 and isinstance(result, int), (
-            f"Expected int 42, got {result!r} ({type(result).__name__})"
-        )
+        assert result == 42
+        assert isinstance(result, int)
 
     def test_negative_integer_string_becomes_int(self) -> None:
         result = _coerce_value("-5")
-        assert result == -5 and isinstance(result, int), f"Expected int -5, got {result!r}"
+        assert result == -5
+        assert isinstance(result, int)
 
     def test_float_string_becomes_float(self) -> None:
         result = _coerce_value("3.14")
-        assert result == 3.14 and isinstance(result, float), (
-            f"Expected float 3.14, got {result!r} ({type(result).__name__})"
-        )
+        assert result == 3.14
+        assert isinstance(result, float)
 
     def test_plain_string_stays_string(self) -> None:
         result = _coerce_value("METRIC")
-        assert result == "METRIC" and isinstance(result, str), (
-            f"Expected str 'METRIC', got {result!r} ({type(result).__name__})"
-        )
+        assert result == "METRIC"
+        assert isinstance(result, str)
 
     def test_zero_becomes_int(self) -> None:
         result = _coerce_value("0")
-        assert result == 0 and isinstance(result, int), f"Expected int 0, got {result!r}"
+        assert result == 0
+        assert isinstance(result, int)
 
     def test_empty_string_stays_string(self) -> None:
         result = _coerce_value("")
-        assert result == "" and isinstance(result, str), f"Expected empty string, got {result!r}"
+        assert result == ""
+        assert isinstance(result, str)
 
 
 # ===================================================================

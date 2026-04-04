@@ -1,5 +1,7 @@
 """Tests for typed model extraction from sample API responses."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest

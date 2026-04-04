@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""
-Comprehensive example demonstrating the generic turbo-stream parser
-with multiple Rouvy API endpoints.
-"""
+"""Demonstrate the generic turbo-stream parser with multiple Rouvy API endpoints."""
+
+from __future__ import annotations
 
 import logging
 import os

@@ -4,6 +4,8 @@ Tests the value_fn lambdas from sensor descriptions in isolation,
 without requiring Home Assistant. We import only the pure data types.
 """
 
+from __future__ import annotations
+
 from custom_components.rouvy.api_client.models import UserProfile
 
 

@@ -1,5 +1,7 @@
 """Tests for custom exception classes."""
 
+from __future__ import annotations
+
 import pytest
 
 from custom_components.rouvy.api_client.errors import (

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.loader import Integration
@@ -22,4 +22,4 @@ class RouvyData:
     integration: Integration
 
 
-RouvyConfigEntry: TypeAlias = ConfigEntry[RouvyData]
+type RouvyConfigEntry = ConfigEntry[RouvyData]

@@ -5,6 +5,8 @@ Covers TurboStreamDecoder, parse_response, helper functions
 and typed extraction functions with synthetic data.
 """
 
+from __future__ import annotations
+
 import json
 from datetime import datetime
 from typing import Any
@@ -349,8 +351,10 @@ class TestResolveIndex:
         assert result is not None, "Expected non-None result from depth-limited resolution"
 
     def test_simple_value_not_double_resolved(self) -> None:
-        """Regression: value 55 resolved from index should NOT be re-resolved
-        even when 55 itself is a valid index."""
+        """Regression: value 55 resolved from index should NOT be re-resolved.
+
+        Even when 55 itself is a valid index, resolution should stop.
+        """
         index_map = {10: 55, 55: "should_not_reach_this"}
         result = _resolve_index(10, index_map)
         assert result == 55, f"Expected 55 (no double-resolution), got {result}"
