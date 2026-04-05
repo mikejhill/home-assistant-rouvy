@@ -176,7 +176,7 @@ class RouvyAsyncApiClient:
             data = json.loads(body)
             if isinstance(data, list) and len(data) > 0:
                 return bool(data[0] == ["SingleFetchRedirect", 1])
-        except ValueError, TypeError, IndexError:
+        except (ValueError, TypeError, IndexError):
             pass
         return False
 
