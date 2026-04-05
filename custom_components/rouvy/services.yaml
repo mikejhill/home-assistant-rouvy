@@ -42,6 +42,117 @@ update_settings:
       selector:
         object:
 
+update_profile:
+  name: Update Profile
+  description: Update profile identity fields in Rouvy.
+  fields:
+    userName:
+      name: Username
+      description: Display username.
+      required: false
+      example: "MyRider"
+      selector:
+        text:
+    firstName:
+      name: First Name
+      description: First name shown on profile.
+      required: false
+      example: "John"
+      selector:
+        text:
+    team:
+      name: Team
+      description: Team name.
+      required: false
+      example: "Weekend Warriors"
+      selector:
+        text:
+    accountPrivacy:
+      name: Account Privacy
+      description: Account visibility (PUBLIC or PRIVATE).
+      required: false
+      example: "PUBLIC"
+      selector:
+        select:
+          options:
+            - "PUBLIC"
+            - "PRIVATE"
+
+update_units:
+  name: Update Units
+  description: Switch between metric and imperial unit systems.
+  fields:
+    units:
+      name: Units
+      description: Unit system preference.
+      required: true
+      example: "METRIC"
+      selector:
+        select:
+          options:
+            - "METRIC"
+            - "IMPERIAL"
+
+update_timezone:
+  name: Update Timezone
+  description: Update the user's timezone in Rouvy.
+  fields:
+    timezone:
+      name: Timezone
+      description: IANA timezone identifier.
+      required: true
+      example: "America/New_York"
+      selector:
+        text:
+
+update_ftp:
+  name: Update FTP
+  description: Update FTP value and source (manual or estimated).
+  fields:
+    ftp_source:
+      name: FTP Source
+      description: How FTP is determined.
+      required: true
+      example: "MANUAL"
+      selector:
+        select:
+          options:
+            - "MANUAL"
+            - "ESTIMATED"
+    value:
+      name: FTP Value
+      description: FTP power in watts (required when source is MANUAL).
+      required: false
+      example: 250
+      selector:
+        number:
+          min: 50
+          max: 500
+          step: 1
+          unit_of_measurement: W
+
+update_zones:
+  name: Update Zones
+  description: Update power or heart rate zone boundaries.
+  fields:
+    zone_type:
+      name: Zone Type
+      description: Type of zone to update.
+      required: true
+      example: "power"
+      selector:
+        select:
+          options:
+            - "power"
+            - "heartRate"
+    zones:
+      name: Zones
+      description: Zone boundary percentages as a list of integers.
+      required: true
+      example: "[55, 75, 90, 105, 120, 150]"
+      selector:
+        object:
+
 register_challenge:
   name: Register Challenge
   description: Register for a Rouvy challenge by its slug.
@@ -77,3 +188,27 @@ unregister_event:
       example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
       selector:
         text:
+
+get_profile:
+  name: Get Profile
+  description: Query the current user profile from Rouvy. Returns full profile data.
+
+get_events:
+  name: Get Events
+  description: Query upcoming events from Rouvy. Returns a list of events.
+
+get_challenges:
+  name: Get Challenges
+  description: Query available challenges from Rouvy. Returns a list of challenges.
+
+get_routes:
+  name: Get Routes
+  description: Query favorite routes from Rouvy. Returns a list of routes.
+
+get_activities:
+  name: Get Activities
+  description: Query recent activities from Rouvy. Returns a list of activities.
+
+get_career:
+  name: Get Career
+  description: Query career stats from Rouvy. Returns career progression data.

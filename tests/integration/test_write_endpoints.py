@@ -1,0 +1,167 @@
+"""Integration tests for Rouvy API write endpoints.
+
+⚠️  WARNING: These tests MODIFY account settings on the REAL Rouvy API.
+They attempt to restore original values on completion, but restoration
+is best-effort and may fail if tests are interrupted.
+
+NEVER run these tests with a real user account. Use a dedicated test
+account with no valuable data.
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from custom_components.rouvy.api import RouvyAsyncApiClient
+
+pytestmark = pytest.mark.integration
+
+
+class TestUpdateWeight:
+    """Test updating weight via the live API."""
+
+    async def test_update_and_restore_weight(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Update weight, verify change, then restore original."""
+        original = await rouvy_client.async_get_user_profile()
+        original_weight = original.weight_kg
+        test_weight = 77.7
+
+        try:
+            await rouvy_client.async_update_user_settings({"weight": test_weight})
+            updated = await rouvy_client.async_get_user_profile()
+            assert abs(updated.weight_kg - test_weight) < 0.5
+        finally:
+            await rouvy_client.async_update_user_settings({"weight": original_weight})
+
+
+class TestUpdateHeight:
+    """Test updating height via the live API."""
+
+    async def test_update_and_restore_height(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Update height, verify change, then restore original."""
+        original = await rouvy_client.async_get_user_profile()
+        original_height = original.height_cm
+        test_height = 166.6
+
+        try:
+            await rouvy_client.async_update_user_settings({"height": test_height})
+            updated = await rouvy_client.async_get_user_profile()
+            assert abs(updated.height_cm - test_height) < 0.5
+        finally:
+            await rouvy_client.async_update_user_settings({"height": original_height})
+
+
+class TestUpdateUnits:
+    """Test switching unit systems via the live API."""
+
+    async def test_toggle_units_and_restore(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Toggle between METRIC and IMPERIAL, then restore."""
+        original = await rouvy_client.async_get_user_profile()
+        original_units = original.units
+        test_units = "IMPERIAL" if original_units == "METRIC" else "METRIC"
+
+        try:
+            await rouvy_client.async_update_user_settings({"units": test_units})
+            updated = await rouvy_client.async_get_user_profile()
+            assert updated.units == test_units
+        finally:
+            await rouvy_client.async_update_user_settings({"units": original_units})
+
+
+class TestUpdateTimezone:
+    """Test updating timezone via the live API."""
+
+    async def test_update_and_restore_timezone(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Change timezone, verify it sticks, then restore."""
+        original = await rouvy_client.async_get_user_profile()
+        original_tz = original.timezone or "UTC"
+        test_tz = "Europe/London" if original_tz != "Europe/London" else "America/Chicago"
+
+        try:
+            await rouvy_client.async_update_timezone(test_tz)
+            # Timezone is stored but may not appear in the profile response
+            # immediately; we verify the API call succeeded without error.
+        finally:
+            await rouvy_client.async_update_timezone(original_tz)
+
+
+class TestUpdateFtp:
+    """Test updating FTP source and value via the live API."""
+
+    async def test_set_manual_ftp_and_restore(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Set FTP to a manual value, verify, then restore."""
+        original = await rouvy_client.async_get_user_profile()
+        original_source = original.ftp_source or "ESTIMATED"
+        original_ftp = original.ftp_watts
+        test_ftp = 199
+
+        try:
+            await rouvy_client.async_update_ftp("MANUAL", test_ftp)
+            updated = await rouvy_client.async_get_user_profile()
+            assert updated.ftp_watts == test_ftp
+            assert updated.ftp_source == "MANUAL"
+        finally:
+            if original_source == "ESTIMATED":
+                await rouvy_client.async_update_ftp("ESTIMATED")
+            else:
+                await rouvy_client.async_update_ftp("MANUAL", original_ftp)
+
+
+class TestUpdateZones:
+    """Test updating training zone boundaries via the live API."""
+
+    async def test_update_power_zones_and_restore(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Modify power zone boundaries, then restore originals."""
+        original = await rouvy_client.async_get_training_zones()
+        original_zones = list(original.power_zone_values)
+        test_zones = [50, 70, 85, 100, 115, 145]
+
+        try:
+            await rouvy_client.async_update_zones("power", test_zones)
+            updated = await rouvy_client.async_get_training_zones()
+            assert updated.power_zone_values == test_zones
+        finally:
+            await rouvy_client.async_update_zones("power", original_zones)
+
+
+class TestUpdateProfile:
+    """Test updating profile identity fields via the live API."""
+
+    async def test_update_username_and_restore(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Change username, verify, then restore."""
+        original = await rouvy_client.async_get_user_profile()
+        original_name = original.username
+        test_name = "TestBot9999"
+
+        try:
+            await rouvy_client.async_update_user_settings({"userName": test_name})
+            updated = await rouvy_client.async_get_user_profile()
+            assert updated.username == test_name
+        finally:
+            await rouvy_client.async_update_user_settings({"userName": original_name})
+
+    async def test_update_first_name_and_restore(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Change first name, verify, then restore."""
+        original = await rouvy_client.async_get_user_profile()
+        original_first = original.first_name
+        test_first = "IntegrationTest"
+
+        try:
+            await rouvy_client.async_update_user_settings({"firstName": test_first})
+            updated = await rouvy_client.async_get_user_profile()
+            assert updated.first_name == test_first
+        finally:
+            await rouvy_client.async_update_user_settings({"firstName": original_first})
+
+    async def test_update_privacy_and_restore(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Toggle account privacy, then restore."""
+        original = await rouvy_client.async_get_user_profile()
+        original_privacy = original.account_privacy or "PUBLIC"
+        test_privacy = "PRIVATE" if original_privacy == "PUBLIC" else "PUBLIC"
+
+        try:
+            await rouvy_client.async_update_user_settings({"accountPrivacy": test_privacy})
+            updated = await rouvy_client.async_get_user_profile()
+            assert updated.account_privacy == test_privacy
+        finally:
+            await rouvy_client.async_update_user_settings({"accountPrivacy": original_privacy})

@@ -335,9 +335,7 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=1,
-        value_fn=lambda d: (
-            round(d.career.total_time_seconds / 3600, 1) if d.career else None
-        ),
+        value_fn=lambda d: round(d.career.total_time_seconds / 3600, 1) if d.career else None,
     ),
     RouvySensorDescription(
         key="career_total_activities",

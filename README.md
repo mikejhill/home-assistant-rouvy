@@ -9,7 +9,7 @@
 
 A custom [Home Assistant](https://www.home-assistant.io/) integration for
 the [Rouvy](https://rouvy.com/) indoor cycling platform, installable via
-[HACS](https://hacs.xyz/). Exposes 41 sensors and 6 services covering your
+[HACS](https://hacs.xyz/). Exposes 41 sensors and 17 services covering your
 Rouvy profile, activity history, training zones, challenges, routes, events,
 career progress, and social data.
 
@@ -126,14 +126,40 @@ Current-week ride totals, refreshed each update cycle.
 
 ## Services
 
+### Update Services
+
 | Service | Parameters | Description |
 | --- | --- | --- |
-| `rouvy.update_weight` | `weight` (kg) | Update body weight in Rouvy |
-| `rouvy.update_height` | `height` (cm) | Update height in Rouvy |
-| `rouvy.update_settings` | `settings` (object) | Update arbitrary profile settings |
+| `rouvy.update_weight` | `weight` (kg) | Update body weight |
+| `rouvy.update_height` | `height` (cm) | Update height |
+| `rouvy.update_units` | `units` (METRIC/IMPERIAL) | Switch unit system |
+| `rouvy.update_profile` | `userName`, `firstName`, `team`, `accountPrivacy` | Update profile fields |
+| `rouvy.update_timezone` | `timezone` (IANA) | Update timezone |
+| `rouvy.update_ftp` | `ftp_source` (MANUAL/ESTIMATED), `value` (W) | Update FTP source and value |
+| `rouvy.update_zones` | `zone_type` (power/heartRate), `zones` (list) | Update zone boundaries |
+| `rouvy.update_settings` | `settings` (object) | Update arbitrary settings |
+
+### Action Services
+
+| Service | Parameters | Description |
+| --- | --- | --- |
 | `rouvy.register_challenge` | `slug` | Register for a challenge |
 | `rouvy.register_event` | `event_id` (UUID) | Register for an event |
 | `rouvy.unregister_event` | `event_id` (UUID) | Unregister from an event |
+
+### Query Services
+
+These services return data and can be used in automations via
+`response_variable`.
+
+| Service | Returns | Description |
+| --- | --- | --- |
+| `rouvy.get_profile` | `{profile: {...}}` | Full user profile |
+| `rouvy.get_events` | `{events: [...]}` | Upcoming events |
+| `rouvy.get_challenges` | `{challenges: [...]}` | Available challenges |
+| `rouvy.get_routes` | `{routes: [...]}` | Favorite routes |
+| `rouvy.get_activities` | `{activities: [...]}` | Recent activities |
+| `rouvy.get_career` | `{career: {...}}` | Career progression stats |
 
 ## Logging
 
@@ -184,10 +210,31 @@ uv run rouvy-api raw user-settings/zones.data  # Raw decoded response
 
 ```bash
 uv sync              # Install all dependencies
-uv run pytest -q     # Run tests (457 tests)
+uv run pytest -q     # Run tests (468 unit tests)
 uv run ruff check .  # Lint
 uv run ruff format . # Format
 ```
+
+### Integration Tests
+
+> **⚠️ Warning:** Integration tests run against the **real** Rouvy API and
+> modify account settings. Use a **dedicated test account** only — never a
+> real user account. Settings are restored on a best-effort basis.
+
+**Local:**
+
+```bash
+export ROUVY_TEST_EMAIL="test@example.com"
+export ROUVY_TEST_PASSWORD="password"
+uv run pytest tests/integration/ -m integration --override-ini='addopts=' -v
+```
+
+**GitHub Actions:** Trigger the **Integration Tests** workflow manually from
+the Actions tab. Configure the following secrets in a `rouvy-test`
+environment:
+
+- `ROUVY_TEST_EMAIL` — Test account email
+- `ROUVY_TEST_PASSWORD` — Test account password
 
 ### Project Structure
 

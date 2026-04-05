@@ -264,10 +264,21 @@ class RouvyAsyncApiClient:
         return False
 
     async def async_update_user_settings(self, updates: dict[str, Any]) -> None:
-        """Update user settings (weight, height, units).
+        """Update user settings.
 
         Fetches current values first to fill required fields, then posts
-        the update.
+        the update.  Supports any user-settings field including:
+
+        - ``weight`` — body weight
+        - ``height`` — body height
+        - ``units`` — "METRIC" or "IMPERIAL"
+        - ``userName`` — display username
+        - ``firstName`` — first name
+        - ``team`` — team name
+        - ``accountPrivacy`` — "PUBLIC" or "PRIVATE"
+
+        Args:
+            updates: Dict of field names to new values.
         """
         from .api_client.parser import extract_user_profile
 
@@ -290,6 +301,92 @@ class RouvyAsyncApiClient:
             headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
         )
         _LOGGER.info("User settings updated")
+
+    async def async_update_timezone(self, timezone: str) -> None:
+        """Update the user's timezone.
+
+        Args:
+            timezone: IANA timezone string (e.g. "America/New_York").
+        """
+        _LOGGER.debug("Updating timezone to %s", timezone)
+        await self._request(
+            "POST",
+            "resources/timezone.data",
+            data={"timezone": timezone, "intent": "update-timezone"},
+            headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+        )
+        _LOGGER.info("Timezone updated to %s", timezone)
+
+    async def async_update_ftp(self, ftp_source: str, value: int | None = None) -> None:
+        """Update FTP (Functional Threshold Power) source and value.
+
+        Fetches current zones first to preserve zone boundaries and get the
+        old FTP value, then posts the update.
+
+        Args:
+            ftp_source: FTP source — "MANUAL" or "ESTIMATED".
+            value: New FTP in watts (required when ftp_source is "MANUAL").
+        """
+        _LOGGER.debug("Updating FTP: source=%s, value=%s", ftp_source, value)
+        current = await self.async_get_training_zones()
+
+        zones_str = "[" + ",".join(str(v) for v in current.power_zone_values) + "]"
+        payload: dict[str, Any] = {
+            "type": "power",
+            "ftpSource": ftp_source,
+            "oldValue": current.ftp_watts,
+            "zones": zones_str,
+        }
+        if ftp_source == "MANUAL":
+            if value is None:
+                msg = "value is required when ftp_source is MANUAL"
+                raise ValueError(msg)
+            payload["value"] = value
+
+        await self._request(
+            "POST",
+            "user-settings/zones.data",
+            data=payload,
+            headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+        )
+        _LOGGER.info("FTP updated: source=%s, value=%s", ftp_source, value)
+
+    async def async_update_zones(self, zone_type: str, zones: list[int]) -> None:
+        """Update training zone boundaries.
+
+        Fetches current zones and user settings first to preserve FTP value
+        and source, then posts the updated zone boundaries.
+
+        Args:
+            zone_type: Zone type — "power" or "heartRate".
+            zones: List of zone boundary percentages
+                (e.g. [55, 75, 90, 105, 120, 150]).
+        """
+        from .api_client.parser import extract_user_profile
+
+        _LOGGER.debug("Updating %s zones: %s", zone_type, zones)
+        current = await self.async_get_training_zones()
+        settings_text = await self._request("GET", "user-settings.data")
+        settings = extract_user_profile(settings_text)
+        ftp_source = settings.get("ftp_source", "ESTIMATED")
+
+        zones_str = "[" + ",".join(str(v) for v in zones) + "]"
+        payload: dict[str, Any] = {
+            "type": zone_type,
+            "ftpSource": ftp_source,
+            "oldValue": current.ftp_watts,
+            "zones": zones_str,
+        }
+        if ftp_source == "MANUAL":
+            payload["value"] = current.ftp_watts
+
+        await self._request(
+            "POST",
+            "user-settings/zones.data",
+            data=payload,
+            headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+        )
+        _LOGGER.info("%s zones updated", zone_type)
 
     async def async_get_favorite_routes(self) -> list[Route]:
         """Fetch routes and return only favorites."""

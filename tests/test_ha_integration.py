@@ -81,6 +81,9 @@ def _mock_client(profile: UserProfile | None = None) -> AsyncMock:
     client.async_unregister_event = AsyncMock(return_value=True)
     client.async_register_challenge = AsyncMock(return_value=True)
     client.async_get_career = AsyncMock(return_value=CareerStats())
+    client.async_update_timezone = AsyncMock()
+    client.async_update_ftp = AsyncMock()
+    client.async_update_zones = AsyncMock()
     return client
 
 
@@ -466,3 +469,106 @@ class TestServices:
             DOMAIN, "unregister_event", {"event_id": "abc-123"}, blocking=True
         )
         client.async_unregister_event.assert_called_once_with("abc-123")
+
+    async def test_update_profile_service(self, hass: HomeAssistant) -> None:
+        """Test update_profile service calls the API with profile fields."""
+        client = await self._setup(hass)
+        await hass.services.async_call(
+            DOMAIN,
+            "update_profile",
+            {"userName": "NewName", "accountPrivacy": "PRIVATE"},
+            blocking=True,
+        )
+        client.async_update_user_settings.assert_called_once_with(
+            {"userName": "NewName", "accountPrivacy": "PRIVATE"}
+        )
+
+    async def test_update_units_service(self, hass: HomeAssistant) -> None:
+        """Test update_units service calls the API."""
+        client = await self._setup(hass)
+        await hass.services.async_call(DOMAIN, "update_units", {"units": "IMPERIAL"}, blocking=True)
+        client.async_update_user_settings.assert_called_once_with({"units": "IMPERIAL"})
+
+    async def test_update_timezone_service(self, hass: HomeAssistant) -> None:
+        """Test update_timezone service calls the API."""
+        client = await self._setup(hass)
+        await hass.services.async_call(
+            DOMAIN, "update_timezone", {"timezone": "America/New_York"}, blocking=True
+        )
+        client.async_update_timezone.assert_called_once_with("America/New_York")
+
+    async def test_update_ftp_service(self, hass: HomeAssistant) -> None:
+        """Test update_ftp service calls the API."""
+        client = await self._setup(hass)
+        await hass.services.async_call(
+            DOMAIN,
+            "update_ftp",
+            {"ftp_source": "MANUAL", "value": 250},
+            blocking=True,
+        )
+        client.async_update_ftp.assert_called_once_with("MANUAL", 250)
+
+    async def test_update_zones_service(self, hass: HomeAssistant) -> None:
+        """Test update_zones service calls the API."""
+        client = await self._setup(hass)
+        await hass.services.async_call(
+            DOMAIN,
+            "update_zones",
+            {"zone_type": "power", "zones": [55, 75, 90, 105, 120, 150]},
+            blocking=True,
+        )
+        client.async_update_zones.assert_called_once_with("power", [55, 75, 90, 105, 120, 150])
+
+    async def test_get_profile_service(self, hass: HomeAssistant) -> None:
+        """Test get_profile service returns profile data."""
+        await self._setup(hass)
+        result = await hass.services.async_call(
+            DOMAIN, "get_profile", {}, blocking=True, return_response=True
+        )
+        assert "profile" in result
+        assert result["profile"]["email"] == "test@example.com"
+
+    async def test_get_events_service(self, hass: HomeAssistant) -> None:
+        """Test get_events service returns events list."""
+        await self._setup(hass)
+        result = await hass.services.async_call(
+            DOMAIN, "get_events", {}, blocking=True, return_response=True
+        )
+        assert "events" in result
+        assert isinstance(result["events"], list)
+
+    async def test_get_challenges_service(self, hass: HomeAssistant) -> None:
+        """Test get_challenges service returns challenges list."""
+        await self._setup(hass)
+        result = await hass.services.async_call(
+            DOMAIN, "get_challenges", {}, blocking=True, return_response=True
+        )
+        assert "challenges" in result
+        assert isinstance(result["challenges"], list)
+
+    async def test_get_routes_service(self, hass: HomeAssistant) -> None:
+        """Test get_routes service returns routes list."""
+        await self._setup(hass)
+        result = await hass.services.async_call(
+            DOMAIN, "get_routes", {}, blocking=True, return_response=True
+        )
+        assert "routes" in result
+        assert isinstance(result["routes"], list)
+
+    async def test_get_activities_service(self, hass: HomeAssistant) -> None:
+        """Test get_activities service returns activities list."""
+        await self._setup(hass)
+        result = await hass.services.async_call(
+            DOMAIN, "get_activities", {}, blocking=True, return_response=True
+        )
+        assert "activities" in result
+        assert isinstance(result["activities"], list)
+
+    async def test_get_career_service(self, hass: HomeAssistant) -> None:
+        """Test get_career service returns career data."""
+        await self._setup(hass)
+        result = await hass.services.async_call(
+            DOMAIN, "get_career", {}, blocking=True, return_response=True
+        )
+        assert "career" in result
+        assert "level" in result["career"]

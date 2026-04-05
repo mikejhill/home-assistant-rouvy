@@ -1,0 +1,36 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_filter:
+        description: "Pytest filter expression (e.g., 'TestReadProfile' or 'test_update_weight')"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-tests
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: rouvy-test
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --group dev
+
+      - name: Run integration tests
+        env:
+          ROUVY_TEST_EMAIL: ${{ secrets.ROUVY_TEST_EMAIL }}
+          ROUVY_TEST_PASSWORD: ${{ secrets.ROUVY_TEST_PASSWORD }}
+        run: >-
+          uv run pytest tests/integration/ -m integration
+          --override-ini='addopts='
+          -v --tb=short
+          ${{ inputs.test_filter && format('-k "{0}"', inputs.test_filter) || '' }}
