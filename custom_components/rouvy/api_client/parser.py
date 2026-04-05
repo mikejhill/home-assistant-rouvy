@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from .models import (
         ActivitySummary,
         ActivityTypeStats,
+        Challenge,
         ConnectedApp,
         TrainingZones,
         UserProfile,
@@ -308,6 +309,8 @@ def _resolve_index(value: Any, index_map: dict[int, Any], depth: int = 0) -> Any
     the index map are returned directly without further resolution.
     """
     if depth > 6:
+        return value
+    if isinstance(value, bool):
         return value
     if isinstance(value, int):
         if value == -5 or value == -7:
@@ -608,3 +611,51 @@ def _parse_activity_type_stats(raw: Any) -> ActivityTypeStats:
         training_score=_safe_float(raw.get("trainingScore", 0)),
         activity_count=_safe_int(raw.get("activityCount", 0)),
     )
+
+
+def extract_challenges_model(response_text: str) -> list[Challenge]:
+    """Extract typed Challenge list from a challenges/status/available.data response.
+
+    The response is a turbo-stream flat list containing a "challenges" key
+    whose value is a list of challenge dicts.
+    """
+    from .models import Challenge
+
+    decoder = TurboStreamDecoder()
+    decoded = decoder.decode(response_text)
+    array_data: list[Any] = decoded if isinstance(decoded, list) else []
+
+    challenges: list[Challenge] = []
+    raw_list = _find_key_value(array_data, "challenges")
+    if not isinstance(raw_list, list):
+        return challenges
+
+    for item in raw_list:
+        resolved = _resolve_index(item, decoder.index_map)
+        if not isinstance(resolved, dict):
+            continue
+
+        raw_segments = resolved.get("segments")
+        segments: list[Any] = raw_segments if isinstance(raw_segments, list) else []
+
+        challenges.append(
+            Challenge(
+                id=_safe_str(resolved.get("id")),
+                user_status=_safe_str(resolved.get("userStatus")),
+                state=_safe_str(resolved.get("state")),
+                registered_count=_safe_int(resolved.get("registeredCount", 0)),
+                registered=bool(resolved.get("registered", False)),
+                title=_safe_str(resolved.get("title")),
+                logo=_safe_str(resolved.get("logo")),
+                experience=_safe_int(resolved.get("experience", 0)),
+                coins=_safe_int(resolved.get("coins", 0)),
+                start_date_time=_safe_str(resolved.get("startDateTime")),
+                end_date_time=_safe_str(resolved.get("endDateTime")),
+                is_past=bool(resolved.get("isPast", False)),
+                is_upcoming=bool(resolved.get("isUpcoming", False)),
+                is_done=bool(resolved.get("isDone", False)),
+                segments=segments,
+            )
+        )
+
+    return challenges

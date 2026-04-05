@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from custom_components.rouvy.api_client.models import (
     ActivityTypeStats,
+    Challenge,
     RouvyCoordinatorData,
     UserProfile,
     WeeklyActivityStats,
@@ -273,3 +274,113 @@ class TestWeeklyTrainingScoreSensor:
 
         desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "weekly_training_score")
         assert desc.value_fn(d) == 65
+
+
+# ===================================================================
+# Challenge sensor helpers
+# ===================================================================
+
+
+def _make_challenge(**overrides: object) -> Challenge:
+    """Create a Challenge with sensible defaults, overriding specific fields."""
+    defaults = dict(
+        id="test-challenge",
+        user_status="joined",
+        state="active",
+        registered_count=100,
+        registered=True,
+        title="Test Challenge",
+        logo="",
+        experience=500,
+        coins=100,
+        start_date_time="2026-03-01T00:00:00Z",
+        end_date_time="2026-04-01T00:00:00Z",
+        is_past=False,
+        is_upcoming=False,
+        is_done=False,
+        segments=[],
+    )
+    defaults.update(overrides)
+    return Challenge(**defaults)
+
+
+def _make_data_with_challenges(
+    *challenges_list: Challenge,
+) -> RouvyCoordinatorData:
+    return RouvyCoordinatorData(
+        profile=_make_profile(),
+        challenges=list(challenges_list),
+    )
+
+
+class TestChallengeCounts:
+    """Verify _challenge_counts helper and challenge sensor value_fns."""
+
+    def test_active_count(self) -> None:
+        from custom_components.rouvy.sensor import _challenge_counts
+
+        d = _make_data_with_challenges(
+            _make_challenge(id="c1", registered=True, is_done=False),
+            _make_challenge(id="c2", registered=True, is_done=True),
+            _make_challenge(id="c3", registered=False, is_done=False),
+        )
+        counts = _challenge_counts(d)
+        assert counts is not None
+        assert counts[0] == 1  # active
+        assert counts[1] == 1  # completed
+
+    def test_no_challenges_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import _challenge_counts
+
+        d = RouvyCoordinatorData(profile=_make_profile())
+        assert _challenge_counts(d) is None
+
+    def test_empty_challenges_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import _challenge_counts
+
+        d = RouvyCoordinatorData(profile=_make_profile(), challenges=[])
+        assert _challenge_counts(d) is None
+
+
+class TestActiveChallengesSensor:
+    """Verify active_challenges sensor value extraction."""
+
+    def test_returns_active_count(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_challenges(
+            _make_challenge(id="c1", registered=True, is_done=False),
+            _make_challenge(id="c2", registered=True, is_done=False),
+            _make_challenge(id="c3", registered=True, is_done=True),
+        )
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "active_challenges")
+        assert desc.value_fn(d) == 2
+
+    def test_returns_none_when_no_challenges(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = RouvyCoordinatorData(profile=_make_profile())
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "active_challenges")
+        assert desc.value_fn(d) is None
+
+
+class TestCompletedChallengesSensor:
+    """Verify completed_challenges sensor value extraction."""
+
+    def test_returns_completed_count(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_challenges(
+            _make_challenge(id="c1", registered=True, is_done=True),
+            _make_challenge(id="c2", registered=True, is_done=True),
+            _make_challenge(id="c3", registered=True, is_done=False),
+        )
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "completed_challenges")
+        assert desc.value_fn(d) == 2
+
+    def test_returns_none_when_no_challenges(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = RouvyCoordinatorData(profile=_make_profile())
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "completed_challenges")
+        assert desc.value_fn(d) is None

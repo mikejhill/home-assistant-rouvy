@@ -109,6 +109,27 @@ class WeeklyActivityStats:
 
 
 @dataclass(frozen=True)
+class Challenge:
+    """A Rouvy challenge from the challenges/status/available endpoint."""
+
+    id: str = ""
+    user_status: str = ""
+    state: str = ""
+    registered_count: int = 0
+    registered: bool = False
+    title: str = ""
+    logo: str = ""
+    experience: int = 0
+    coins: int = 0
+    start_date_time: str = ""
+    end_date_time: str = ""
+    is_past: bool = False
+    is_upcoming: bool = False
+    is_done: bool = False
+    segments: list = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class RouvyCoordinatorData:
     """Composite data object held by the coordinator.
 
@@ -119,3 +140,4 @@ class RouvyCoordinatorData:
 
     profile: UserProfile = field(default_factory=UserProfile)
     activity_stats: list[WeeklyActivityStats] = field(default_factory=list)
+    challenges: list[Challenge] = field(default_factory=list)

@@ -41,7 +41,9 @@
       "weekly_calories": { "name": "Weekly Calories" },
       "weekly_ride_time": { "name": "Weekly Ride Time" },
       "weekly_ride_count": { "name": "Weekly Ride Count" },
-      "weekly_training_score": { "name": "Weekly Training Score" }
+      "weekly_training_score": { "name": "Weekly Training Score" },
+      "active_challenges": { "name": "Active Challenges" },
+      "completed_challenges": { "name": "Completed Challenges" }
     }
   }
 }

@@ -16,6 +16,7 @@ import aiohttp
 from .api_client.errors import AuthenticationError, RouvyApiError
 from .api_client.models import (
     ActivitySummary,
+    Challenge,
     ConnectedApp,
     TrainingZones,
     UserProfile,
@@ -24,6 +25,7 @@ from .api_client.models import (
 from .api_client.parser import (
     extract_activities_model,
     extract_activity_stats_model,
+    extract_challenges_model,
     extract_connected_apps_model,
     extract_training_zones_model,
     extract_user_profile_model,
@@ -219,6 +221,29 @@ class RouvyAsyncApiClient:
             headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
         )
         return extract_activity_stats_model(text)
+
+    async def async_get_challenges(self) -> list[Challenge]:
+        """Fetch available challenges."""
+        text = await self._request("GET", "challenges/status/available.data")
+        return extract_challenges_model(text)
+
+    async def async_register_challenge(self, slug: str) -> bool:
+        """Register for a challenge by slug. Returns True on success."""
+        import json as _json
+
+        text = await self._request(
+            "POST",
+            f"challenges/{slug}.data",
+            data={"intent": "register"},
+            headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+        )
+        try:
+            result = _json.loads(text)
+            if isinstance(result, dict):
+                return bool(result.get("ok", False))
+        except ValueError, TypeError:
+            pass
+        return False
 
     async def async_update_user_settings(self, updates: dict[str, Any]) -> None:
         """Update user settings (weight, height, units).

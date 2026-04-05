@@ -1015,3 +1015,107 @@ class TestExtractActivityStats:
         assert result[0].workout.distance_m == 0.0
         assert result[0].event.activity_count == 0
         assert result[0].outdoor.training_score == 0.0
+
+
+# ===================================================================
+# extract_challenges_model
+# ===================================================================
+
+
+def _build_challenges_response(
+    challenges: list[dict[str, Any]] | None = None,
+) -> str:
+    """Build a synthetic turbo-stream response for challenges/status/available.data."""
+    if challenges is None:
+        challenges = [
+            {
+                "id": "spring-classic-2026",
+                "userStatus": "joined",
+                "state": "active",
+                "registeredCount": 1500,
+                "registered": True,
+                "title": "Spring Classic 2026",
+                "logo": "https://rouvy.com/logo.png",
+                "experience": 500,
+                "coins": 100,
+                "startDateTime": "2026-03-01T00:00:00Z",
+                "endDateTime": "2026-04-01T00:00:00Z",
+                "isPast": False,
+                "isUpcoming": False,
+                "isDone": False,
+                "segments": [{"id": "seg1"}],
+            },
+            {
+                "id": "winter-grind-2025",
+                "userStatus": "completed",
+                "state": "finished",
+                "registeredCount": 3000,
+                "registered": True,
+                "title": "Winter Grind 2025",
+                "logo": "https://rouvy.com/winter.png",
+                "experience": 1000,
+                "coins": 200,
+                "startDateTime": "2025-12-01T00:00:00Z",
+                "endDateTime": "2026-01-01T00:00:00Z",
+                "isPast": True,
+                "isUpcoming": False,
+                "isDone": True,
+                "segments": [],
+            },
+        ]
+    return json.dumps(["challenges", challenges])
+
+
+class TestExtractChallengesModel:
+    """Verify extract_challenges_model with synthetic data."""
+
+    def test_happy_path_returns_challenges(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_challenges_model
+
+        result = extract_challenges_model(_build_challenges_response())
+        assert len(result) == 2
+        assert result[0].id == "spring-classic-2026"
+        assert result[0].user_status == "joined"
+        assert result[0].registered is True
+        assert result[0].is_done is False
+        assert result[0].experience == 500
+        assert result[0].coins == 100
+        assert result[0].title == "Spring Classic 2026"
+        assert result[0].registered_count == 1500
+        assert result[0].segments == [{"id": "seg1"}]
+
+    def test_completed_challenge_fields(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_challenges_model
+
+        result = extract_challenges_model(_build_challenges_response())
+        assert result[1].id == "winter-grind-2025"
+        assert result[1].is_done is True
+        assert result[1].is_past is True
+        assert result[1].experience == 1000
+
+    def test_empty_challenges_list(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_challenges_model
+
+        result = extract_challenges_model(_build_challenges_response(challenges=[]))
+        assert result == []
+
+    def test_no_challenges_key_returns_empty(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_challenges_model
+
+        result = extract_challenges_model(json.dumps(["other_key", []]))
+        assert result == []
+
+    def test_missing_fields_use_defaults(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_challenges_model
+
+        result = extract_challenges_model(
+            _build_challenges_response(challenges=[{"id": "minimal"}])
+        )
+        assert len(result) == 1
+        assert result[0].id == "minimal"
+        assert result[0].user_status == ""
+        assert result[0].registered is False
+        assert result[0].is_done is False
+        assert result[0].experience == 0
+        assert result[0].coins == 0
+        assert result[0].segments == []

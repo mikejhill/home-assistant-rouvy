@@ -60,9 +60,20 @@ class RouvyDataUpdateCoordinator(DataUpdateCoordinator[RouvyCoordinatorData]):
             except Exception:
                 _LOGGER.debug("Failed to fetch activity stats, continuing without", exc_info=True)
 
+            # Fetch challenges
+            challenges: list = []
+            try:
+                challenges = await client.async_get_challenges()
+            except Exception:
+                _LOGGER.debug("Failed to fetch challenges, continuing without", exc_info=True)
+
             self._consecutive_auth_failures = 0
             _LOGGER.debug("Coordinator update successful")
-            return RouvyCoordinatorData(profile=profile, activity_stats=activity_stats)
+            return RouvyCoordinatorData(
+                profile=profile,
+                activity_stats=activity_stats,
+                challenges=challenges,
+            )
         except AuthenticationError as err:
             self._consecutive_auth_failures += 1
             _LOGGER.warning(

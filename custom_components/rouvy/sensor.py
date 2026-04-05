@@ -39,6 +39,15 @@ def _current_week_ride_stats(data: RouvyCoordinatorData) -> ActivityTypeStats | 
     return data.activity_stats[0].ride
 
 
+def _challenge_counts(data: RouvyCoordinatorData) -> tuple[int, int] | None:
+    """Return (active, completed) challenge counts, or None if no data."""
+    if not data.challenges:
+        return None
+    active = sum(1 for c in data.challenges if c.registered and not c.is_done)
+    completed = sum(1 for c in data.challenges if c.is_done)
+    return active, completed
+
+
 @dataclass(frozen=True, kw_only=True)
 class RouvySensorDescription(SensorEntityDescription):
     """Describe a Rouvy sensor."""
@@ -145,6 +154,19 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=0,
         value_fn=lambda d: round(s.training_score) if (s := _current_week_ride_stats(d)) else None,
+    ),
+    # Challenge sensors
+    RouvySensorDescription(
+        key="active_challenges",
+        translation_key="active_challenges",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: counts[0] if (counts := _challenge_counts(d)) else None,
+    ),
+    RouvySensorDescription(
+        key="completed_challenges",
+        translation_key="completed_challenges",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: counts[1] if (counts := _challenge_counts(d)) else None,
     ),
 )
 

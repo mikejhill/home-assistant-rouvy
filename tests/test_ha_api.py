@@ -491,3 +491,100 @@ class TestAsyncGetActivityStats:
         client = self._pre_auth_client(session)
         stats = await client.async_get_activity_stats(2026, 4)
         assert stats == [], f"Expected empty list, got {stats}"
+
+
+# ===================================================================
+# async_get_challenges
+# ===================================================================
+
+
+class TestAsyncGetChallenges:
+    """Verify async challenge fetching."""
+
+    @staticmethod
+    def _pre_auth_client(session: MagicMock) -> RouvyAsyncApiClient:
+        client = RouvyAsyncApiClient("u@e.com", "pw", session)
+        client._authenticated = True
+        return client
+
+    @pytest.mark.asyncio
+    async def test_returns_challenge_list(self) -> None:
+        from custom_components.rouvy.api_client.models import Challenge
+
+        turbo = json.dumps(
+            [
+                "challenges",
+                [
+                    {
+                        "id": "spring-2026",
+                        "userStatus": "joined",
+                        "state": "active",
+                        "registeredCount": 500,
+                        "registered": True,
+                        "title": "Spring 2026",
+                        "logo": "",
+                        "experience": 300,
+                        "coins": 50,
+                        "startDateTime": "2026-03-01T00:00:00Z",
+                        "endDateTime": "2026-04-01T00:00:00Z",
+                        "isPast": False,
+                        "isUpcoming": False,
+                        "isDone": False,
+                        "segments": [],
+                    }
+                ],
+            ]
+        )
+        session = _make_session(_FakeResponse(200, body=turbo))
+        client = self._pre_auth_client(session)
+        challenges = await client.async_get_challenges()
+        assert len(challenges) == 1
+        assert isinstance(challenges[0], Challenge)
+        assert challenges[0].id == "spring-2026"
+        assert challenges[0].registered is True
+
+    @pytest.mark.asyncio
+    async def test_empty_response_returns_empty_list(self) -> None:
+        turbo = json.dumps(["challenges", []])
+        session = _make_session(_FakeResponse(200, body=turbo))
+        client = self._pre_auth_client(session)
+        challenges = await client.async_get_challenges()
+        assert challenges == []
+
+
+# ===================================================================
+# async_register_challenge
+# ===================================================================
+
+
+class TestAsyncRegisterChallenge:
+    """Verify async challenge registration."""
+
+    @staticmethod
+    def _pre_auth_client(session: MagicMock) -> RouvyAsyncApiClient:
+        client = RouvyAsyncApiClient("u@e.com", "pw", session)
+        client._authenticated = True
+        return client
+
+    @pytest.mark.asyncio
+    async def test_successful_registration_returns_true(self) -> None:
+        body = json.dumps({"ok": True, "error": None})
+        session = _make_session(_FakeResponse(200, body=body))
+        client = self._pre_auth_client(session)
+        result = await client.async_register_challenge("spring-2026")
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_failed_registration_returns_false(self) -> None:
+        body = json.dumps({"ok": False, "error": "already_registered"})
+        session = _make_session(_FakeResponse(200, body=body))
+        client = self._pre_auth_client(session)
+        result = await client.async_register_challenge("spring-2026")
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_non_json_response_returns_false(self) -> None:
+        session = _make_session(_FakeResponse(200, body="not json"))
+        client = self._pre_auth_client(session)
+        result = await client.async_register_challenge("spring-2026")
+        assert result is False
