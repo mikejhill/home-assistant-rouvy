@@ -1122,6 +1122,7 @@ class TestExtractChallengesModel:
 
 
 # ===================================================================
+# ===================================================================
 # extract_routes_model
 # ===================================================================
 
@@ -1447,3 +1448,85 @@ class TestExtractCareer:
         assert result.level == 5
         assert result.coins == 0
         assert result.total_distance_m == 0.0
+
+
+# ===================================================================
+# extract_friends_model
+# ===================================================================
+
+
+def _build_friends_response(
+    friends: list[dict[str, Any]] | None = None,
+    key: str = "friends",
+) -> str:
+    """Build a synthetic turbo-stream response for friends.data."""
+    if friends is None:
+        friends = [
+            {"name": "Alice", "status": "online"},
+            {"name": "Bob", "status": "offline"},
+            {"name": "Charlie", "online": True},
+        ]
+    return json.dumps([key, friends])
+
+
+class TestExtractFriends:
+    """Verify extract_friends_model with synthetic data."""
+
+    def test_counts_total_friends(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_friends_model
+
+        result = extract_friends_model(_build_friends_response())
+        assert result.total_friends == 3
+
+    def test_counts_online_friends(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_friends_model
+
+        result = extract_friends_model(_build_friends_response())
+        assert result.online_friends == 2
+
+    def test_empty_list_returns_zero(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_friends_model
+
+        result = extract_friends_model(_build_friends_response(friends=[]))
+        assert result.total_friends == 0
+        assert result.online_friends == 0
+
+    def test_empty_response_returns_default(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_friends_model
+
+        result = extract_friends_model("")
+        assert result.total_friends == 0
+        assert result.online_friends == 0
+
+    def test_no_friends_key_returns_default(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_friends_model
+
+        result = extract_friends_model(json.dumps(["other_key", []]))
+        assert result.total_friends == 0
+        assert result.online_friends == 0
+
+    def test_friend_list_key_variant(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_friends_model
+
+        friends = [{"name": "X", "status": "online"}]
+        result = extract_friends_model(_build_friends_response(friends=friends, key="friendList"))
+        assert result.total_friends == 1
+        assert result.online_friends == 1
+
+    def test_active_status_counted_as_online(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_friends_model
+
+        friends = [{"name": "D", "status": "active"}]
+        result = extract_friends_model(_build_friends_response(friends=friends))
+        assert result.online_friends == 1
+
+    def test_all_offline(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_friends_model
+
+        friends = [
+            {"name": "A", "status": "offline"},
+            {"name": "B", "status": "away"},
+        ]
+        result = extract_friends_model(_build_friends_response(friends=friends))
+        assert result.total_friends == 2
+        assert result.online_friends == 0

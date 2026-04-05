@@ -304,6 +304,19 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
             else None
         ),
     ),
+    # Friends sensors
+    RouvySensorDescription(
+        key="friends_count",
+        translation_key="friends_count",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: d.friends.total_friends if d.friends else None,
+    ),
+    RouvySensorDescription(
+        key="friends_online",
+        translation_key="friends_online",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: d.friends.online_friends if d.friends else None,
+    ),
 )
 
 

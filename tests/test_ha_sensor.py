@@ -13,6 +13,7 @@ from custom_components.rouvy.api_client.models import (
     Challenge,
     ConnectedApp,
     Event,
+    FriendsSummary,
     Route,
     RouvyCoordinatorData,
     TrainingZones,
@@ -530,6 +531,7 @@ class TestConnectedAppsActiveSensor:
 
 # ===================================================================
 # ===================================================================
+# ===================================================================
 # Activity summary sensor helpers
 # ===================================================================
 
@@ -949,3 +951,65 @@ class TestCareerTotalDistanceSensor:
         d = _make_data_with_career(None)
         desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_total_distance")
         assert desc.value_fn(d) is None
+
+
+# ===================================================================
+# Friends sensor helpers
+# ===================================================================
+
+
+def _make_data_with_friends(
+    friends: FriendsSummary | None = None,
+) -> RouvyCoordinatorData:
+    """Create coordinator data with friends summary."""
+    return RouvyCoordinatorData(profile=_make_profile(), friends=friends)
+
+
+class TestFriendsCountSensor:
+    """Verify friends_count sensor value extraction."""
+
+    def test_returns_total(self) -> None:
+        d = _make_data_with_friends(FriendsSummary(total_friends=42, online_friends=5))
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "friends_count")
+        assert desc.value_fn(d) == 42
+
+    def test_none_friends_returns_none(self) -> None:
+        d = _make_data_with_friends(None)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "friends_count")
+        assert desc.value_fn(d) is None
+
+    def test_zero_friends(self) -> None:
+        d = _make_data_with_friends(FriendsSummary())
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "friends_count")
+        assert desc.value_fn(d) == 0
+
+
+class TestFriendsOnlineSensor:
+    """Verify friends_online sensor value extraction."""
+
+    def test_returns_online_count(self) -> None:
+        d = _make_data_with_friends(FriendsSummary(total_friends=42, online_friends=5))
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "friends_online")
+        assert desc.value_fn(d) == 5
+
+    def test_none_friends_returns_none(self) -> None:
+        d = _make_data_with_friends(None)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "friends_online")
+        assert desc.value_fn(d) is None
+
+    def test_zero_online(self) -> None:
+        d = _make_data_with_friends(FriendsSummary(total_friends=10, online_friends=0))
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "friends_online")
+        assert desc.value_fn(d) == 0

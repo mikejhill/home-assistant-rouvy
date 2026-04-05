@@ -29,6 +29,7 @@ if TYPE_CHECKING:
         Challenge,
         ConnectedApp,
         Event,
+        FriendsSummary,
         Route,
         TrainingZones,
         UserProfile,
@@ -835,3 +836,41 @@ def extract_career_model(response_text: str) -> CareerStats:
         level=_pick_int("level"),
         coins=_pick_int("coins"),
     )
+
+
+def extract_friends_model(response_text: str) -> FriendsSummary:
+    """Extract a FriendsSummary from a friends.data response.
+
+    Searches for known keys that may contain a friends list, counts
+    the total entries, and counts those with an online/status indicator.
+    """
+    from .models import FriendsSummary
+
+    if not response_text or not response_text.strip():
+        return FriendsSummary()
+
+    decoder = TurboStreamDecoder()
+    decoded = decoder.decode(response_text)
+    array_data: list[Any] = decoded if isinstance(decoded, list) else []
+
+    friends_list: list[Any] | None = None
+    for key in ("friends", "friendList", "friendsList"):
+        candidate = _find_key_value(array_data, key)
+        if isinstance(candidate, list):
+            friends_list = candidate
+            break
+
+    if not friends_list:
+        return FriendsSummary()
+
+    total = len(friends_list)
+    online = 0
+    for item in friends_list:
+        resolved = _resolve_index(item, decoder.index_map)
+        if not isinstance(resolved, dict):
+            continue
+        status = resolved.get("status") or resolved.get("online")
+        if status in (True, "online", "active"):
+            online += 1
+
+    return FriendsSummary(total_friends=total, online_friends=online)

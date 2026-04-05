@@ -178,6 +178,14 @@ class CareerStats:
 
 
 @dataclass(frozen=True)
+class FriendsSummary:
+    """Summary of the user's friends list."""
+
+    total_friends: int = 0
+    online_friends: int = 0
+
+
+@dataclass(frozen=True)
 class RouvyCoordinatorData:
     """Composite data object held by the coordinator.
 
@@ -195,3 +203,4 @@ class RouvyCoordinatorData:
     favorite_routes: list[Route] = field(default_factory=list)
     upcoming_events: list[Event] = field(default_factory=list)
     career: CareerStats | None = None
+    friends: FriendsSummary | None = None

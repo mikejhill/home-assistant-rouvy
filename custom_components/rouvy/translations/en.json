@@ -60,7 +60,9 @@
       "career_level": { "name": "Career Level" },
       "total_xp": { "name": "Total XP" },
       "total_coins": { "name": "Total Coins" },
-      "career_total_distance": { "name": "Career Total Distance" }
+      "career_total_distance": { "name": "Career Total Distance" },
+      "friends_count": { "name": "Friends" },
+      "friends_online": { "name": "Online Friends" }
     }
   }
 }
