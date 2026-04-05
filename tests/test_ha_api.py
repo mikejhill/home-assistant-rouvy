@@ -656,3 +656,134 @@ class TestAsyncGetFavoriteRoutes:
         client = self._pre_auth_client(session)
         favorites = await client.async_get_favorite_routes()
         assert favorites == []
+
+
+# ===================================================================
+# async_get_events
+# ===================================================================
+
+
+class TestAsyncGetEvents:
+    """Verify async event fetching."""
+
+    @staticmethod
+    def _pre_auth_client(session: MagicMock) -> RouvyAsyncApiClient:
+        client = RouvyAsyncApiClient("u@e.com", "pw", session)
+        client._authenticated = True
+        return client
+
+    @pytest.mark.asyncio
+    async def test_returns_event_list(self) -> None:
+        from custom_components.rouvy.api_client.models import Event
+
+        turbo = json.dumps(
+            [
+                "events",
+                [
+                    {
+                        "id": "evt-001",
+                        "originalTitle": "Saturday Race",
+                        "type": "RACE",
+                        "startDateTime": "2026-04-12T08:00:00Z",
+                        "capacity": 50,
+                        "registered": True,
+                        "official": True,
+                        "coinsForCompletion": 200,
+                        "eventExperience": 500,
+                        "laps": 3,
+                    }
+                ],
+            ]
+        )
+        session = _make_session(_FakeResponse(200, body=turbo))
+        client = self._pre_auth_client(session)
+        events = await client.async_get_events()
+        assert len(events) == 1
+        assert isinstance(events[0], Event)
+        assert events[0].event_id == "evt-001"
+        assert events[0].title == "Saturday Race"
+        assert events[0].registered is True
+
+    @pytest.mark.asyncio
+    async def test_empty_response_returns_empty_list(self) -> None:
+        turbo = json.dumps(["events", []])
+        session = _make_session(_FakeResponse(200, body=turbo))
+        client = self._pre_auth_client(session)
+        events = await client.async_get_events()
+        assert events == []
+
+
+# ===================================================================
+# async_register_event
+# ===================================================================
+
+
+class TestAsyncRegisterEvent:
+    """Verify async event registration."""
+
+    @staticmethod
+    def _pre_auth_client(session: MagicMock) -> RouvyAsyncApiClient:
+        client = RouvyAsyncApiClient("u@e.com", "pw", session)
+        client._authenticated = True
+        return client
+
+    @pytest.mark.asyncio
+    async def test_successful_registration_returns_true(self) -> None:
+        body = json.dumps({"registered": True, "error": None})
+        session = _make_session(_FakeResponse(200, body=body))
+        client = self._pre_auth_client(session)
+        result = await client.async_register_event("evt-001")
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_failed_registration_returns_false(self) -> None:
+        body = json.dumps({"registered": False, "error": "full"})
+        session = _make_session(_FakeResponse(200, body=body))
+        client = self._pre_auth_client(session)
+        result = await client.async_register_event("evt-001")
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_non_json_response_returns_false(self) -> None:
+        session = _make_session(_FakeResponse(200, body="not json"))
+        client = self._pre_auth_client(session)
+        result = await client.async_register_event("evt-001")
+        assert result is False
+
+
+# ===================================================================
+# async_unregister_event
+# ===================================================================
+
+
+class TestAsyncUnregisterEvent:
+    """Verify async event unregistration."""
+
+    @staticmethod
+    def _pre_auth_client(session: MagicMock) -> RouvyAsyncApiClient:
+        client = RouvyAsyncApiClient("u@e.com", "pw", session)
+        client._authenticated = True
+        return client
+
+    @pytest.mark.asyncio
+    async def test_successful_unregistration_returns_true(self) -> None:
+        body = json.dumps({"registered": False, "error": None})
+        session = _make_session(_FakeResponse(200, body=body))
+        client = self._pre_auth_client(session)
+        result = await client.async_unregister_event("evt-001")
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_failed_unregistration_returns_false(self) -> None:
+        body = json.dumps({"registered": True, "error": "not_registered"})
+        session = _make_session(_FakeResponse(200, body=body))
+        client = self._pre_auth_client(session)
+        result = await client.async_unregister_event("evt-001")
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_non_json_response_returns_false(self) -> None:
+        session = _make_session(_FakeResponse(200, body="not json"))
+        client = self._pre_auth_client(session)
+        result = await client.async_unregister_event("evt-001")
+        assert result is False

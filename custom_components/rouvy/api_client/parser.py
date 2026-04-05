@@ -27,6 +27,7 @@ if TYPE_CHECKING:
         ActivityTypeStats,
         Challenge,
         ConnectedApp,
+        Event,
         Route,
         TrainingZones,
         UserProfile,
@@ -707,3 +708,59 @@ def extract_routes_model(response_text: str) -> list[Route]:
         )
 
     return routes
+
+
+def extract_events_model(response_text: str) -> list[Event]:
+    """Extract typed Event list from an events.data response.
+
+    The response is a turbo-stream flat list containing event data under
+    keys like "events", "upcomingEvents", or "eventSessions".
+    """
+    from .models import Event
+
+    decoder = TurboStreamDecoder()
+    decoded = decoder.decode(response_text)
+    array_data: list[Any] = decoded if isinstance(decoded, list) else []
+
+    events: list[Event] = []
+    raw_list = None
+    for key in ("events", "upcomingEvents", "eventSessions"):
+        raw_list = _find_key_value(array_data, key)
+        if isinstance(raw_list, list):
+            break
+
+    if not isinstance(raw_list, list):
+        return events
+
+    for item in raw_list:
+        resolved = _resolve_index(item, decoder.index_map)
+        if not isinstance(resolved, dict):
+            continue
+
+        # Session-level fields may be nested under "session" or at top level
+        session = resolved.get("session", resolved)
+        if isinstance(session, dict):
+            coins = _safe_int(session.get("coinsForCompletion", 0))
+            xp = _safe_int(session.get("eventExperience", resolved.get("experience", 0)))
+            start_dt = _safe_str(session.get("startDateTime", resolved.get("startDateTime", "")))
+        else:
+            coins = _safe_int(resolved.get("coinsForCompletion", 0))
+            xp = _safe_int(resolved.get("eventExperience", resolved.get("experience", 0)))
+            start_dt = _safe_str(resolved.get("startDateTime", ""))
+
+        events.append(
+            Event(
+                event_id=_safe_str(resolved.get("id")),
+                title=_safe_str(resolved.get("originalTitle", resolved.get("title", ""))),
+                event_type=_safe_str(resolved.get("type", "")),
+                start_date_time=start_dt,
+                capacity=_safe_int(resolved.get("capacity", 0)),
+                registered=bool(resolved.get("registered", False)),
+                official=bool(resolved.get("official", False)),
+                coins_for_completion=coins,
+                experience=xp,
+                laps=_safe_int(resolved.get("laps", 0)),
+            )
+        )
+
+    return events

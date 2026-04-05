@@ -54,7 +54,9 @@
       "last_activity_date": { "name": "Last Activity Date" },
       "total_activities": { "name": "Total Activities" },
       "favorite_routes_count": { "name": "Favorite Routes" },
-      "routes_online_riders": { "name": "Online Riders (Favorites)" }
+      "routes_online_riders": { "name": "Online Riders (Favorites)" },
+      "upcoming_events_count": { "name": "Upcoming Events" },
+      "next_event": { "name": "Next Event" }
     }
   }
 }

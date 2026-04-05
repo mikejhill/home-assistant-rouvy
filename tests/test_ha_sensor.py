@@ -12,6 +12,7 @@ from custom_components.rouvy.api_client.models import (
     ActivityTypeStats,
     Challenge,
     ConnectedApp,
+    Event,
     Route,
     RouvyCoordinatorData,
     TrainingZones,
@@ -767,3 +768,90 @@ class TestRoutesOnlineRidersSensor:
 
         desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "routes_online_riders")
         assert desc.value_fn(d) == 5
+
+
+# ===================================================================
+# Event sensor helpers
+# ===================================================================
+
+
+def _make_event(**overrides: object) -> Event:
+    """Create an Event with sensible defaults, overriding specific fields."""
+    defaults = dict(
+        event_id="evt-001",
+        title="Saturday Morning Race",
+        event_type="RACE",
+        start_date_time="2026-04-12T08:00:00Z",
+        capacity=50,
+        registered=True,
+        official=True,
+        coins_for_completion=200,
+        experience=500,
+        laps=3,
+    )
+    defaults.update(overrides)
+    return Event(**defaults)
+
+
+def _make_data_with_events(*events_list: Event) -> RouvyCoordinatorData:
+    return RouvyCoordinatorData(
+        profile=_make_profile(),
+        upcoming_events=list(events_list),
+    )
+
+
+class TestUpcomingEventsCountSensor:
+    """Verify upcoming_events_count sensor value extraction."""
+
+    def test_returns_count(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_events(
+            _make_event(event_id="e1"),
+            _make_event(event_id="e2"),
+            _make_event(event_id="e3"),
+        )
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "upcoming_events_count")
+        assert desc.value_fn(d) == 3
+
+    def test_empty_returns_zero(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = RouvyCoordinatorData(profile=_make_profile(), upcoming_events=[])
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "upcoming_events_count")
+        assert desc.value_fn(d) == 0
+
+    def test_no_events_returns_zero(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = RouvyCoordinatorData(profile=_make_profile())
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "upcoming_events_count")
+        assert desc.value_fn(d) == 0
+
+
+class TestNextEventSensor:
+    """Verify next_event sensor value extraction."""
+
+    def test_returns_first_event_title(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_events(
+            _make_event(event_id="e1", title="First Race"),
+            _make_event(event_id="e2", title="Second Race"),
+        )
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "next_event")
+        assert desc.value_fn(d) == "First Race"
+
+    def test_empty_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = RouvyCoordinatorData(profile=_make_profile(), upcoming_events=[])
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "next_event")
+        assert desc.value_fn(d) is None
+
+    def test_no_events_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = RouvyCoordinatorData(profile=_make_profile())
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "next_event")
+        assert desc.value_fn(d) is None

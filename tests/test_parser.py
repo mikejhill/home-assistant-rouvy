@@ -1234,3 +1234,130 @@ class TestExtractRoutes:
 
         result = extract_routes_model(json.dumps(["routes", [42, "not_a_dict"]]))
         assert result == []
+
+
+# ===================================================================
+# extract_events_model — synthetic data
+# ===================================================================
+
+
+def _build_events_response(
+    events: list[dict[str, Any]] | None = None,
+) -> str:
+    """Build a synthetic turbo-stream response for events.data."""
+    if events is None:
+        events = [
+            {
+                "id": "evt-001",
+                "originalTitle": "Saturday Morning Race",
+                "type": "RACE",
+                "startDateTime": "2026-04-12T08:00:00Z",
+                "capacity": 50,
+                "registered": True,
+                "official": True,
+                "coinsForCompletion": 200,
+                "eventExperience": 500,
+                "laps": 3,
+            },
+            {
+                "id": "evt-002",
+                "originalTitle": "Group Ride",
+                "type": "GROUP_RIDE",
+                "startDateTime": "2026-04-13T10:00:00Z",
+                "capacity": 100,
+                "registered": False,
+                "official": False,
+                "coinsForCompletion": 50,
+                "eventExperience": 100,
+                "laps": 1,
+            },
+        ]
+    data = ["events", events]
+    return json.dumps(data)
+
+
+class TestExtractEventsModel:
+    """Verify extract_events_model with synthetic data."""
+
+    def test_happy_path_returns_events(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_events_model
+
+        result = extract_events_model(_build_events_response())
+        assert len(result) == 2
+        assert result[0].event_id == "evt-001"
+        assert result[0].title == "Saturday Morning Race"
+        assert result[0].event_type == "RACE"
+        assert result[0].start_date_time == "2026-04-12T08:00:00Z"
+        assert result[0].capacity == 50
+        assert result[0].registered is True
+        assert result[0].official is True
+        assert result[0].coins_for_completion == 200
+        assert result[0].experience == 500
+        assert result[0].laps == 3
+
+    def test_second_event_fields(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_events_model
+
+        result = extract_events_model(_build_events_response())
+        assert result[1].event_id == "evt-002"
+        assert result[1].title == "Group Ride"
+        assert result[1].event_type == "GROUP_RIDE"
+        assert result[1].registered is False
+        assert result[1].official is False
+        assert result[1].coins_for_completion == 50
+        assert result[1].experience == 100
+
+    def test_empty_events_list(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_events_model
+
+        result = extract_events_model(_build_events_response(events=[]))
+        assert result == []
+
+    def test_no_events_key_returns_empty(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_events_model
+
+        result = extract_events_model(json.dumps(["other_key", []]))
+        assert result == []
+
+    def test_upcoming_events_key(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_events_model
+
+        data = json.dumps(
+            [
+                "upcomingEvents",
+                [{"id": "evt-100", "originalTitle": "Test Event", "type": "RACE"}],
+            ]
+        )
+        result = extract_events_model(data)
+        assert len(result) == 1
+        assert result[0].event_id == "evt-100"
+        assert result[0].title == "Test Event"
+
+    def test_event_sessions_key(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_events_model
+
+        data = json.dumps(
+            [
+                "eventSessions",
+                [{"id": "evt-200", "originalTitle": "Session Event", "laps": 5}],
+            ]
+        )
+        result = extract_events_model(data)
+        assert len(result) == 1
+        assert result[0].event_id == "evt-200"
+        assert result[0].laps == 5
+
+    def test_missing_fields_use_defaults(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_events_model
+
+        result = extract_events_model(_build_events_response(events=[{"id": "minimal"}]))
+        assert len(result) == 1
+        assert result[0].event_id == "minimal"
+        assert result[0].title == ""
+        assert result[0].event_type == ""
+        assert result[0].registered is False
+        assert result[0].official is False
+        assert result[0].capacity == 0
+        assert result[0].coins_for_completion == 0
+        assert result[0].experience == 0
+        assert result[0].laps == 0

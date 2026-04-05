@@ -69,6 +69,9 @@ def _mock_client(profile: UserProfile | None = None) -> AsyncMock:
     client.async_get_activity_summary = AsyncMock(return_value=ActivitySummary())
     client.async_get_favorite_routes = AsyncMock(return_value=[])
     client.async_update_user_settings = AsyncMock()
+    client.async_get_events = AsyncMock(return_value=[])
+    client.async_register_event = AsyncMock(return_value=True)
+    client.async_unregister_event = AsyncMock(return_value=True)
     return client
 
 
@@ -372,16 +375,17 @@ class TestSensors:
         assert state.state == "unknown"
 
     async def test_all_sensors_created(self, hass: HomeAssistant) -> None:
-        """Test that all 25 sensor entities are created.
+        """Test that all 27 sensor entities are created.
 
-        6 profile + 6 weekly + 2 challenges + 2 zones + 2 connected apps + 5 activity + 2 routes.
+        6 profile + 6 weekly + 2 challenges + 2 zones
+        + 2 connected apps + 5 activity + 2 routes + 2 events.
         """
         await self._setup(hass)
         sensor_states = [
             s for s in hass.states.async_all() if s.entity_id.startswith("sensor.rouvy")
         ]
-        assert len(sensor_states) == 25, (
-            f"Expected 25 sensors, got {len(sensor_states)}: {[s.entity_id for s in sensor_states]}"
+        assert len(sensor_states) == 27, (
+            f"Expected 27 sensors, got {len(sensor_states)}: {[s.entity_id for s in sensor_states]}"
         )
 
 

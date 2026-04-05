@@ -18,6 +18,7 @@ from .api_client.models import (
     ActivitySummary,
     Challenge,
     ConnectedApp,
+    Event,
     Route,
     TrainingZones,
     UserProfile,
@@ -28,6 +29,7 @@ from .api_client.parser import (
     extract_activity_stats_model,
     extract_challenges_model,
     extract_connected_apps_model,
+    extract_events_model,
     extract_routes_model,
     extract_training_zones_model,
     extract_user_profile_model,
@@ -280,6 +282,47 @@ class RouvyAsyncApiClient:
         text = await self._request("GET", "routes.data")
         all_routes = extract_routes_model(text)
         return [r for r in all_routes if r.favorite]
+
+    async def async_get_events(self) -> list[Event]:
+        """Fetch upcoming events."""
+        text = await self._request("GET", "events.data")
+        return extract_events_model(text)
+
+    async def async_register_event(self, event_id: str) -> bool:
+        """Register for an event by ID. Returns True on success."""
+        import json as _json
+
+        text = await self._request(
+            "POST",
+            f"events/{event_id}.data",
+            data={"eventId": event_id, "intent": "register"},
+            headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+        )
+        try:
+            result = _json.loads(text)
+            if isinstance(result, dict):
+                return bool(result.get("registered", False))
+        except ValueError, TypeError:
+            pass
+        return False
+
+    async def async_unregister_event(self, event_id: str) -> bool:
+        """Unregister from an event by ID. Returns True on success."""
+        import json as _json
+
+        text = await self._request(
+            "POST",
+            f"events/{event_id}.data",
+            data={"eventId": event_id, "intent": "unregister"},
+            headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+        )
+        try:
+            result = _json.loads(text)
+            if isinstance(result, dict):
+                return not bool(result.get("registered", True))
+        except ValueError, TypeError:
+            pass
+        return False
 
     async def async_validate_credentials(self) -> bool:
         """Test that the credentials are valid. Returns True on success."""

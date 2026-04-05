@@ -260,6 +260,18 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
             sum(r.online_count for r in d.favorite_routes) if d.favorite_routes else 0
         ),
     ),
+    # Event sensors
+    RouvySensorDescription(
+        key="upcoming_events_count",
+        translation_key="upcoming_events_count",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: len(d.upcoming_events) if d.upcoming_events else 0,
+    ),
+    RouvySensorDescription(
+        key="next_event",
+        translation_key="next_event",
+        value_fn=lambda d: d.upcoming_events[0].title if d.upcoming_events else None,
+    ),
 )
 
 

@@ -147,6 +147,22 @@ class Route:
 
 
 @dataclass(frozen=True)
+class Event:
+    """A Rouvy event from the events endpoint."""
+
+    event_id: str = ""
+    title: str = ""
+    event_type: str = ""
+    start_date_time: str = ""
+    capacity: int = 0
+    registered: bool = False
+    official: bool = False
+    coins_for_completion: int = 0
+    experience: int = 0
+    laps: int = 0
+
+
+@dataclass(frozen=True)
 class RouvyCoordinatorData:
     """Composite data object held by the coordinator.
 
@@ -162,3 +178,4 @@ class RouvyCoordinatorData:
     connected_apps: list[ConnectedApp] = field(default_factory=list)
     activity_summary: ActivitySummary | None = None
     favorite_routes: list[Route] = field(default_factory=list)
+    upcoming_events: list[Event] = field(default_factory=list)
