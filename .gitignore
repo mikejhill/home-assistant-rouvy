@@ -220,5 +220,5 @@ __marimo__/
 # HTTP Archive files (may contain credentials)
 *.har
 
-# Private sample data (contains real API responses)
+# Local API response samples (may contain personal data)
 docs/private-samples/
