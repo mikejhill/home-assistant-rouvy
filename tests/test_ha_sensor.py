@@ -9,7 +9,9 @@ from __future__ import annotations
 from custom_components.rouvy.api_client.models import (
     ActivityTypeStats,
     Challenge,
+    ConnectedApp,
     RouvyCoordinatorData,
+    TrainingZones,
     UserProfile,
     WeeklyActivityStats,
 )
@@ -384,3 +386,139 @@ class TestCompletedChallengesSensor:
         d = RouvyCoordinatorData(profile=_make_profile())
         desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "completed_challenges")
         assert desc.value_fn(d) is None
+
+
+# ===================================================================
+# Training zones sensor helpers
+# ===================================================================
+
+
+def _make_data_with_zones(
+    power_zone_values: list[int] | None = None,
+    hr_zone_values: list[int] | None = None,
+    training_zones: TrainingZones | None = ...,
+) -> RouvyCoordinatorData:
+    """Create coordinator data with training zones."""
+    if training_zones is ...:
+        training_zones = TrainingZones(
+            ftp_watts=250,
+            max_heart_rate=195,
+            power_zone_values=power_zone_values or [],
+            hr_zone_values=hr_zone_values or [],
+        )
+    return RouvyCoordinatorData(profile=_make_profile(), training_zones=training_zones)
+
+
+class TestPowerZonesSensor:
+    """Verify power zones sensor value extraction."""
+
+    def test_returns_comma_separated(self) -> None:
+        d = _make_data_with_zones(power_zone_values=[55, 75, 90, 105, 120])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "power_zones")
+        assert desc.value_fn(d) == "55, 75, 90, 105, 120"
+
+    def test_empty_values_returns_none(self) -> None:
+        d = _make_data_with_zones(power_zone_values=[])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "power_zones")
+        assert desc.value_fn(d) is None
+
+    def test_no_zones_returns_none(self) -> None:
+        d = _make_data_with_zones(training_zones=None)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "power_zones")
+        assert desc.value_fn(d) is None
+
+
+class TestHrZonesSensor:
+    """Verify HR zones sensor value extraction."""
+
+    def test_returns_comma_separated(self) -> None:
+        d = _make_data_with_zones(hr_zone_values=[60, 70, 80, 90])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "hr_zones")
+        assert desc.value_fn(d) == "60, 70, 80, 90"
+
+    def test_empty_values_returns_none(self) -> None:
+        d = _make_data_with_zones(hr_zone_values=[])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "hr_zones")
+        assert desc.value_fn(d) is None
+
+    def test_no_zones_returns_none(self) -> None:
+        d = _make_data_with_zones(training_zones=None)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "hr_zones")
+        assert desc.value_fn(d) is None
+
+
+# ===================================================================
+# Connected apps sensor helpers
+# ===================================================================
+
+
+def _make_data_with_apps(apps: list[ConnectedApp] | None = None) -> RouvyCoordinatorData:
+    """Create coordinator data with connected apps."""
+    return RouvyCoordinatorData(profile=_make_profile(), connected_apps=apps or [])
+
+
+class TestConnectedAppsCountSensor:
+    """Verify connected apps count sensor value extraction."""
+
+    def test_returns_count(self) -> None:
+        apps = [
+            ConnectedApp(provider_id="strava", name="Strava", status="active"),
+            ConnectedApp(provider_id="garmin", name="Garmin", status="inactive"),
+        ]
+        d = _make_data_with_apps(apps)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "connected_apps_count")
+        assert desc.value_fn(d) == 2
+
+    def test_empty_returns_zero(self) -> None:
+        d = _make_data_with_apps([])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "connected_apps_count")
+        assert desc.value_fn(d) == 0
+
+
+class TestConnectedAppsActiveSensor:
+    """Verify active connected apps sensor value extraction."""
+
+    def test_returns_active_count(self) -> None:
+        apps = [
+            ConnectedApp(provider_id="strava", name="Strava", status="active"),
+            ConnectedApp(provider_id="garmin", name="Garmin", status="inactive"),
+            ConnectedApp(provider_id="zwift", name="Zwift", status="active"),
+        ]
+        d = _make_data_with_apps(apps)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "connected_apps_active")
+        assert desc.value_fn(d) == 2
+
+    def test_none_active_returns_zero(self) -> None:
+        apps = [
+            ConnectedApp(provider_id="strava", name="Strava", status="inactive"),
+        ]
+        d = _make_data_with_apps(apps)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "connected_apps_active")
+        assert desc.value_fn(d) == 0
+
+    def test_empty_returns_zero(self) -> None:
+        d = _make_data_with_apps([])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "connected_apps_active")
+        assert desc.value_fn(d) == 0

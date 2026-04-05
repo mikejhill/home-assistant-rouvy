@@ -141,3 +141,5 @@ class RouvyCoordinatorData:
     profile: UserProfile = field(default_factory=UserProfile)
     activity_stats: list[WeeklyActivityStats] = field(default_factory=list)
     challenges: list[Challenge] = field(default_factory=list)
+    training_zones: TrainingZones | None = None
+    connected_apps: list[ConnectedApp] = field(default_factory=list)

@@ -168,6 +168,40 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda d: counts[1] if (counts := _challenge_counts(d)) else None,
     ),
+    # Training zones sensors
+    RouvySensorDescription(
+        key="power_zones",
+        translation_key="power_zones",
+        value_fn=lambda d: (
+            ", ".join(str(v) for v in d.training_zones.power_zone_values)
+            if d.training_zones and d.training_zones.power_zone_values
+            else None
+        ),
+    ),
+    RouvySensorDescription(
+        key="hr_zones",
+        translation_key="hr_zones",
+        value_fn=lambda d: (
+            ", ".join(str(v) for v in d.training_zones.hr_zone_values)
+            if d.training_zones and d.training_zones.hr_zone_values
+            else None
+        ),
+    ),
+    # Connected apps sensors
+    RouvySensorDescription(
+        key="connected_apps_count",
+        translation_key="connected_apps_count",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: len(d.connected_apps) if d.connected_apps else 0,
+    ),
+    RouvySensorDescription(
+        key="connected_apps_active",
+        translation_key="connected_apps_active",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: (
+            sum(1 for a in d.connected_apps if a.status == "active") if d.connected_apps else 0
+        ),
+    ),
 )
 
 

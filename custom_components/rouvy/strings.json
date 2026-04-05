@@ -43,7 +43,11 @@
       "weekly_ride_count": { "name": "Weekly Ride Count" },
       "weekly_training_score": { "name": "Weekly Training Score" },
       "active_challenges": { "name": "Active Challenges" },
-      "completed_challenges": { "name": "Completed Challenges" }
+      "completed_challenges": { "name": "Completed Challenges" },
+      "power_zones": { "name": "Power Zones" },
+      "hr_zones": { "name": "HR Zones" },
+      "connected_apps_count": { "name": "Connected Apps" },
+      "connected_apps_active": { "name": "Active Connected Apps" }
     }
   }
 }
