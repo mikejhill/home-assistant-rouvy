@@ -79,6 +79,7 @@ def _mock_client(profile: UserProfile | None = None) -> AsyncMock:
     client.async_get_events = AsyncMock(return_value=[])
     client.async_register_event = AsyncMock(return_value=True)
     client.async_unregister_event = AsyncMock(return_value=True)
+    client.async_register_challenge = AsyncMock(return_value=True)
     client.async_get_career = AsyncMock(return_value=CareerStats())
     return client
 
@@ -392,8 +393,8 @@ class TestSensors:
         sensor_states = [
             s for s in hass.states.async_all() if s.entity_id.startswith("sensor.rouvy")
         ]
-        assert len(sensor_states) == 33, (
-            f"Expected 33 sensors, got {len(sensor_states)}: {[s.entity_id for s in sensor_states]}"
+        assert len(sensor_states) == 41, (
+            f"Expected 41 sensors, got {len(sensor_states)}: {[s.entity_id for s in sensor_states]}"
         )
 
 
@@ -441,3 +442,27 @@ class TestServices:
         client.async_update_user_settings.assert_called_once_with(
             {"weight": 75, "units": "IMPERIAL"}
         )
+
+    async def test_register_challenge_service(self, hass: HomeAssistant) -> None:
+        """Test register_challenge service calls the API."""
+        client = await self._setup(hass)
+        await hass.services.async_call(
+            DOMAIN, "register_challenge", {"slug": "april-2026"}, blocking=True
+        )
+        client.async_register_challenge.assert_called_once_with("april-2026")
+
+    async def test_register_event_service(self, hass: HomeAssistant) -> None:
+        """Test register_event service calls the API."""
+        client = await self._setup(hass)
+        await hass.services.async_call(
+            DOMAIN, "register_event", {"event_id": "abc-123"}, blocking=True
+        )
+        client.async_register_event.assert_called_once_with("abc-123")
+
+    async def test_unregister_event_service(self, hass: HomeAssistant) -> None:
+        """Test unregister_event service calls the API."""
+        client = await self._setup(hass)
+        await hass.services.async_call(
+            DOMAIN, "unregister_event", {"event_id": "abc-123"}, blocking=True
+        )
+        client.async_unregister_event.assert_called_once_with("abc-123")

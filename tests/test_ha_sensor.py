@@ -1013,3 +1013,170 @@ class TestFriendsOnlineSensor:
 
         desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "friends_online")
         assert desc.value_fn(d) == 0
+
+
+# ===================================================================
+# Profile: FTP Source and Country sensors
+# ===================================================================
+
+
+class TestFtpSourceSensor:
+    """Verify ftp_source sensor value extraction."""
+
+    def test_returns_source(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data(ftp_source="MANUAL")
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "ftp_source")
+        assert desc.value_fn(d) == "MANUAL"
+
+    def test_empty_source_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data(ftp_source="")
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "ftp_source")
+        assert desc.value_fn(d) is None
+
+
+class TestCountrySensor:
+    """Verify country sensor value extraction."""
+
+    def test_returns_country(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data(country="US")
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "country")
+        assert desc.value_fn(d) == "US"
+
+    def test_none_country(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data(country=None)
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "country")
+        assert desc.value_fn(d) is None
+
+
+# ===================================================================
+# Event: Next Event Time sensor
+# ===================================================================
+
+
+class TestNextEventTimeSensor:
+    """Verify next_event_time sensor value extraction."""
+
+    def test_returns_first_event_time(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_events(
+            _make_event(event_id="e1", start_date_time="2026-04-10T18:00:00Z"),
+            _make_event(event_id="e2", start_date_time="2026-04-11T18:00:00Z"),
+        )
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "next_event_time")
+        assert desc.value_fn(d) == "2026-04-10T18:00:00Z"
+
+    def test_empty_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = RouvyCoordinatorData(profile=_make_profile(), upcoming_events=[])
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "next_event_time")
+        assert desc.value_fn(d) is None
+
+
+# ===================================================================
+# Career: additional sensors (elevation, time, activities, achievements, trophies)
+# ===================================================================
+
+
+class TestCareerTotalElevationSensor:
+    """Verify career_total_elevation sensor value extraction."""
+
+    def test_returns_meters(self) -> None:
+        from custom_components.rouvy.api_client.models import CareerStats
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(CareerStats(total_elevation_m=45_678.0))
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_total_elevation")
+        assert desc.value_fn(d) == 45678
+
+    def test_no_career_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(None)
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_total_elevation")
+        assert desc.value_fn(d) is None
+
+
+class TestCareerTotalTimeSensor:
+    """Verify career_total_time sensor value extraction."""
+
+    def test_returns_hours(self) -> None:
+        from custom_components.rouvy.api_client.models import CareerStats
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(CareerStats(total_time_seconds=36_000))
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_total_time")
+        assert desc.value_fn(d) == 10.0
+
+    def test_no_career_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(None)
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_total_time")
+        assert desc.value_fn(d) is None
+
+
+class TestCareerTotalActivitiesSensor:
+    """Verify career_total_activities sensor value extraction."""
+
+    def test_returns_count(self) -> None:
+        from custom_components.rouvy.api_client.models import CareerStats
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(CareerStats(total_activities=150))
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_total_activities")
+        assert desc.value_fn(d) == 150
+
+    def test_no_career_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(None)
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_total_activities")
+        assert desc.value_fn(d) is None
+
+
+class TestCareerAchievementsSensor:
+    """Verify career_achievements sensor value extraction."""
+
+    def test_returns_count(self) -> None:
+        from custom_components.rouvy.api_client.models import CareerStats
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(CareerStats(total_achievements=37))
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_achievements")
+        assert desc.value_fn(d) == 37
+
+    def test_no_career_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(None)
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_achievements")
+        assert desc.value_fn(d) is None
+
+
+class TestCareerTrophiesSensor:
+    """Verify career_trophies sensor value extraction."""
+
+    def test_returns_count(self) -> None:
+        from custom_components.rouvy.api_client.models import CareerStats
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(CareerStats(total_trophies=12))
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_trophies")
+        assert desc.value_fn(d) == 12
+
+    def test_no_career_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(None)
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_trophies")
+        assert desc.value_fn(d) is None

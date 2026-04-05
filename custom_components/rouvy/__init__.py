@@ -94,9 +94,42 @@ def _register_services(hass: Any) -> None:
                 await client.async_update_user_settings(settings)
                 await entry.runtime_data.coordinator.async_request_refresh()
 
+    async def _handle_register_challenge(call: Any) -> None:
+        slug = call.data["slug"]
+        _LOGGER.info("Service call: register_challenge for %s", slug)
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            if hasattr(entry, "runtime_data") and entry.runtime_data:
+                client = entry.runtime_data.client
+                await client.async_register_challenge(slug)
+                await entry.runtime_data.coordinator.async_request_refresh()
+
+    async def _handle_register_event(call: Any) -> None:
+        event_id = call.data["event_id"]
+        _LOGGER.info("Service call: register_event for %s", event_id)
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            if hasattr(entry, "runtime_data") and entry.runtime_data:
+                client = entry.runtime_data.client
+                await client.async_register_event(event_id)
+                await entry.runtime_data.coordinator.async_request_refresh()
+
+    async def _handle_unregister_event(call: Any) -> None:
+        event_id = call.data["event_id"]
+        _LOGGER.info("Service call: unregister_event for %s", event_id)
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            if hasattr(entry, "runtime_data") and entry.runtime_data:
+                client = entry.runtime_data.client
+                await client.async_unregister_event(event_id)
+                await entry.runtime_data.coordinator.async_request_refresh()
+
     if not hass.services.has_service(DOMAIN, "update_weight"):
         hass.services.async_register(DOMAIN, "update_weight", _handle_update_weight)
     if not hass.services.has_service(DOMAIN, "update_height"):
         hass.services.async_register(DOMAIN, "update_height", _handle_update_height)
     if not hass.services.has_service(DOMAIN, "update_settings"):
         hass.services.async_register(DOMAIN, "update_settings", _handle_update_settings)
+    if not hass.services.has_service(DOMAIN, "register_challenge"):
+        hass.services.async_register(DOMAIN, "register_challenge", _handle_register_challenge)
+    if not hass.services.has_service(DOMAIN, "register_event"):
+        hass.services.async_register(DOMAIN, "register_event", _handle_register_event)
+    if not hass.services.has_service(DOMAIN, "unregister_event"):
+        hass.services.async_register(DOMAIN, "unregister_event", _handle_unregister_event)

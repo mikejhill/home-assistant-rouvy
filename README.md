@@ -9,7 +9,7 @@
 
 A custom [Home Assistant](https://www.home-assistant.io/) integration for
 the [Rouvy](https://rouvy.com/) indoor cycling platform, installable via
-[HACS](https://hacs.xyz/). Exposes 33 sensors and 3 services covering your
+[HACS](https://hacs.xyz/). Exposes 41 sensors and 6 services covering your
 Rouvy profile, activity history, training zones, challenges, routes, events,
 career progress, and social data.
 
@@ -33,96 +33,107 @@ All sensors are created under the `sensor.rouvy_*` entity namespace.
 
 ### Profile
 
-| Sensor | Unit | Description |
-| --- | --- | --- |
-| `weight` | kg | Current body weight |
-| `height` | cm | Current height |
-| `ftp` | W | Functional Threshold Power |
-| `max_heart_rate` | bpm | Maximum heart rate |
-| `units` | — | Preferred unit system (METRIC / IMPERIAL) |
-| `name` | — | Display name |
+| Sensor | Unit | Example | Description |
+| --- | --- | --- | --- |
+| `weight` | kg | `85.5` | Current body weight |
+| `height` | cm | `178.0` | Current height |
+| `ftp` | W | `250` | Functional Threshold Power |
+| `max_heart_rate` | bpm | `185` | Maximum heart rate |
+| `units` | — | `METRIC` | Preferred unit system |
+| `name` | — | `John Doe` | Display name |
+| `ftp_source` | — | `MANUAL` | How FTP was determined (MANUAL / AUTO) |
+| `country` | — | `US` | Account country code |
 
 ### Weekly Activity Stats
 
 Current-week ride totals, refreshed each update cycle.
 
-| Sensor | Unit | Description |
-| --- | --- | --- |
-| `weekly_distance` | km | Total ride distance this week |
-| `weekly_elevation` | m | Total elevation gain this week |
-| `weekly_calories` | kcal | Total calories burned this week |
-| `weekly_ride_time` | min | Total ride time this week |
-| `weekly_ride_count` | — | Number of rides this week |
-| `weekly_training_score` | — | Cumulative training score this week |
+| Sensor | Unit | Example | Description |
+| --- | --- | --- | --- |
+| `weekly_distance` | km | `142.3` | Total ride distance this week |
+| `weekly_elevation` | m | `1,850` | Total elevation gain this week |
+| `weekly_calories` | kcal | `3,200` | Total calories burned this week |
+| `weekly_ride_time` | min | `285` | Total ride time this week |
+| `weekly_ride_count` | — | `5` | Number of rides this week |
+| `weekly_training_score` | — | `312` | Cumulative training score this week |
 
 ### Last Activity
 
-| Sensor | Unit | Description |
-| --- | --- | --- |
-| `last_activity_title` | — | Title of the most recent ride |
-| `last_activity_distance` | km | Distance of the most recent ride |
-| `last_activity_duration` | min | Duration of the most recent ride |
-| `last_activity_date` | timestamp | Start time of the most recent ride |
-| `total_activities` | — | Total number of recent activities |
+| Sensor | Unit | Example | Description |
+| --- | --- | --- | --- |
+| `last_activity_title` | — | `Col du Galibier` | Title of the most recent ride |
+| `last_activity_distance` | km | `34.2` | Distance of the most recent ride |
+| `last_activity_duration` | min | `62` | Duration of the most recent ride |
+| `last_activity_date` | timestamp | `2026-04-10T07:30:00Z` | Start time of the most recent ride |
+| `total_activities` | — | `247` | Total number of recent activities |
 
 ### Challenges
 
-| Sensor | Unit | Description |
-| --- | --- | --- |
-| `active_challenges` | — | Number of currently active challenges |
-| `completed_challenges` | — | Number of completed challenges |
+| Sensor | Unit | Example | Description |
+| --- | --- | --- | --- |
+| `active_challenges` | — | `3` | Number of currently active challenges |
+| `completed_challenges` | — | `12` | Number of completed challenges |
 
 ### Training Zones
 
-| Sensor | Unit | Description |
-| --- | --- | --- |
-| `power_zones` | — | Power zone boundaries (% of FTP) |
-| `hr_zones` | — | Heart rate zone boundaries (% of max HR) |
+| Sensor | Unit | Example | Description |
+| --- | --- | --- | --- |
+| `power_zones` | — | `[55, 75, 90, 105, 120]` | Power zone boundaries (% of FTP) |
+| `hr_zones` | — | `[60, 70, 80, 90]` | Heart rate zone boundaries (% of max HR) |
 
 ### Connected Apps
 
-| Sensor | Unit | Description |
-| --- | --- | --- |
-| `connected_apps_count` | — | Total connected third-party apps |
-| `connected_apps_active` | — | Number of actively connected apps |
+| Sensor | Unit | Example | Description |
+| --- | --- | --- | --- |
+| `connected_apps_count` | — | `3` | Total connected third-party apps |
+| `connected_apps_active` | — | `2` | Number of actively connected apps |
 
 ### Routes
 
-| Sensor | Unit | Description |
-| --- | --- | --- |
-| `favorite_routes_count` | — | Number of favorited routes |
-| `routes_online_riders` | — | Total online riders across favorites |
+| Sensor | Unit | Example | Description |
+| --- | --- | --- | --- |
+| `favorite_routes_count` | — | `15` | Number of favorited routes |
+| `routes_online_riders` | — | `42` | Total online riders across favorites |
 
 ### Events
 
-| Sensor | Unit | Description |
-| --- | --- | --- |
-| `upcoming_events_count` | — | Number of upcoming events |
-| `next_event` | — | Title of the next scheduled event |
+| Sensor | Unit | Example | Description |
+| --- | --- | --- | --- |
+| `upcoming_events_count` | — | `2` | Number of upcoming events |
+| `next_event` | — | `Saturday Morning Race` | Title of the next scheduled event |
+| `next_event_time` | — | `2026-04-12T08:00:00Z` | Start time of the next scheduled event |
 
 ### Career
 
-| Sensor | Unit | Description |
-| --- | --- | --- |
-| `career_level` | — | Current career level |
-| `total_xp` | — | Total experience points |
-| `total_coins` | — | Total coins earned |
-| `career_total_distance` | km | Lifetime total distance ridden |
+| Sensor | Unit | Example | Description |
+| --- | --- | --- | --- |
+| `career_level` | — | `25` | Current career level |
+| `total_xp` | — | `9,500` | Total experience points |
+| `total_coins` | — | `3,200` | Total coins earned |
+| `career_total_distance` | km | `4,567.8` | Lifetime total distance ridden |
+| `career_total_elevation` | m | `45,678` | Lifetime total elevation gained |
+| `career_total_time` | h | `312.5` | Lifetime total ride time |
+| `career_total_activities` | — | `247` | Lifetime total activity count |
+| `career_achievements` | — | `37` | Total achievements unlocked |
+| `career_trophies` | — | `12` | Total trophies earned |
 
 ### Social
 
-| Sensor | Unit | Description |
-| --- | --- | --- |
-| `friends_count` | — | Total number of friends |
-| `friends_online` | — | Number of friends currently online |
+| Sensor | Unit | Example | Description |
+| --- | --- | --- | --- |
+| `friends_count` | — | `42` | Total number of friends |
+| `friends_online` | — | `5` | Number of friends currently online |
 
 ## Services
 
-| Service | Description |
-| --- | --- |
-| `rouvy.update_weight` | Update body weight (kg) in Rouvy |
-| `rouvy.update_height` | Update height (cm) in Rouvy |
-| `rouvy.update_settings` | Update arbitrary profile settings (key-value pairs) |
+| Service | Parameters | Description |
+| --- | --- | --- |
+| `rouvy.update_weight` | `weight` (kg) | Update body weight in Rouvy |
+| `rouvy.update_height` | `height` (cm) | Update height in Rouvy |
+| `rouvy.update_settings` | `settings` (object) | Update arbitrary profile settings |
+| `rouvy.register_challenge` | `slug` | Register for a challenge |
+| `rouvy.register_event` | `event_id` (UUID) | Register for an event |
+| `rouvy.unregister_event` | `event_id` (UUID) | Unregister from an event |
 
 ## Logging
 
@@ -173,7 +184,7 @@ uv run rouvy-api raw user-settings/zones.data  # Raw decoded response
 
 ```bash
 uv sync              # Install all dependencies
-uv run pytest -q     # Run tests (438 tests)
+uv run pytest -q     # Run tests (457 tests)
 uv run ruff check .  # Lint
 uv run ruff format . # Format
 ```
@@ -187,7 +198,7 @@ custom_components/rouvy/     # HA integration (HACS root)
 │   ├── parser.py            # Turbo-stream response decoder
 │   └── ...
 ├── coordinator.py           # DataUpdateCoordinator
-├── sensor.py                # 33 sensor descriptions
+├── sensor.py                # 41 sensor descriptions
 ├── config_flow.py           # HA config flow + reauth
 ├── services.yaml            # Service definitions
 └── manifest.json            # HA integration manifest

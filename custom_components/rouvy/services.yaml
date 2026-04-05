@@ -41,3 +41,39 @@ update_settings:
       example: '{"weight": 80, "height": 178}'
       selector:
         object:
+
+register_challenge:
+  name: Register Challenge
+  description: Register for a Rouvy challenge by its slug.
+  fields:
+    slug:
+      name: Slug
+      description: The challenge slug identifier (e.g., "april-2026-challenge").
+      required: true
+      example: "april-2026-challenge"
+      selector:
+        text:
+
+register_event:
+  name: Register Event
+  description: Register for a Rouvy event by its ID.
+  fields:
+    event_id:
+      name: Event ID
+      description: The UUID of the event to register for.
+      required: true
+      example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      selector:
+        text:
+
+unregister_event:
+  name: Unregister Event
+  description: Unregister from a Rouvy event by its ID.
+  fields:
+    event_id:
+      name: Event ID
+      description: The UUID of the event to unregister from.
+      required: true
+      example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      selector:
+        text:
