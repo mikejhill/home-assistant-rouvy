@@ -81,6 +81,13 @@ class RouvyDataUpdateCoordinator(DataUpdateCoordinator[RouvyCoordinatorData]):
             except Exception:
                 _LOGGER.debug("Failed to fetch connected apps, continuing without", exc_info=True)
 
+            # Fetch activity summary
+            activity_summary = None
+            try:
+                activity_summary = await client.async_get_activity_summary()
+            except Exception:
+                _LOGGER.debug("Failed to fetch activity summary, continuing without", exc_info=True)
+
             self._consecutive_auth_failures = 0
             _LOGGER.debug("Coordinator update successful")
             return RouvyCoordinatorData(
@@ -89,6 +96,7 @@ class RouvyDataUpdateCoordinator(DataUpdateCoordinator[RouvyCoordinatorData]):
                 challenges=challenges,
                 training_zones=training_zones,
                 connected_apps=connected_apps,
+                activity_summary=activity_summary,
             )
         except AuthenticationError as err:
             self._consecutive_auth_failures += 1

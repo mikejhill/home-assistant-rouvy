@@ -15,7 +15,7 @@ from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.rouvy.api_client.errors import AuthenticationError, RouvyApiError
-from custom_components.rouvy.api_client.models import TrainingZones, UserProfile
+from custom_components.rouvy.api_client.models import ActivitySummary, TrainingZones, UserProfile
 from custom_components.rouvy.const import CONF_EMAIL, CONF_PASSWORD, DOMAIN
 
 MOCK_EMAIL = "test@example.com"
@@ -66,6 +66,7 @@ def _mock_client(profile: UserProfile | None = None) -> AsyncMock:
     client.async_get_challenges = AsyncMock(return_value=[])
     client.async_get_training_zones = AsyncMock(return_value=TrainingZones())
     client.async_get_connected_apps = AsyncMock(return_value=[])
+    client.async_get_activity_summary = AsyncMock(return_value=ActivitySummary())
     client.async_update_user_settings = AsyncMock()
     return client
 
@@ -370,16 +371,16 @@ class TestSensors:
         assert state.state == "unknown"
 
     async def test_all_sensors_created(self, hass: HomeAssistant) -> None:
-        """Test that all 18 sensor entities are created.
+        """Test that all 23 sensor entities are created.
 
-        6 profile + 6 weekly + 2 challenges + 2 zones + 2 connected apps.
+        6 profile + 6 weekly + 2 challenges + 2 zones + 2 connected apps + 5 activity.
         """
         await self._setup(hass)
         sensor_states = [
             s for s in hass.states.async_all() if s.entity_id.startswith("sensor.rouvy")
         ]
-        assert len(sensor_states) == 18, (
-            f"Expected 18 sensors, got {len(sensor_states)}: {[s.entity_id for s in sensor_states]}"
+        assert len(sensor_states) == 23, (
+            f"Expected 23 sensors, got {len(sensor_states)}: {[s.entity_id for s in sensor_states]}"
         )
 
 

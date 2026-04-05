@@ -47,7 +47,12 @@
       "power_zones": { "name": "Power Zones" },
       "hr_zones": { "name": "HR Zones" },
       "connected_apps_count": { "name": "Connected Apps" },
-      "connected_apps_active": { "name": "Active Connected Apps" }
+      "connected_apps_active": { "name": "Active Connected Apps" },
+      "last_activity_title": { "name": "Last Activity" },
+      "last_activity_distance": { "name": "Last Activity Distance" },
+      "last_activity_duration": { "name": "Last Activity Duration" },
+      "last_activity_date": { "name": "Last Activity Date" },
+      "total_activities": { "name": "Total Activities" }
     }
   }
 }

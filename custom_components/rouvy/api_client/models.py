@@ -143,3 +143,4 @@ class RouvyCoordinatorData:
     challenges: list[Challenge] = field(default_factory=list)
     training_zones: TrainingZones | None = None
     connected_apps: list[ConnectedApp] = field(default_factory=list)
+    activity_summary: ActivitySummary | None = None

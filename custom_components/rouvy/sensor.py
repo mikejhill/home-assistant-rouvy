@@ -22,7 +22,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .api_client.models import ActivityTypeStats, RouvyCoordinatorData
+from .api_client.models import Activity, ActivityTypeStats, RouvyCoordinatorData
 from .data import RouvyConfigEntry
 from .entity import RouvyEntity
 
@@ -46,6 +46,13 @@ def _challenge_counts(data: RouvyCoordinatorData) -> tuple[int, int] | None:
     active = sum(1 for c in data.challenges if c.registered and not c.is_done)
     completed = sum(1 for c in data.challenges if c.is_done)
     return active, completed
+
+
+def _last_activity(data: RouvyCoordinatorData) -> Activity | None:
+    """Get the most recent activity, or None."""
+    if data.activity_summary and data.activity_summary.recent_activities:
+        return data.activity_summary.recent_activities[0]
+    return None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -200,6 +207,42 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda d: (
             sum(1 for a in d.connected_apps if a.status == "active") if d.connected_apps else 0
+        ),
+    ),
+    # Activity summary sensors
+    RouvySensorDescription(
+        key="last_activity_title",
+        translation_key="last_activity_title",
+        value_fn=lambda d: a.title if (a := _last_activity(d)) else None,
+    ),
+    RouvySensorDescription(
+        key="last_activity_distance",
+        translation_key="last_activity_distance",
+        native_unit_of_measurement=UnitOfLength.KILOMETERS,
+        device_class=SensorDeviceClass.DISTANCE,
+        suggested_display_precision=1,
+        value_fn=lambda d: round(a.distance_m / 1000, 1) if (a := _last_activity(d)) else None,
+    ),
+    RouvySensorDescription(
+        key="last_activity_duration",
+        translation_key="last_activity_duration",
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+        device_class=SensorDeviceClass.DURATION,
+        suggested_display_precision=0,
+        value_fn=lambda d: round(a.moving_time_seconds / 60) if (a := _last_activity(d)) else None,
+    ),
+    RouvySensorDescription(
+        key="last_activity_date",
+        translation_key="last_activity_date",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda d: a.start_utc if (a := _last_activity(d)) else None,
+    ),
+    RouvySensorDescription(
+        key="total_activities",
+        translation_key="total_activities",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: (
+            len(d.activity_summary.recent_activities) if d.activity_summary else None
         ),
     ),
 )

@@ -7,6 +7,8 @@ without requiring Home Assistant. We import only the pure data types.
 from __future__ import annotations
 
 from custom_components.rouvy.api_client.models import (
+    Activity,
+    ActivitySummary,
     ActivityTypeStats,
     Challenge,
     ConnectedApp,
@@ -15,7 +17,7 @@ from custom_components.rouvy.api_client.models import (
     UserProfile,
     WeeklyActivityStats,
 )
-from custom_components.rouvy.sensor import _current_week_ride_stats
+from custom_components.rouvy.sensor import _current_week_ride_stats, _last_activity
 
 
 def _make_profile(**overrides) -> UserProfile:
@@ -522,3 +524,161 @@ class TestConnectedAppsActiveSensor:
 
         desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "connected_apps_active")
         assert desc.value_fn(d) == 0
+
+
+# ===================================================================
+# Activity summary sensor helpers
+# ===================================================================
+
+
+def _make_activity(**overrides: object) -> Activity:
+    """Create an Activity with sensible defaults."""
+    defaults = dict(
+        activity_id="act-1",
+        title="Morning Ride",
+        start_utc="2026-04-01T07:30:00Z",
+        training_type="ride",
+        distance_m=25000.0,
+        elevation_m=150.0,
+        moving_time_seconds=3600,
+        intensity_factor=0.75,
+    )
+    defaults.update(overrides)
+    return Activity(**defaults)
+
+
+def _make_data_with_activities(
+    activities: list[Activity] | None = None,
+    summary: ActivitySummary | None = ...,
+) -> RouvyCoordinatorData:
+    """Create coordinator data with an activity summary."""
+    if summary is ...:
+        summary = ActivitySummary(recent_activities=activities or [])
+    return RouvyCoordinatorData(profile=_make_profile(), activity_summary=summary)
+
+
+class TestLastActivityHelper:
+    """Verify _last_activity helper."""
+
+    def test_returns_first_activity(self) -> None:
+        a1 = _make_activity(activity_id="a1", title="First")
+        a2 = _make_activity(activity_id="a2", title="Second")
+        d = _make_data_with_activities([a1, a2])
+        assert _last_activity(d) is a1
+
+    def test_returns_none_when_no_summary(self) -> None:
+        d = _make_data_with_activities(summary=None)
+        assert _last_activity(d) is None
+
+    def test_returns_none_when_empty_activities(self) -> None:
+        d = _make_data_with_activities([])
+        assert _last_activity(d) is None
+
+
+class TestLastActivityTitleSensor:
+    """Verify last_activity_title sensor value extraction."""
+
+    def test_returns_title(self) -> None:
+        d = _make_data_with_activities([_make_activity(title="Alpine Climb")])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "last_activity_title")
+        assert desc.value_fn(d) == "Alpine Climb"
+
+    def test_returns_none_when_no_summary(self) -> None:
+        d = _make_data_with_activities(summary=None)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "last_activity_title")
+        assert desc.value_fn(d) is None
+
+    def test_returns_none_when_empty(self) -> None:
+        d = _make_data_with_activities([])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "last_activity_title")
+        assert desc.value_fn(d) is None
+
+
+class TestLastActivityDistanceSensor:
+    """Verify last_activity_distance sensor value extraction."""
+
+    def test_returns_km(self) -> None:
+        d = _make_data_with_activities([_make_activity(distance_m=25000.0)])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "last_activity_distance")
+        assert desc.value_fn(d) == 25.0
+
+    def test_returns_none_when_no_summary(self) -> None:
+        d = _make_data_with_activities(summary=None)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "last_activity_distance")
+        assert desc.value_fn(d) is None
+
+
+class TestLastActivityDurationSensor:
+    """Verify last_activity_duration sensor value extraction."""
+
+    def test_returns_minutes(self) -> None:
+        d = _make_data_with_activities([_make_activity(moving_time_seconds=5400)])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "last_activity_duration")
+        assert desc.value_fn(d) == 90
+
+    def test_returns_none_when_no_summary(self) -> None:
+        d = _make_data_with_activities(summary=None)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "last_activity_duration")
+        assert desc.value_fn(d) is None
+
+
+class TestLastActivityDateSensor:
+    """Verify last_activity_date sensor value extraction."""
+
+    def test_returns_start_utc(self) -> None:
+        d = _make_data_with_activities([_make_activity(start_utc="2026-04-01T07:30:00Z")])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "last_activity_date")
+        assert desc.value_fn(d) == "2026-04-01T07:30:00Z"
+
+    def test_returns_none_when_no_summary(self) -> None:
+        d = _make_data_with_activities(summary=None)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "last_activity_date")
+        assert desc.value_fn(d) is None
+
+
+class TestTotalActivitiesSensor:
+    """Verify total_activities sensor value extraction."""
+
+    def test_returns_count(self) -> None:
+        activities = [
+            _make_activity(activity_id="a1"),
+            _make_activity(activity_id="a2"),
+            _make_activity(activity_id="a3"),
+        ]
+        d = _make_data_with_activities(activities)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "total_activities")
+        assert desc.value_fn(d) == 3
+
+    def test_returns_zero_for_empty_summary(self) -> None:
+        d = _make_data_with_activities([])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "total_activities")
+        assert desc.value_fn(d) == 0
+
+    def test_returns_none_when_no_summary(self) -> None:
+        d = _make_data_with_activities(summary=None)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "total_activities")
+        assert desc.value_fn(d) is None
