@@ -49,9 +49,20 @@ class RouvyDataUpdateCoordinator(DataUpdateCoordinator[RouvyCoordinatorData]):
         client = self.config_entry.runtime_data.client
         try:
             profile = await client.async_get_user_profile()
+
+            # Fetch activity stats for the current month
+            activity_stats: list = []
+            try:
+                from datetime import datetime
+
+                now = datetime.now()
+                activity_stats = await client.async_get_activity_stats(now.year, now.month)
+            except Exception:
+                _LOGGER.debug("Failed to fetch activity stats, continuing without", exc_info=True)
+
             self._consecutive_auth_failures = 0
             _LOGGER.debug("Coordinator update successful")
-            return RouvyCoordinatorData(profile=profile)
+            return RouvyCoordinatorData(profile=profile, activity_stats=activity_stats)
         except AuthenticationError as err:
             self._consecutive_auth_failures += 1
             _LOGGER.warning(

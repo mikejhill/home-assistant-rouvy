@@ -800,3 +800,218 @@ class TestExtractActivitiesModelFromSynthetic:
         assert summary.recent_activities[0].intensity_factor is None, (
             "Expected None intensity_factor for non-numeric 'if' value"
         )
+
+
+# ===================================================================
+# extract_activity_stats_model
+# ===================================================================
+
+
+def _build_activity_stats_response(
+    weeks: dict[str, dict[str, Any]] | None = None,
+) -> str:
+    """Build a synthetic turbo-stream response for activity-stats.data.
+
+    The response is a flat array: [refmap, key, value] where value is
+    a dict keyed by week index (0, 1, ...) with weekly stats.
+    """
+    if weeks is None:
+        weeks = {
+            "0": {
+                "weekStart": "Mar 30, 2026, 12:00 AM EDT",
+                "weekEnd": "Apr 5, 2026, 11:59 PM EDT",
+                "metrics": [1, 2, 3, 4, 5],
+                "activityTypeStats": {
+                    "ride": {
+                        "distM": 45000.0,
+                        "elevM": 350.0,
+                        "kCal": 800.5,
+                        "movingTimeSec": 5400,
+                        "if": 0.72,
+                        "trainingScore": 65.3,
+                        "activityCount": 3,
+                    },
+                    "workout": {
+                        "distM": 0.0,
+                        "elevM": 0.0,
+                        "kCal": 150.0,
+                        "movingTimeSec": 1800,
+                        "if": 0.0,
+                        "trainingScore": 20.0,
+                        "activityCount": 1,
+                    },
+                    "event": {
+                        "distM": 20000.0,
+                        "elevM": 200.0,
+                        "kCal": 400.0,
+                        "movingTimeSec": 3600,
+                        "if": 0.85,
+                        "trainingScore": 45.0,
+                        "activityCount": 1,
+                    },
+                    "outdoor": {
+                        "distM": 0.0,
+                        "elevM": 0.0,
+                        "kCal": 0.0,
+                        "movingTimeSec": 0,
+                        "if": 0.0,
+                        "trainingScore": 0.0,
+                        "activityCount": 0,
+                    },
+                },
+            },
+            "1": {
+                "weekStart": "Apr 6, 2026, 12:00 AM EDT",
+                "weekEnd": "Apr 12, 2026, 11:59 PM EDT",
+                "metrics": [1, 2, 3, 4, 5],
+                "activityTypeStats": {
+                    "ride": {
+                        "distM": 30000.0,
+                        "elevM": 250.0,
+                        "kCal": 550.0,
+                        "movingTimeSec": 3600,
+                        "if": 0.68,
+                        "trainingScore": 42.0,
+                        "activityCount": 2,
+                    },
+                    "workout": {
+                        "distM": 0.0,
+                        "elevM": 0.0,
+                        "kCal": 0.0,
+                        "movingTimeSec": 0,
+                        "if": 0.0,
+                        "trainingScore": 0.0,
+                        "activityCount": 0,
+                    },
+                    "event": {
+                        "distM": 0.0,
+                        "elevM": 0.0,
+                        "kCal": 0.0,
+                        "movingTimeSec": 0,
+                        "if": 0.0,
+                        "trainingScore": 0.0,
+                        "activityCount": 0,
+                    },
+                    "outdoor": {
+                        "distM": 0.0,
+                        "elevM": 0.0,
+                        "kCal": 0.0,
+                        "movingTimeSec": 0,
+                        "if": 0.0,
+                        "trainingScore": 0.0,
+                        "activityCount": 0,
+                    },
+                },
+            },
+        }
+    # Build the flat turbo-stream array: [{}, "activityStats", {weeks}]
+    return json.dumps([{}, "activityStats", weeks])
+
+
+class TestExtractActivityStats:
+    """Verify extraction of weekly activity statistics."""
+
+    def test_returns_list_of_weekly_stats(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_activity_stats_model
+
+        result = extract_activity_stats_model(_build_activity_stats_response())
+        assert len(result) == 2, f"Expected 2 weeks, got {len(result)}"
+
+    def test_week_start_and_end_extracted(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_activity_stats_model
+
+        result = extract_activity_stats_model(_build_activity_stats_response())
+        assert result[0].week_start == "Mar 30, 2026, 12:00 AM EDT"
+        assert result[0].week_end == "Apr 5, 2026, 11:59 PM EDT"
+
+    def test_ride_stats_extracted(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_activity_stats_model
+
+        result = extract_activity_stats_model(_build_activity_stats_response())
+        ride = result[0].ride
+        assert ride.distance_m == 45000.0, f"Expected 45000, got {ride.distance_m}"
+        assert ride.elevation_m == 350.0, f"Expected 350, got {ride.elevation_m}"
+        assert ride.calories == 800.5, f"Expected 800.5, got {ride.calories}"
+        assert ride.moving_time_seconds == 5400, f"Expected 5400, got {ride.moving_time_seconds}"
+        assert ride.intensity_factor == 0.72, f"Expected 0.72, got {ride.intensity_factor}"
+        assert ride.training_score == 65.3, f"Expected 65.3, got {ride.training_score}"
+        assert ride.activity_count == 3, f"Expected 3, got {ride.activity_count}"
+
+    def test_workout_stats_extracted(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_activity_stats_model
+
+        result = extract_activity_stats_model(_build_activity_stats_response())
+        workout = result[0].workout
+        assert workout.calories == 150.0
+        assert workout.moving_time_seconds == 1800
+        assert workout.activity_count == 1
+
+    def test_event_stats_extracted(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_activity_stats_model
+
+        result = extract_activity_stats_model(_build_activity_stats_response())
+        event = result[0].event
+        assert event.distance_m == 20000.0
+        assert event.intensity_factor == 0.85
+        assert event.activity_count == 1
+
+    def test_outdoor_stats_default_zeros(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_activity_stats_model
+
+        result = extract_activity_stats_model(_build_activity_stats_response())
+        outdoor = result[0].outdoor
+        assert outdoor.distance_m == 0.0
+        assert outdoor.activity_count == 0
+
+    def test_second_week_extracted(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_activity_stats_model
+
+        result = extract_activity_stats_model(_build_activity_stats_response())
+        assert result[1].ride.distance_m == 30000.0
+        assert result[1].ride.activity_count == 2
+
+    def test_empty_response_returns_empty_list(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_activity_stats_model
+
+        result = extract_activity_stats_model(json.dumps([{}]))
+        assert result == [], f"Expected empty list, got {result}"
+
+    def test_missing_activity_type_stats_returns_defaults(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_activity_stats_model
+
+        weeks = {
+            "0": {
+                "weekStart": "Jan 1, 2026",
+                "weekEnd": "Jan 7, 2026",
+            }
+        }
+        result = extract_activity_stats_model(_build_activity_stats_response(weeks=weeks))
+        assert len(result) == 1
+        assert result[0].ride.distance_m == 0.0
+        assert result[0].ride.activity_count == 0
+
+    def test_missing_individual_type_returns_defaults(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_activity_stats_model
+
+        weeks = {
+            "0": {
+                "weekStart": "Jan 1, 2026",
+                "weekEnd": "Jan 7, 2026",
+                "activityTypeStats": {
+                    "ride": {
+                        "distM": 10000.0,
+                        "elevM": 100.0,
+                        "kCal": 200.0,
+                        "movingTimeSec": 1200,
+                        "if": 0.5,
+                        "trainingScore": 15.0,
+                        "activityCount": 1,
+                    }
+                },
+            }
+        }
+        result = extract_activity_stats_model(_build_activity_stats_response(weeks=weeks))
+        assert result[0].ride.distance_m == 10000.0
+        assert result[0].workout.distance_m == 0.0
+        assert result[0].event.activity_count == 0
+        assert result[0].outdoor.training_score == 0.0

@@ -62,6 +62,7 @@ def _mock_client(profile: UserProfile | None = None) -> AsyncMock:
     client = AsyncMock()
     client.async_validate_credentials = AsyncMock(return_value=True)
     client.async_get_user_profile = AsyncMock(return_value=profile or _make_profile())
+    client.async_get_activity_stats = AsyncMock(return_value=[])
     client.async_update_user_settings = AsyncMock()
     return client
 
@@ -365,14 +366,14 @@ class TestSensors:
         assert state is not None
         assert state.state == "unknown"
 
-    async def test_six_sensors_created(self, hass: HomeAssistant) -> None:
-        """Test that exactly 6 sensor entities are created."""
+    async def test_all_sensors_created(self, hass: HomeAssistant) -> None:
+        """Test that all 12 sensor entities are created (6 profile + 6 weekly)."""
         await self._setup(hass)
         sensor_states = [
-            s for s in hass.states.async_all() if s.entity_id.startswith("sensor.rouvy_")
+            s for s in hass.states.async_all() if s.entity_id.startswith("sensor.rouvy")
         ]
-        assert len(sensor_states) == 6, (
-            f"Expected 6 sensors, got {len(sensor_states)}: {[s.entity_id for s in sensor_states]}"
+        assert len(sensor_states) == 12, (
+            f"Expected 12 sensors, got {len(sensor_states)}: {[s.entity_id for s in sensor_states]}"
         )
 
 

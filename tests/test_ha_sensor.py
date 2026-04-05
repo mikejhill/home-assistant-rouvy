@@ -6,7 +6,13 @@ without requiring Home Assistant. We import only the pure data types.
 
 from __future__ import annotations
 
-from custom_components.rouvy.api_client.models import RouvyCoordinatorData, UserProfile
+from custom_components.rouvy.api_client.models import (
+    ActivityTypeStats,
+    RouvyCoordinatorData,
+    UserProfile,
+    WeeklyActivityStats,
+)
+from custom_components.rouvy.sensor import _current_week_ride_stats
 
 
 def _make_profile(**overrides) -> UserProfile:
@@ -144,3 +150,126 @@ class TestNameSensor:
         assert _value_name(d) is None, (
             f"Expected None when all name fields empty, got {_value_name(d)}"
         )
+
+
+# ===================================================================
+# Weekly activity stats sensor helpers
+# ===================================================================
+
+
+def _make_week_stats(**ride_overrides: float | int) -> WeeklyActivityStats:
+    """Create a WeeklyActivityStats with configurable ride stats."""
+    ride_defaults: dict[str, float | int] = dict(
+        distance_m=45000.0,
+        elevation_m=350.0,
+        calories=800.5,
+        moving_time_seconds=5400,
+        intensity_factor=0.72,
+        training_score=65.3,
+        activity_count=3,
+    )
+    ride_defaults.update(ride_overrides)
+    return WeeklyActivityStats(
+        week_start="Mar 30, 2026",
+        week_end="Apr 5, 2026",
+        ride=ActivityTypeStats(**ride_defaults),
+    )
+
+
+def _make_data_with_stats(**ride_overrides: float | int) -> RouvyCoordinatorData:
+    """Create coordinator data with activity stats."""
+    return RouvyCoordinatorData(
+        profile=_make_profile(),
+        activity_stats=[_make_week_stats(**ride_overrides)],
+    )
+
+
+class TestCurrentWeekRideStats:
+    """Verify _current_week_ride_stats helper."""
+
+    def test_returns_ride_stats_when_present(self) -> None:
+        d = _make_data_with_stats()
+        stats = _current_week_ride_stats(d)
+        assert stats is not None
+        assert stats.distance_m == 45000.0
+
+    def test_returns_none_when_no_stats(self) -> None:
+        d = RouvyCoordinatorData(profile=_make_profile())
+        assert _current_week_ride_stats(d) is None
+
+    def test_returns_none_when_empty_stats(self) -> None:
+        d = RouvyCoordinatorData(profile=_make_profile(), activity_stats=[])
+        assert _current_week_ride_stats(d) is None
+
+
+class TestWeeklyDistanceSensor:
+    """Verify weekly distance sensor value extraction."""
+
+    def test_returns_km(self) -> None:
+        d = _make_data_with_stats(distance_m=45000.0)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "weekly_distance")
+        assert desc.value_fn(d) == 45.0
+
+    def test_returns_none_when_no_stats(self) -> None:
+        d = RouvyCoordinatorData(profile=_make_profile())
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "weekly_distance")
+        assert desc.value_fn(d) is None
+
+
+class TestWeeklyElevationSensor:
+    """Verify weekly elevation sensor value extraction."""
+
+    def test_returns_meters(self) -> None:
+        d = _make_data_with_stats(elevation_m=350.7)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "weekly_elevation")
+        assert desc.value_fn(d) == 351
+
+
+class TestWeeklyCaloriesSensor:
+    """Verify weekly calories sensor value extraction."""
+
+    def test_returns_kcal(self) -> None:
+        d = _make_data_with_stats(calories=800.7)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "weekly_calories")
+        assert desc.value_fn(d) == 801
+
+
+class TestWeeklyRideTimeSensor:
+    """Verify weekly ride time sensor value extraction."""
+
+    def test_returns_minutes(self) -> None:
+        d = _make_data_with_stats(moving_time_seconds=5400)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "weekly_ride_time")
+        assert desc.value_fn(d) == 90
+
+
+class TestWeeklyRideCountSensor:
+    """Verify weekly ride count sensor value extraction."""
+
+    def test_returns_count(self) -> None:
+        d = _make_data_with_stats(activity_count=3)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "weekly_ride_count")
+        assert desc.value_fn(d) == 3
+
+
+class TestWeeklyTrainingScoreSensor:
+    """Verify weekly training score sensor value extraction."""
+
+    def test_returns_rounded_score(self) -> None:
+        d = _make_data_with_stats(training_score=65.3)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "weekly_training_score")
+        assert desc.value_fn(d) == 65

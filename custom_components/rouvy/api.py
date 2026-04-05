@@ -19,9 +19,11 @@ from .api_client.models import (
     ConnectedApp,
     TrainingZones,
     UserProfile,
+    WeeklyActivityStats,
 )
 from .api_client.parser import (
     extract_activities_model,
+    extract_activity_stats_model,
     extract_connected_apps_model,
     extract_training_zones_model,
     extract_user_profile_model,
@@ -199,6 +201,24 @@ class RouvyAsyncApiClient:
         """Fetch activity summary."""
         text = await self._request("GET", "profile/overview.data")
         return extract_activities_model(text)
+
+    async def async_get_activity_stats(self, year: int, month: int) -> list[WeeklyActivityStats]:
+        """Fetch weekly activity statistics for a given month.
+
+        Args:
+            year: Calendar year (e.g., 2026).
+            month: Calendar month (1-12).
+
+        Returns:
+            List of WeeklyActivityStats for the weeks in that month.
+        """
+        text = await self._request(
+            "POST",
+            "resources/activity-stats.data",
+            data={"year": str(year), "month": str(month)},
+            headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+        )
+        return extract_activity_stats_model(text)
 
     async def async_update_user_settings(self, updates: dict[str, Any]) -> None:
         """Update user settings (weight, height, units).

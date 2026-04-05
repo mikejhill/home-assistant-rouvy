@@ -17,11 +17,12 @@ from homeassistant.const import (
     UnitOfLength,
     UnitOfMass,
     UnitOfPower,
+    UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .api_client.models import RouvyCoordinatorData
+from .api_client.models import ActivityTypeStats, RouvyCoordinatorData
 from .data import RouvyConfigEntry
 from .entity import RouvyEntity
 
@@ -29,6 +30,13 @@ if TYPE_CHECKING:
     from .coordinator import RouvyDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _current_week_ride_stats(data: RouvyCoordinatorData) -> ActivityTypeStats | None:
+    """Get ride stats for the current (first) week, or None."""
+    if not data.activity_stats:
+        return None
+    return data.activity_stats[0].ride
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -39,6 +47,7 @@ class RouvySensorDescription(SensorEntityDescription):
 
 
 SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
+    # Profile sensors
     RouvySensorDescription(
         key="weight",
         translation_key="weight",
@@ -83,6 +92,59 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
         value_fn=lambda d: (
             f"{d.profile.first_name} {d.profile.last_name}".strip() or d.profile.username or None
         ),
+    ),
+    # Weekly activity stats sensors (current week ride totals)
+    RouvySensorDescription(
+        key="weekly_distance",
+        translation_key="weekly_distance",
+        native_unit_of_measurement=UnitOfLength.KILOMETERS,
+        device_class=SensorDeviceClass.DISTANCE,
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=1,
+        value_fn=lambda d: (
+            round(s.distance_m / 1000, 1) if (s := _current_week_ride_stats(d)) else None
+        ),
+    ),
+    RouvySensorDescription(
+        key="weekly_elevation",
+        translation_key="weekly_elevation",
+        native_unit_of_measurement=UnitOfLength.METERS,
+        device_class=SensorDeviceClass.DISTANCE,
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=0,
+        value_fn=lambda d: round(s.elevation_m) if (s := _current_week_ride_stats(d)) else None,
+    ),
+    RouvySensorDescription(
+        key="weekly_calories",
+        translation_key="weekly_calories",
+        native_unit_of_measurement="kcal",
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=0,
+        value_fn=lambda d: round(s.calories) if (s := _current_week_ride_stats(d)) else None,
+    ),
+    RouvySensorDescription(
+        key="weekly_ride_time",
+        translation_key="weekly_ride_time",
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=0,
+        value_fn=lambda d: (
+            round(s.moving_time_seconds / 60) if (s := _current_week_ride_stats(d)) else None
+        ),
+    ),
+    RouvySensorDescription(
+        key="weekly_ride_count",
+        translation_key="weekly_ride_count",
+        state_class=SensorStateClass.TOTAL,
+        value_fn=lambda d: s.activity_count if (s := _current_week_ride_stats(d)) else None,
+    ),
+    RouvySensorDescription(
+        key="weekly_training_score",
+        translation_key="weekly_training_score",
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=0,
+        value_fn=lambda d: round(s.training_score) if (s := _current_week_ride_stats(d)) else None,
     ),
 )
 

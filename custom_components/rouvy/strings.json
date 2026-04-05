@@ -35,7 +35,13 @@
       "ftp": { "name": "FTP" },
       "max_heart_rate": { "name": "Max Heart Rate" },
       "units": { "name": "Units" },
-      "name": { "name": "Name" }
+      "name": { "name": "Name" },
+      "weekly_distance": { "name": "Weekly Distance" },
+      "weekly_elevation": { "name": "Weekly Elevation" },
+      "weekly_calories": { "name": "Weekly Calories" },
+      "weekly_ride_time": { "name": "Weekly Ride Time" },
+      "weekly_ride_count": { "name": "Weekly Ride Count" },
+      "weekly_training_score": { "name": "Weekly Training Score" }
     }
   }
 }

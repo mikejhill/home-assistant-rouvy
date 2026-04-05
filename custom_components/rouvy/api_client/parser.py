@@ -22,7 +22,14 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from .models import ActivitySummary, ConnectedApp, TrainingZones, UserProfile
+    from .models import (
+        ActivitySummary,
+        ActivityTypeStats,
+        ConnectedApp,
+        TrainingZones,
+        UserProfile,
+        WeeklyActivityStats,
+    )
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -539,3 +546,65 @@ def extract_activities_model(response_text: str) -> ActivitySummary:
             )
 
     return ActivitySummary(recent_activities=activities)
+
+
+def extract_activity_stats_model(response_text: str) -> list[WeeklyActivityStats]:
+    """Extract typed WeeklyActivityStats from a resources/activity-stats.data response.
+
+    The response is a POST endpoint that returns a dict keyed by week index
+    (0, 1, 2, ...) with each value containing weekly stats broken down by
+    activity type (ride, workout, event, outdoor).
+    """
+    from .models import WeeklyActivityStats
+
+    decoder = TurboStreamDecoder()
+    decoded = decoder.decode(response_text)
+
+    # The parsed data is a flat list: [refmap, key0, val0, key1, val1, ...]
+    # For activity-stats, the first value (index 2) is the weekly data dict
+    weeks_data: dict[str, Any] = {}
+    if isinstance(decoded, list) and len(decoded) > 2:
+        candidate = decoded[2]
+        if isinstance(candidate, dict):
+            weeks_data = candidate
+
+    result: list[WeeklyActivityStats] = []
+    for week_key in sorted(weeks_data.keys(), key=lambda k: _safe_int(k)):
+        week = weeks_data[week_key]
+        if not isinstance(week, dict):
+            continue
+
+        type_stats = week.get("activityTypeStats", {})
+        if not isinstance(type_stats, dict):
+            type_stats = {}
+
+        result.append(
+            WeeklyActivityStats(
+                week_start=_safe_str(week.get("weekStart")),
+                week_end=_safe_str(week.get("weekEnd")),
+                ride=_parse_activity_type_stats(type_stats.get("ride")),
+                workout=_parse_activity_type_stats(type_stats.get("workout")),
+                event=_parse_activity_type_stats(type_stats.get("event")),
+                outdoor=_parse_activity_type_stats(type_stats.get("outdoor")),
+            )
+        )
+
+    return result
+
+
+def _parse_activity_type_stats(raw: Any) -> ActivityTypeStats:
+    """Parse a single activity type stats dict into a typed model."""
+    from .models import ActivityTypeStats
+
+    if not isinstance(raw, dict):
+        return ActivityTypeStats()
+
+    return ActivityTypeStats(
+        distance_m=_safe_float(raw.get("distM", 0)),
+        elevation_m=_safe_float(raw.get("elevM", 0)),
+        calories=_safe_float(raw.get("kCal", 0)),
+        moving_time_seconds=_safe_int(raw.get("movingTimeSec", 0)),
+        intensity_factor=_safe_float(raw.get("if", 0)),
+        training_score=_safe_float(raw.get("trainingScore", 0)),
+        activity_count=_safe_int(raw.get("activityCount", 0)),
+    )

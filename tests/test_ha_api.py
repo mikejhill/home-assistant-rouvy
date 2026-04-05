@@ -433,3 +433,61 @@ class TestAsyncUpdateUserSettings:
         assert session.request.call_count == 2, (
             f"Expected 2 requests (GET + POST), got {session.request.call_count}"
         )
+
+
+# ===================================================================
+# async_get_activity_stats
+# ===================================================================
+
+
+class TestAsyncGetActivityStats:
+    """Verify async activity stats fetching."""
+
+    @staticmethod
+    def _pre_auth_client(session: MagicMock) -> RouvyAsyncApiClient:
+        client = RouvyAsyncApiClient("u@e.com", "pw", session)
+        client._authenticated = True
+        return client
+
+    @pytest.mark.asyncio
+    async def test_returns_weekly_stats_list(self) -> None:
+        from custom_components.rouvy.api_client.models import WeeklyActivityStats
+
+        turbo = json.dumps(
+            [
+                {},
+                "activityStats",
+                {
+                    "0": {
+                        "weekStart": "Mar 30, 2026",
+                        "weekEnd": "Apr 5, 2026",
+                        "activityTypeStats": {
+                            "ride": {
+                                "distM": 50000.0,
+                                "elevM": 400.0,
+                                "kCal": 900.0,
+                                "movingTimeSec": 6000,
+                                "if": 0.75,
+                                "trainingScore": 70.0,
+                                "activityCount": 4,
+                            }
+                        },
+                    }
+                },
+            ]
+        )
+        session = _make_session(_FakeResponse(200, body=turbo))
+        client = self._pre_auth_client(session)
+        stats = await client.async_get_activity_stats(2026, 4)
+        assert len(stats) == 1, f"Expected 1 week, got {len(stats)}"
+        assert isinstance(stats[0], WeeklyActivityStats)
+        assert stats[0].ride.distance_m == 50000.0
+        assert stats[0].ride.activity_count == 4
+
+    @pytest.mark.asyncio
+    async def test_empty_response_returns_empty_list(self) -> None:
+        turbo = json.dumps([{}])
+        session = _make_session(_FakeResponse(200, body=turbo))
+        client = self._pre_auth_client(session)
+        stats = await client.async_get_activity_stats(2026, 4)
+        assert stats == [], f"Expected empty list, got {stats}"
