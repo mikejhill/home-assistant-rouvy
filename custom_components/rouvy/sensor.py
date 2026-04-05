@@ -245,6 +245,21 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
             len(d.activity_summary.recent_activities) if d.activity_summary else None
         ),
     ),
+    # Route sensors
+    RouvySensorDescription(
+        key="favorite_routes_count",
+        translation_key="favorite_routes_count",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: len(d.favorite_routes) if d.favorite_routes else 0,
+    ),
+    RouvySensorDescription(
+        key="routes_online_riders",
+        translation_key="routes_online_riders",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: (
+            sum(r.online_count for r in d.favorite_routes) if d.favorite_routes else 0
+        ),
+    ),
 )
 
 

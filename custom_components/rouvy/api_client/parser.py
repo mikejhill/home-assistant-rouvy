@@ -27,6 +27,7 @@ if TYPE_CHECKING:
         ActivityTypeStats,
         Challenge,
         ConnectedApp,
+        Route,
         TrainingZones,
         UserProfile,
         WeeklyActivityStats,
@@ -659,3 +660,50 @@ def extract_challenges_model(response_text: str) -> list[Challenge]:
         )
 
     return challenges
+
+
+def extract_routes_model(response_text: str) -> list[Route]:
+    """Extract typed Route list from a routes.data response.
+
+    The response is a turbo-stream flat list containing a key like
+    "routes" or "routeOverviews" whose value is a list of route dicts.
+    """
+    from .models import Route
+
+    decoder = TurboStreamDecoder()
+    decoded = decoder.decode(response_text)
+    array_data: list[Any] = decoded if isinstance(decoded, list) else []
+
+    routes: list[Route] = []
+    raw_list = _find_key_value(array_data, "routes")
+    if not isinstance(raw_list, list):
+        raw_list = _find_key_value(array_data, "routeOverviews")
+    if not isinstance(raw_list, list):
+        return routes
+
+    for item in raw_list:
+        resolved = _resolve_index(item, decoder.index_map)
+        if not isinstance(resolved, dict):
+            continue
+
+        # Get route_id from the raw item to avoid index map collisions
+        # for small integer values like 1 or 2.
+        raw_id = item.get("id", 0) if isinstance(item, dict) else resolved.get("id", 0)
+
+        routes.append(
+            Route(
+                route_id=_safe_int(raw_id),
+                name=_safe_str(resolved.get("name")),
+                distance_m=_safe_float(resolved.get("distanceInMeters", 0)),
+                elevation_m=_safe_float(resolved.get("elevationInMeters", 0)),
+                estimated_time_seconds=_safe_int(resolved.get("estimatedTime", 0)),
+                rating=_safe_float(resolved.get("rating", 0)),
+                country_code=_safe_str(resolved.get("countryCodeISO")),
+                favorite=bool(resolved.get("favorite", False)),
+                completed_distance_m=_safe_float(resolved.get("completedDistanceMeters", 0)),
+                online_count=_safe_int(resolved.get("onlineCount", 0)),
+                coins_for_completion=_safe_int(resolved.get("coinsForCompletion", 0)),
+            )
+        )
+
+    return routes

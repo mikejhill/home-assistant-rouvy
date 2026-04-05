@@ -1119,3 +1119,118 @@ class TestExtractChallengesModel:
         assert result[0].experience == 0
         assert result[0].coins == 0
         assert result[0].segments == []
+
+
+# ===================================================================
+# extract_routes_model
+# ===================================================================
+
+
+def _build_routes_response(
+    routes: list[dict[str, Any]] | None = None,
+    key: str = "routes",
+) -> str:
+    """Build a minimal synthetic routes.data turbo-stream response."""
+    if routes is None:
+        routes = [
+            {
+                "id": 12345,
+                "name": "Alpine Classic",
+                "distanceInMeters": 45000.0,
+                "elevationInMeters": 800.0,
+                "estimatedTime": 5400,
+                "rating": 4.5,
+                "countryCodeISO": "AT",
+                "favorite": True,
+                "completedDistanceMeters": 45000.0,
+                "onlineCount": 12,
+                "coinsForCompletion": 50,
+            },
+            {
+                "id": 67890,
+                "name": "Coastal Ride",
+                "distanceInMeters": 30000.0,
+                "elevationInMeters": 200.0,
+                "estimatedTime": 3600,
+                "rating": 3.8,
+                "countryCodeISO": "ES",
+                "favorite": False,
+                "completedDistanceMeters": 0.0,
+                "onlineCount": 5,
+                "coinsForCompletion": 30,
+            },
+        ]
+    array: list[Any] = [key, routes]
+    return json.dumps(array)
+
+
+class TestExtractRoutes:
+    """Verify extract_routes_model with synthetic data."""
+
+    def test_happy_path_returns_routes(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_routes_model
+
+        result = extract_routes_model(_build_routes_response())
+        assert len(result) == 2
+        assert result[0].route_id == 12345
+        assert result[0].name == "Alpine Classic"
+        assert result[0].distance_m == 45000.0
+        assert result[0].elevation_m == 800.0
+        assert result[0].estimated_time_seconds == 5400
+        assert result[0].rating == 4.5
+        assert result[0].country_code == "AT"
+        assert result[0].favorite is True
+        assert result[0].completed_distance_m == 45000.0
+        assert result[0].online_count == 12
+        assert result[0].coins_for_completion == 50
+
+    def test_second_route_fields(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_routes_model
+
+        result = extract_routes_model(_build_routes_response())
+        assert result[1].route_id == 67890
+        assert result[1].name == "Coastal Ride"
+        assert result[1].favorite is False
+        assert result[1].online_count == 5
+
+    def test_route_overviews_key_also_works(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_routes_model
+
+        result = extract_routes_model(_build_routes_response(key="routeOverviews"))
+        assert len(result) == 2
+        assert result[0].route_id == 12345
+
+    def test_empty_routes_list(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_routes_model
+
+        result = extract_routes_model(_build_routes_response(routes=[]))
+        assert result == []
+
+    def test_no_routes_key_returns_empty(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_routes_model
+
+        result = extract_routes_model(json.dumps(["other_key", []]))
+        assert result == []
+
+    def test_missing_fields_use_defaults(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_routes_model
+
+        result = extract_routes_model(_build_routes_response(routes=[{"id": 1}]))
+        assert len(result) == 1
+        assert result[0].route_id == 1
+        assert result[0].name == ""
+        assert result[0].distance_m == 0.0
+        assert result[0].elevation_m == 0.0
+        assert result[0].estimated_time_seconds == 0
+        assert result[0].rating == 0.0
+        assert result[0].country_code == ""
+        assert result[0].favorite is False
+        assert result[0].completed_distance_m == 0.0
+        assert result[0].online_count == 0
+        assert result[0].coins_for_completion == 0
+
+    def test_non_dict_items_skipped(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_routes_model
+
+        result = extract_routes_model(json.dumps(["routes", [42, "not_a_dict"]]))
+        assert result == []

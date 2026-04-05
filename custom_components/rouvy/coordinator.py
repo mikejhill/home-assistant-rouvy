@@ -88,6 +88,13 @@ class RouvyDataUpdateCoordinator(DataUpdateCoordinator[RouvyCoordinatorData]):
             except Exception:
                 _LOGGER.debug("Failed to fetch activity summary, continuing without", exc_info=True)
 
+            # Fetch favorite routes
+            favorite_routes: list = []
+            try:
+                favorite_routes = await client.async_get_favorite_routes()
+            except Exception:
+                _LOGGER.debug("Failed to fetch favorite routes, continuing without", exc_info=True)
+
             self._consecutive_auth_failures = 0
             _LOGGER.debug("Coordinator update successful")
             return RouvyCoordinatorData(
@@ -97,6 +104,7 @@ class RouvyDataUpdateCoordinator(DataUpdateCoordinator[RouvyCoordinatorData]):
                 training_zones=training_zones,
                 connected_apps=connected_apps,
                 activity_summary=activity_summary,
+                favorite_routes=favorite_routes,
             )
         except AuthenticationError as err:
             self._consecutive_auth_failures += 1

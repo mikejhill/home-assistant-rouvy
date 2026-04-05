@@ -52,7 +52,9 @@
       "last_activity_distance": { "name": "Last Activity Distance" },
       "last_activity_duration": { "name": "Last Activity Duration" },
       "last_activity_date": { "name": "Last Activity Date" },
-      "total_activities": { "name": "Total Activities" }
+      "total_activities": { "name": "Total Activities" },
+      "favorite_routes_count": { "name": "Favorite Routes" },
+      "routes_online_riders": { "name": "Online Riders (Favorites)" }
     }
   }
 }

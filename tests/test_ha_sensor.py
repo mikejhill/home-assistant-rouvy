@@ -12,6 +12,7 @@ from custom_components.rouvy.api_client.models import (
     ActivityTypeStats,
     Challenge,
     ConnectedApp,
+    Route,
     RouvyCoordinatorData,
     TrainingZones,
     UserProfile,
@@ -527,6 +528,7 @@ class TestConnectedAppsActiveSensor:
 
 
 # ===================================================================
+# ===================================================================
 # Activity summary sensor helpers
 # ===================================================================
 
@@ -682,3 +684,86 @@ class TestTotalActivitiesSensor:
 
         desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "total_activities")
         assert desc.value_fn(d) is None
+
+
+# ===================================================================
+# Route sensor helpers
+# ===================================================================
+
+
+def _make_route(**overrides: object) -> Route:
+    """Create a Route with sensible defaults, overriding specific fields."""
+    defaults = dict(
+        route_id=12345,
+        name="Alpine Classic",
+        distance_m=45000.0,
+        elevation_m=800.0,
+        estimated_time_seconds=5400,
+        rating=4.5,
+        country_code="AT",
+        favorite=True,
+        completed_distance_m=45000.0,
+        online_count=12,
+        coins_for_completion=50,
+    )
+    defaults.update(overrides)
+    return Route(**defaults)
+
+
+def _make_data_with_routes(
+    routes: list | None = None,
+) -> RouvyCoordinatorData:
+    """Create coordinator data with favorite routes."""
+    return RouvyCoordinatorData(
+        profile=_make_profile(),
+        favorite_routes=routes or [],
+    )
+
+
+class TestFavoriteRoutesCountSensor:
+    """Verify favorite_routes_count sensor value extraction."""
+
+    def test_returns_count(self) -> None:
+        routes = [_make_route(route_id=1), _make_route(route_id=2)]
+        d = _make_data_with_routes(routes)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "favorite_routes_count")
+        assert desc.value_fn(d) == 2
+
+    def test_empty_returns_zero(self) -> None:
+        d = _make_data_with_routes([])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "favorite_routes_count")
+        assert desc.value_fn(d) == 0
+
+
+class TestRoutesOnlineRidersSensor:
+    """Verify routes_online_riders sensor value extraction."""
+
+    def test_returns_sum_of_online_counts(self) -> None:
+        routes = [
+            _make_route(route_id=1, online_count=12),
+            _make_route(route_id=2, online_count=8),
+        ]
+        d = _make_data_with_routes(routes)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "routes_online_riders")
+        assert desc.value_fn(d) == 20
+
+    def test_empty_returns_zero(self) -> None:
+        d = _make_data_with_routes([])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "routes_online_riders")
+        assert desc.value_fn(d) == 0
+
+    def test_single_route(self) -> None:
+        routes = [_make_route(route_id=1, online_count=5)]
+        d = _make_data_with_routes(routes)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "routes_online_riders")
+        assert desc.value_fn(d) == 5

@@ -130,6 +130,23 @@ class Challenge:
 
 
 @dataclass(frozen=True)
+class Route:
+    """A Rouvy route from the routes endpoint."""
+
+    route_id: int = 0
+    name: str = ""
+    distance_m: float = 0.0
+    elevation_m: float = 0.0
+    estimated_time_seconds: int = 0
+    rating: float = 0.0
+    country_code: str = ""
+    favorite: bool = False
+    completed_distance_m: float = 0.0
+    online_count: int = 0
+    coins_for_completion: int = 0
+
+
+@dataclass(frozen=True)
 class RouvyCoordinatorData:
     """Composite data object held by the coordinator.
 
@@ -144,3 +161,4 @@ class RouvyCoordinatorData:
     training_zones: TrainingZones | None = None
     connected_apps: list[ConnectedApp] = field(default_factory=list)
     activity_summary: ActivitySummary | None = None
+    favorite_routes: list[Route] = field(default_factory=list)

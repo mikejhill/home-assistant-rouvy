@@ -18,6 +18,7 @@ from .api_client.models import (
     ActivitySummary,
     Challenge,
     ConnectedApp,
+    Route,
     TrainingZones,
     UserProfile,
     WeeklyActivityStats,
@@ -27,6 +28,7 @@ from .api_client.parser import (
     extract_activity_stats_model,
     extract_challenges_model,
     extract_connected_apps_model,
+    extract_routes_model,
     extract_training_zones_model,
     extract_user_profile_model,
 )
@@ -272,6 +274,12 @@ class RouvyAsyncApiClient:
             headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
         )
         _LOGGER.info("User settings updated")
+
+    async def async_get_favorite_routes(self) -> list[Route]:
+        """Fetch routes and return only favorites."""
+        text = await self._request("GET", "routes.data")
+        all_routes = extract_routes_model(text)
+        return [r for r in all_routes if r.favorite]
 
     async def async_validate_credentials(self) -> bool:
         """Test that the credentials are valid. Returns True on success."""

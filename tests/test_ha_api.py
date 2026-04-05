@@ -588,3 +588,71 @@ class TestAsyncRegisterChallenge:
         client = self._pre_auth_client(session)
         result = await client.async_register_challenge("spring-2026")
         assert result is False
+
+
+# ===================================================================
+# async_get_favorite_routes
+# ===================================================================
+
+
+class TestAsyncGetFavoriteRoutes:
+    """Verify async favorite routes fetching."""
+
+    @staticmethod
+    def _pre_auth_client(session: MagicMock) -> RouvyAsyncApiClient:
+        client = RouvyAsyncApiClient("u@e.com", "pw", session)
+        client._authenticated = True
+        return client
+
+    @pytest.mark.asyncio
+    async def test_returns_only_favorites(self) -> None:
+        from custom_components.rouvy.api_client.models import Route
+
+        turbo = json.dumps(
+            [
+                "routes",
+                [
+                    {
+                        "id": 1,
+                        "name": "Favorite Route",
+                        "distanceInMeters": 10000.0,
+                        "elevationInMeters": 100.0,
+                        "estimatedTime": 1800,
+                        "rating": 4.0,
+                        "countryCodeISO": "CZ",
+                        "favorite": True,
+                        "completedDistanceMeters": 10000.0,
+                        "onlineCount": 3,
+                        "coinsForCompletion": 20,
+                    },
+                    {
+                        "id": 2,
+                        "name": "Non-Favorite",
+                        "distanceInMeters": 20000.0,
+                        "elevationInMeters": 200.0,
+                        "estimatedTime": 3600,
+                        "rating": 3.0,
+                        "countryCodeISO": "DE",
+                        "favorite": False,
+                        "completedDistanceMeters": 0.0,
+                        "onlineCount": 1,
+                        "coinsForCompletion": 10,
+                    },
+                ],
+            ]
+        )
+        session = _make_session(_FakeResponse(200, body=turbo))
+        client = self._pre_auth_client(session)
+        favorites = await client.async_get_favorite_routes()
+        assert len(favorites) == 1
+        assert isinstance(favorites[0], Route)
+        assert favorites[0].route_id == 1
+        assert favorites[0].favorite is True
+
+    @pytest.mark.asyncio
+    async def test_empty_response_returns_empty_list(self) -> None:
+        turbo = json.dumps(["routes", []])
+        session = _make_session(_FakeResponse(200, body=turbo))
+        client = self._pre_auth_client(session)
+        favorites = await client.async_get_favorite_routes()
+        assert favorites == []
