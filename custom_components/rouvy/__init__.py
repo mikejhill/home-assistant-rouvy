@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
     from .data import RouvyConfigEntry
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -23,6 +26,8 @@ async def async_setup_entry(
     from .const import CONF_EMAIL, CONF_PASSWORD
     from .coordinator import RouvyDataUpdateCoordinator
     from .data import RouvyData
+
+    _LOGGER.debug("Setting up Rouvy integration for %s", entry.data.get(CONF_EMAIL))
 
     client = RouvyAsyncApiClient(
         email=entry.data[CONF_EMAIL],
@@ -42,6 +47,7 @@ async def async_setup_entry(
 
     _register_services(hass)
 
+    _LOGGER.info("Rouvy integration setup complete for %s", entry.data.get(CONF_EMAIL))
     return True
 
 
@@ -52,17 +58,18 @@ async def async_unload_entry(
     """Unload a Rouvy config entry."""
     from homeassistant.const import Platform
 
+    _LOGGER.debug("Unloading Rouvy integration")
     result: bool = await hass.config_entries.async_unload_platforms(entry, [Platform.SENSOR])
     return result
 
 
 def _register_services(hass: Any) -> None:
     """Register Rouvy services (idempotent — safe to call multiple times)."""
-    from .const import DOMAIN, LOGGER
+    from .const import DOMAIN
 
     async def _handle_update_weight(call: Any) -> None:
         weight = call.data["weight"]
-        LOGGER.info("Service call: update_weight to %s", weight)
+        _LOGGER.info("Service call: update_weight to %s", weight)
         for entry in hass.config_entries.async_entries(DOMAIN):
             if hasattr(entry, "runtime_data") and entry.runtime_data:
                 client = entry.runtime_data.client
@@ -71,7 +78,7 @@ def _register_services(hass: Any) -> None:
 
     async def _handle_update_height(call: Any) -> None:
         height = call.data["height"]
-        LOGGER.info("Service call: update_height to %s", height)
+        _LOGGER.info("Service call: update_height to %s", height)
         for entry in hass.config_entries.async_entries(DOMAIN):
             if hasattr(entry, "runtime_data") and entry.runtime_data:
                 client = entry.runtime_data.client
@@ -80,7 +87,7 @@ def _register_services(hass: Any) -> None:
 
     async def _handle_update_settings(call: Any) -> None:
         settings = dict(call.data["settings"])
-        LOGGER.info("Service call: update_settings %s", settings)
+        _LOGGER.info("Service call: update_settings %s", settings)
         for entry in hass.config_entries.async_entries(DOMAIN):
             if hasattr(entry, "runtime_data") and entry.runtime_data:
                 client = entry.runtime_data.client

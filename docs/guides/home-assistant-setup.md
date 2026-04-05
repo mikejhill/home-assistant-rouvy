@@ -176,6 +176,27 @@ logger:
     custom_components.rouvy: debug
 ```
 
+This enables debug output for all modules in the integration. For targeted debugging, you can enable logging per module:
+
+| Logger name | Component |
+| --- | --- |
+| `custom_components.rouvy` | All modules (integration-wide) |
+| `custom_components.rouvy.api` | Async API client (HTTP requests, re-auth, timing) |
+| `custom_components.rouvy.coordinator` | Data update coordinator (polling, error handling) |
+| `custom_components.rouvy.config_flow` | Config flow (setup, reauth) |
+| `custom_components.rouvy.sensor` | Sensor entity setup |
+| `custom_components.rouvy.api_client.client` | Sync CLI client |
+| `custom_components.rouvy.api_client.parser` | Turbo-stream response parser |
+
+For example, to debug only the API client:
+
+```yaml
+logger:
+  default: warning
+  logs:
+    custom_components.rouvy.api: debug
+```
+
 Restart HA and check the logs for detailed request/response information.
 
 ## Architecture Notes

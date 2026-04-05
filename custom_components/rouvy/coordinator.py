@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
@@ -13,12 +14,14 @@ from homeassistant.helpers.update_coordinator import (
 
 from .api_client.errors import AuthenticationError, RouvyApiError
 from .api_client.models import UserProfile
-from .const import DEFAULT_SCAN_INTERVAL_HOURS, LOGGER
+from .const import DEFAULT_SCAN_INTERVAL_HOURS
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
     from .data import RouvyConfigEntry
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class RouvyDataUpdateCoordinator(DataUpdateCoordinator[UserProfile]):
@@ -29,7 +32,7 @@ class RouvyDataUpdateCoordinator(DataUpdateCoordinator[UserProfile]):
     def __init__(self, hass: HomeAssistant, config_entry: RouvyConfigEntry) -> None:
         super().__init__(
             hass,
-            LOGGER,
+            _LOGGER,
             config_entry=config_entry,
             name="rouvy",
             update_interval=timedelta(hours=DEFAULT_SCAN_INTERVAL_HOURS),
@@ -46,11 +49,11 @@ class RouvyDataUpdateCoordinator(DataUpdateCoordinator[UserProfile]):
         try:
             result = await self.config_entry.runtime_data.client.async_get_user_profile()
             self._consecutive_auth_failures = 0
-            LOGGER.debug("Coordinator update successful")
+            _LOGGER.debug("Coordinator update successful")
             return result
         except AuthenticationError as err:
             self._consecutive_auth_failures += 1
-            LOGGER.warning(
+            _LOGGER.warning(
                 "Authentication failed during update (attempt %d): %s",
                 self._consecutive_auth_failures,
                 err,
@@ -65,5 +68,5 @@ class RouvyDataUpdateCoordinator(DataUpdateCoordinator[UserProfile]):
                 f"will retry): {err}"
             ) from err
         except RouvyApiError as err:
-            LOGGER.warning("API error during update: %s", err)
+            _LOGGER.warning("API error during update: %s", err)
             raise UpdateFailed(err) from err

@@ -27,7 +27,7 @@ from .api_client.parser import (
     extract_user_profile_model,
 )
 
-LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 BASE_URL = "https://riders.rouvy.com"
 
 
@@ -48,7 +48,7 @@ class RouvyAsyncApiClient:
 
     async def async_login(self) -> None:
         """Authenticate with Rouvy and establish a session."""
-        LOGGER.debug("Starting async authentication for %s", self._email)
+        _LOGGER.debug("Starting async authentication for %s", self._email)
         self._cookies.clear()
         payload = {"email": self._email, "password": self._password}
 
@@ -56,7 +56,7 @@ class RouvyAsyncApiClient:
             f"{BASE_URL}/login.data",
             data=payload,
         ) as resp:
-            LOGGER.debug(
+            _LOGGER.debug(
                 "Login response: status=%s",
                 resp.status,
             )
@@ -69,7 +69,7 @@ class RouvyAsyncApiClient:
             f"{BASE_URL}/_root.data",
             cookies=self._cookies,
         ) as resp:
-            LOGGER.debug(
+            _LOGGER.debug(
                 "Session init (_root.data) response: status=%s",
                 resp.status,
             )
@@ -80,7 +80,7 @@ class RouvyAsyncApiClient:
             self._cookies.update({k: v.value for k, v in resp.cookies.items()})
 
         self._authenticated = True
-        LOGGER.info("Async authentication successful for %s", self._email)
+        _LOGGER.info("Async authentication successful for %s", self._email)
 
     async def _request(self, method: str, path: str, **kwargs: Any) -> str:
         """Make an authenticated request, returning the response body text.
@@ -89,7 +89,7 @@ class RouvyAsyncApiClient:
         by re-authenticating and retrying once.
         """
         if not self._authenticated:
-            LOGGER.debug("Not authenticated, logging in before request")
+            _LOGGER.debug("Not authenticated, logging in before request")
             await self.async_login()
 
         url = f"{BASE_URL}/{path.lstrip('/')}"
@@ -98,7 +98,7 @@ class RouvyAsyncApiClient:
         start = time.monotonic()
         async with self._session.request(method, url, **kwargs) as resp:
             elapsed_ms = (time.monotonic() - start) * 1000
-            LOGGER.debug(
+            _LOGGER.debug(
                 "HTTP %s %s -> %s (%.0fms)",
                 method,
                 path,
@@ -108,7 +108,7 @@ class RouvyAsyncApiClient:
 
             # 401 Unauthorized — session expired, re-auth and retry
             if resp.status == 401:
-                LOGGER.info("Got 401 on %s %s, re-authenticating", method, path)
+                _LOGGER.info("Got 401 on %s %s, re-authenticating", method, path)
                 self._authenticated = False
                 await self.async_login()
                 kwargs["cookies"] = self._cookies
@@ -118,7 +118,7 @@ class RouvyAsyncApiClient:
             if resp.status == 202:
                 body = await resp.text()
                 if self._is_redirect_body(body):
-                    LOGGER.info(
+                    _LOGGER.info(
                         "Got 202 redirect on %s %s, re-initializing session",
                         method,
                         path,
@@ -130,7 +130,7 @@ class RouvyAsyncApiClient:
 
             if resp.status >= 400:
                 body = await resp.text()
-                LOGGER.error(
+                _LOGGER.error(
                     "Request failed: %s %s -> %s, body=%s",
                     method,
                     path,
@@ -146,7 +146,7 @@ class RouvyAsyncApiClient:
         start = time.monotonic()
         async with self._session.request(method, url, **kwargs) as retry:
             elapsed_ms = (time.monotonic() - start) * 1000
-            LOGGER.debug(
+            _LOGGER.debug(
                 "HTTP %s %s (retry) -> %s (%.0fms)",
                 method,
                 path,
@@ -155,7 +155,7 @@ class RouvyAsyncApiClient:
             )
             if retry.status >= 400:
                 body = await retry.text()
-                LOGGER.error(
+                _LOGGER.error(
                     "Retry failed: %s %s -> %s, body=%s",
                     method,
                     path,
@@ -208,7 +208,7 @@ class RouvyAsyncApiClient:
         """
         from .api_client.parser import extract_user_profile
 
-        LOGGER.debug("Updating user settings: %s", updates)
+        _LOGGER.debug("Updating user settings: %s", updates)
         current_text = await self._request("GET", "user-settings.data")
         current = extract_user_profile(current_text)
 
@@ -226,7 +226,7 @@ class RouvyAsyncApiClient:
             data=payload,
             headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
         )
-        LOGGER.info("User settings updated")
+        _LOGGER.info("User settings updated")
 
     async def async_validate_credentials(self) -> bool:
         """Test that the credentials are valid. Returns True on success."""

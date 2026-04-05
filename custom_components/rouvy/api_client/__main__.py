@@ -28,7 +28,7 @@ from . import (
     parse_response,
 )
 
-LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 _ZONE_LABELS: list[str] = [
     "Recovery",

@@ -14,7 +14,7 @@ from .errors import ApiResponseError, AuthenticationError
 if TYPE_CHECKING:
     from .models import ActivitySummary, ConnectedApp, TrainingZones, UserProfile
 
-LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 BASE_URL = "https://riders.rouvy.com"
 
 
@@ -33,7 +33,7 @@ class RouvyClient:
 
     def login(self) -> None:
         """Authenticate with Rouvy and establish a session."""
-        LOGGER.debug("Starting authentication process")
+        _LOGGER.debug("Starting authentication process")
         payload = {"email": self._config.email, "password": self._config.password}
         response = self._session.post(
             f"{BASE_URL}/login.data",
@@ -41,25 +41,25 @@ class RouvyClient:
             timeout=self._config.timeout_seconds,
         )
         if response.status_code >= 400:
-            LOGGER.error(
+            _LOGGER.error(
                 "Authentication failed",
                 extra={"status_code": response.status_code},
             )
             raise AuthenticationError(f"Login failed with status {response.status_code}")
 
-        LOGGER.debug(
+        _LOGGER.debug(
             "Login request successful",
             extra={"status_code": response.status_code},
         )
 
         # Set session cookie by loading _root.data
-        LOGGER.debug("Initializing session with _root.data")
+        _LOGGER.debug("Initializing session with _root.data")
         root_response = self._session.get(
             f"{BASE_URL}/_root.data",
             timeout=self._config.timeout_seconds,
         )
         if root_response.status_code >= 400:
-            LOGGER.error(
+            _LOGGER.error(
                 "Failed to set session cookie",
                 extra={"status_code": root_response.status_code},
             )
@@ -67,11 +67,11 @@ class RouvyClient:
                 f"Session initialization failed with status {root_response.status_code}"
             )
 
-        LOGGER.debug(
+        _LOGGER.debug(
             "Session initialized successfully",
             extra={"status_code": root_response.status_code},
         )
-        LOGGER.info("Authentication successful")
+        _LOGGER.info("Authentication successful")
         self._authenticated = True
 
     def request(self, method: str, path: str, **kwargs: Any) -> requests.Response:
@@ -89,7 +89,7 @@ class RouvyClient:
             AuthenticationError: If authentication fails.
             ApiResponseError: If the API returns an error status.
         """
-        LOGGER.debug(
+        _LOGGER.debug(
             "Initiating request",
             extra={"method": method, "path": path},
         )
@@ -102,19 +102,19 @@ class RouvyClient:
         # Handle 401 unauthorized
         if response.status_code == 401:
             self._authenticated = False
-            LOGGER.debug("Re-authenticating due to 401 response")
+            _LOGGER.debug("Re-authenticating due to 401 response")
             self.login()
             response = self._send_request(method, path, **kwargs)
 
         # Handle 202 incomplete authentication (session not fully initialized)
         if response.status_code == 202 and self._is_redirect_response(response):
-            LOGGER.debug("Incomplete authentication detected, loading _root.data")
+            _LOGGER.debug("Incomplete authentication detected, loading _root.data")
             root_response = self._session.get(
                 f"{BASE_URL}/_root.data",
                 timeout=self._config.timeout_seconds,
             )
             if root_response.status_code >= 400:
-                LOGGER.error(
+                _LOGGER.error(
                     "Failed to complete session initialization",
                     extra={"status_code": root_response.status_code},
                 )
@@ -125,10 +125,10 @@ class RouvyClient:
                 )
 
             # Retry the original request once
-            LOGGER.debug("Retrying request after session initialization")
+            _LOGGER.debug("Retrying request after session initialization")
             response = self._send_request(method, path, **kwargs)
             if response.status_code == 202 and self._is_redirect_response(response):
-                LOGGER.error(
+                _LOGGER.error(
                     "Request failed after session initialization retry",
                     extra={"method": method, "url": self._build_url(path)},
                 )
@@ -139,7 +139,7 @@ class RouvyClient:
                 )
 
         if response.status_code >= 400:
-            LOGGER.error(
+            _LOGGER.error(
                 "Request failed",
                 extra={
                     "method": method,
@@ -153,7 +153,7 @@ class RouvyClient:
                 _safe_payload(response),
             )
 
-        LOGGER.info(
+        _LOGGER.info(
             "Request completed successfully",
             extra={"method": method, "status_code": response.status_code},
         )
@@ -169,7 +169,7 @@ class RouvyClient:
 
     def get_user_settings(self) -> requests.Response:
         """Fetch raw user settings response from the API."""
-        LOGGER.debug("Fetching user settings")
+        _LOGGER.debug("Fetching user settings")
         return self.get(f"{BASE_URL}/user-settings.data")
 
     def update_user_settings(self, updates: dict[str, Any]) -> requests.Response:
@@ -187,7 +187,7 @@ class RouvyClient:
         """
         from .parser import extract_user_profile
 
-        LOGGER.debug("Updating user settings", extra={"updates": updates})
+        _LOGGER.debug("Updating user settings", extra={"updates": updates})
 
         # Get current settings to fill in required fields
         current_response = self.get_user_settings()
@@ -205,7 +205,7 @@ class RouvyClient:
         # Merge updates into payload
         payload.update(updates)
 
-        LOGGER.info("Posting user settings update", extra={"payload": payload})
+        _LOGGER.info("Posting user settings update", extra={"payload": payload})
 
         # POST to user-settings.data?index
         response = self.post(
@@ -214,7 +214,7 @@ class RouvyClient:
             headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
         )
 
-        LOGGER.info(
+        _LOGGER.info(
             "User settings updated successfully",
             extra={"status_code": response.status_code},
         )
@@ -232,7 +232,7 @@ class RouvyClient:
         """Fetch and return typed TrainingZones from the zones endpoint."""
         from .parser import extract_training_zones_model
 
-        LOGGER.debug("Fetching training zones")
+        _LOGGER.debug("Fetching training zones")
         response = self.get(f"{BASE_URL}/user-settings/zones.data")
         return extract_training_zones_model(response.text)
 
@@ -240,7 +240,7 @@ class RouvyClient:
         """Fetch and return a list of typed ConnectedApp models."""
         from .parser import extract_connected_apps_model
 
-        LOGGER.debug("Fetching connected apps")
+        _LOGGER.debug("Fetching connected apps")
         response = self.get(f"{BASE_URL}/user-settings/connected-apps.data")
         return extract_connected_apps_model(response.text)
 
@@ -248,7 +248,7 @@ class RouvyClient:
         """Fetch and return a typed ActivitySummary from the profile overview."""
         from .parser import extract_activities_model
 
-        LOGGER.debug("Fetching activity summary")
+        _LOGGER.debug("Fetching activity summary")
         response = self.get(f"{BASE_URL}/profile/overview.data")
         return extract_activities_model(response.text)
 
@@ -261,7 +261,7 @@ class RouvyClient:
         response = self._session.request(method, url, **kwargs)
         duration_ms = (time.perf_counter() - start_time) * 1000
 
-        LOGGER.debug(
+        _LOGGER.debug(
             "HTTP request completed",
             extra={
                 "method": method,

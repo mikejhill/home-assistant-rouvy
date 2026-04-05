@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from .models import ActivitySummary, ConnectedApp, TrainingZones, UserProfile
 
-LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 # Special sentinel values
 UNDEFINED = object()  # Represents JavaScript undefined
@@ -82,9 +82,9 @@ class TurboStreamDecoder:
                     if value_str.lstrip("-").isdigit():
                         self.promise_values[promise_id] = int(value_str)
                     else:
-                        LOGGER.warning(f"Could not parse promise value: {value_str}")
+                        _LOGGER.warning("Could not parse promise value: %s", value_str)
         except Exception as e:
-            LOGGER.warning(f"Error parsing promise line '{line}': {e}")
+            _LOGGER.warning("Error parsing promise line '%s': %s", line, e)
 
     def _decode_value(self, value: Any, resolve_int_as_index: bool = False) -> Any:
         """Recursively decode a value, resolving references and special types.
@@ -123,7 +123,7 @@ class TurboStreamDecoder:
                     try:
                         return datetime.fromtimestamp(value[1] / 1000)
                     except ValueError, OSError:
-                        LOGGER.warning(f"Invalid timestamp: {value[1]}")
+                        _LOGGER.warning("Invalid timestamp: %s", value[1])
                         return value
 
                 # Promise reference: ["P", id]
@@ -198,7 +198,7 @@ class TurboStreamDecoder:
             if isinstance(current, dict) and part in current:
                 current = current[part]
             else:
-                LOGGER.debug(f"Path '{path}' not found in decoded data")
+                _LOGGER.debug("Path '%s' not found in decoded data", path)
                 return {}
 
         return current if isinstance(current, dict) else {}

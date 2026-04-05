@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import aiohttp
@@ -10,7 +11,9 @@ from homeassistant import config_entries
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 from .api import RouvyAsyncApiClient
-from .const import CONF_EMAIL, CONF_PASSWORD, DOMAIN, LOGGER
+from .const import CONF_EMAIL, CONF_PASSWORD, DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class RouvyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -34,10 +37,10 @@ class RouvyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if not valid:
                     errors["base"] = "invalid_auth"
             except aiohttp.ClientError:
-                LOGGER.exception("Connection error during credential validation")
+                _LOGGER.exception("Connection error during credential validation")
                 errors["base"] = "cannot_connect"
             except Exception:
-                LOGGER.exception("Unexpected error during credential validation")
+                _LOGGER.exception("Unexpected error during credential validation")
                 errors["base"] = "unknown"
 
             if not errors:
@@ -82,10 +85,10 @@ class RouvyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if not valid:
                     errors["base"] = "invalid_auth"
             except aiohttp.ClientError:
-                LOGGER.exception("Connection error during reauth")
+                _LOGGER.exception("Connection error during reauth")
                 errors["base"] = "cannot_connect"
             except Exception:
-                LOGGER.exception("Unexpected error during reauth")
+                _LOGGER.exception("Unexpected error during reauth")
                 errors["base"] = "unknown"
 
             if not errors:

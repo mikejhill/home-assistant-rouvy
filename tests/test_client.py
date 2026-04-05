@@ -17,7 +17,7 @@ from custom_components.rouvy.api_client import client as client_module
 
 
 def test_logger_name() -> None:
-    assert client_module.LOGGER.name == "custom_components.rouvy.api_client.client"
+    assert client_module._LOGGER.name == "custom_components.rouvy.api_client.client"
 
 
 @responses.activate

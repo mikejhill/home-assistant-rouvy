@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -26,6 +27,8 @@ from .entity import RouvyEntity
 
 if TYPE_CHECKING:
     from .coordinator import RouvyDataUpdateCoordinator
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -89,7 +92,9 @@ async def async_setup_entry(
 ) -> None:
     """Set up Rouvy sensors from a config entry."""
     coordinator = entry.runtime_data.coordinator
-    async_add_entities(RouvySensor(coordinator, description) for description in SENSOR_DESCRIPTIONS)
+    entities = [RouvySensor(coordinator, desc) for desc in SENSOR_DESCRIPTIONS]
+    _LOGGER.debug("Creating %d sensor entities", len(entities))
+    async_add_entities(entities)
 
 
 class RouvySensor(RouvyEntity, SensorEntity):
