@@ -855,3 +855,97 @@ class TestNextEventSensor:
         d = RouvyCoordinatorData(profile=_make_profile())
         desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "next_event")
         assert desc.value_fn(d) is None
+
+
+# ===================================================================
+# Career sensor helpers
+# ===================================================================
+
+
+def _make_data_with_career(career=None) -> RouvyCoordinatorData:
+    """Create coordinator data with career stats."""
+    return RouvyCoordinatorData(profile=_make_profile(), career=career)
+
+
+class TestCareerLevelSensor:
+    """Verify career level sensor value extraction."""
+
+    def test_returns_level(self) -> None:
+        from custom_components.rouvy.api_client.models import CareerStats
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(CareerStats(level=25))
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_level")
+        assert desc.value_fn(d) == 25
+
+    def test_no_career_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(None)
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_level")
+        assert desc.value_fn(d) is None
+
+
+class TestTotalXpSensor:
+    """Verify total XP sensor value extraction."""
+
+    def test_returns_xp(self) -> None:
+        from custom_components.rouvy.api_client.models import CareerStats
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(CareerStats(experience_points=9500))
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "total_xp")
+        assert desc.value_fn(d) == 9500
+
+    def test_no_career_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(None)
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "total_xp")
+        assert desc.value_fn(d) is None
+
+
+class TestTotalCoinsSensor:
+    """Verify total coins sensor value extraction."""
+
+    def test_returns_coins(self) -> None:
+        from custom_components.rouvy.api_client.models import CareerStats
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(CareerStats(coins=3200))
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "total_coins")
+        assert desc.value_fn(d) == 3200
+
+    def test_no_career_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(None)
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "total_coins")
+        assert desc.value_fn(d) is None
+
+
+class TestCareerTotalDistanceSensor:
+    """Verify career total distance sensor value extraction."""
+
+    def test_returns_km(self) -> None:
+        from custom_components.rouvy.api_client.models import CareerStats
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(CareerStats(total_distance_m=1_234_567.0))
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_total_distance")
+        assert desc.value_fn(d) == 1234.6
+
+    def test_zero_distance_returns_none(self) -> None:
+        from custom_components.rouvy.api_client.models import CareerStats
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(CareerStats(total_distance_m=0.0))
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_total_distance")
+        assert desc.value_fn(d) is None
+
+    def test_no_career_returns_none(self) -> None:
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        d = _make_data_with_career(None)
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "career_total_distance")
+        assert desc.value_fn(d) is None

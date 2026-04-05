@@ -163,6 +163,21 @@ class Event:
 
 
 @dataclass(frozen=True)
+class CareerStats:
+    """Career progression stats from the profile/career endpoint."""
+
+    total_distance_m: float = 0.0
+    total_elevation_m: float = 0.0
+    total_time_seconds: int = 0
+    total_activities: int = 0
+    total_achievements: int = 0
+    total_trophies: int = 0
+    experience_points: int = 0
+    level: int = 0
+    coins: int = 0
+
+
+@dataclass(frozen=True)
 class RouvyCoordinatorData:
     """Composite data object held by the coordinator.
 
@@ -179,3 +194,4 @@ class RouvyCoordinatorData:
     activity_summary: ActivitySummary | None = None
     favorite_routes: list[Route] = field(default_factory=list)
     upcoming_events: list[Event] = field(default_factory=list)
+    career: CareerStats | None = None

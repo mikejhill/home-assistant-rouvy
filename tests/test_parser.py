@@ -1361,3 +1361,89 @@ class TestExtractEventsModel:
         assert result[0].coins_for_completion == 0
         assert result[0].experience == 0
         assert result[0].laps == 0
+
+
+# ===================================================================
+# extract_career_model
+# ===================================================================
+
+
+def _build_career_response(**overrides: object) -> str:
+    """Build a synthetic turbo-stream career response."""
+    stats: dict[str, object] = {
+        "totalDistance": 1_234_567.0,
+        "totalElevation": 45_000.0,
+        "totalTime": 360_000,
+        "totalActivities": 150,
+        "achievements": 42,
+        "trophies": 10,
+        "xp": 9500,
+        "level": 25,
+        "coins": 3200,
+    }
+    stats.update(overrides)
+    return json.dumps(["career", stats])
+
+
+class TestExtractCareer:
+    """Verify extract_career_model with synthetic data."""
+
+    def test_happy_path_returns_career(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_career_model
+
+        result = extract_career_model(_build_career_response())
+        assert result.total_distance_m == 1_234_567.0
+        assert result.total_elevation_m == 45_000.0
+        assert result.total_time_seconds == 360_000
+        assert result.total_activities == 150
+        assert result.total_achievements == 42
+        assert result.total_trophies == 10
+        assert result.experience_points == 9500
+        assert result.level == 25
+        assert result.coins == 3200
+
+    def test_empty_response_returns_defaults(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_career_model
+
+        result = extract_career_model("")
+        assert result.level == 0
+        assert result.coins == 0
+        assert result.experience_points == 0
+        assert result.total_distance_m == 0.0
+
+    def test_whitespace_only_response_returns_defaults(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_career_model
+
+        result = extract_career_model("   ")
+        assert result.level == 0
+
+    def test_no_career_key_returns_defaults(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_career_model
+
+        result = extract_career_model(json.dumps(["other_key", {}]))
+        assert result.level == 0
+        assert result.total_distance_m == 0.0
+
+    def test_flat_keys_without_nested_object(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_career_model
+
+        result = extract_career_model(json.dumps(["level", 12, "coins", 500]))
+        assert result.level == 12
+        assert result.coins == 500
+
+    def test_alternate_key_names(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_career_model
+
+        data = {"totalDistM": 99.9, "totalElevM": 50.0, "totalTimeSec": 100}
+        result = extract_career_model(json.dumps(["stats", data]))
+        assert result.total_distance_m == 99.9
+        assert result.total_elevation_m == 50.0
+        assert result.total_time_seconds == 100
+
+    def test_partial_data_fills_defaults(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_career_model
+
+        result = extract_career_model(json.dumps(["career", {"level": 5}]))
+        assert result.level == 5
+        assert result.coins == 0
+        assert result.total_distance_m == 0.0

@@ -16,6 +16,7 @@ import aiohttp
 from .api_client.errors import AuthenticationError, RouvyApiError
 from .api_client.models import (
     ActivitySummary,
+    CareerStats,
     Challenge,
     ConnectedApp,
     Event,
@@ -27,6 +28,7 @@ from .api_client.models import (
 from .api_client.parser import (
     extract_activities_model,
     extract_activity_stats_model,
+    extract_career_model,
     extract_challenges_model,
     extract_connected_apps_model,
     extract_events_model,
@@ -230,6 +232,11 @@ class RouvyAsyncApiClient:
         """Fetch available challenges."""
         text = await self._request("GET", "challenges/status/available.data")
         return extract_challenges_model(text)
+
+    async def async_get_career(self) -> CareerStats:
+        """Fetch career progression stats."""
+        text = await self._request("GET", "profile/career.data")
+        return extract_career_model(text)
 
     async def async_register_challenge(self, slug: str) -> bool:
         """Register for a challenge by slug. Returns True on success."""

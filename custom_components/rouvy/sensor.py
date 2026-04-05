@@ -272,6 +272,38 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
         translation_key="next_event",
         value_fn=lambda d: d.upcoming_events[0].title if d.upcoming_events else None,
     ),
+    # Career sensors
+    RouvySensorDescription(
+        key="career_level",
+        translation_key="career_level",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: d.career.level if d.career else None,
+    ),
+    RouvySensorDescription(
+        key="total_xp",
+        translation_key="total_xp",
+        state_class=SensorStateClass.TOTAL,
+        value_fn=lambda d: d.career.experience_points if d.career else None,
+    ),
+    RouvySensorDescription(
+        key="total_coins",
+        translation_key="total_coins",
+        state_class=SensorStateClass.TOTAL,
+        value_fn=lambda d: d.career.coins if d.career else None,
+    ),
+    RouvySensorDescription(
+        key="career_total_distance",
+        translation_key="career_total_distance",
+        native_unit_of_measurement=UnitOfLength.KILOMETERS,
+        device_class=SensorDeviceClass.DISTANCE,
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=1,
+        value_fn=lambda d: (
+            round(d.career.total_distance_m / 1000, 1)
+            if d.career and d.career.total_distance_m
+            else None
+        ),
+    ),
 )
 
 

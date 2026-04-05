@@ -102,6 +102,13 @@ class RouvyDataUpdateCoordinator(DataUpdateCoordinator[RouvyCoordinatorData]):
             except Exception:
                 _LOGGER.debug("Failed to fetch events, continuing without", exc_info=True)
 
+            # Fetch career stats
+            career = None
+            try:
+                career = await client.async_get_career()
+            except Exception:
+                _LOGGER.debug("Failed to fetch career stats, continuing without", exc_info=True)
+
             self._consecutive_auth_failures = 0
             _LOGGER.debug("Coordinator update successful")
             return RouvyCoordinatorData(
@@ -113,6 +120,7 @@ class RouvyDataUpdateCoordinator(DataUpdateCoordinator[RouvyCoordinatorData]):
                 activity_summary=activity_summary,
                 favorite_routes=favorite_routes,
                 upcoming_events=upcoming_events,
+                career=career,
             )
         except AuthenticationError as err:
             self._consecutive_auth_failures += 1

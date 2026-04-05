@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from .models import (
         ActivitySummary,
         ActivityTypeStats,
+        CareerStats,
         Challenge,
         ConnectedApp,
         Event,
@@ -764,3 +765,73 @@ def extract_events_model(response_text: str) -> list[Event]:
         )
 
     return events
+
+
+def extract_career_model(response_text: str) -> CareerStats:
+    """Extract typed CareerStats from a profile/career.data response.
+
+    This is speculative — the actual response keys are unknown because the
+    HAR capture returned empty text. We try several likely key names and
+    fall back to defaults when nothing matches.
+    """
+    from .models import CareerStats
+
+    if not response_text or not response_text.strip():
+        return CareerStats()
+
+    decoder = TurboStreamDecoder()
+    decoded = decoder.decode(response_text)
+    array_data: list[Any] = decoded if isinstance(decoded, list) else []
+
+    # Try to find a nested career/stats object first
+    raw: dict[str, Any] | None = None
+    for key in ("career", "stats", "careerStats", "userCareer"):
+        candidate = _find_key_value(array_data, key)
+        if isinstance(candidate, dict):
+            raw = _resolve_index(candidate, decoder.index_map)
+            if isinstance(raw, dict):
+                break
+            raw = None
+        elif isinstance(candidate, int) and candidate in decoder.index_map:
+            resolved = _resolve_index(candidate, decoder.index_map)
+            if isinstance(resolved, dict):
+                raw = resolved
+                break
+
+    def _pick_int(*keys: str) -> int:
+        """Return the first non-None int found in raw or the flat array."""
+        if raw:
+            for k in keys:
+                val = raw.get(k)
+                if val is not None:
+                    return _safe_int(val)
+        for k in keys:
+            val = _find_key_value(array_data, k)
+            if val is not None:
+                return _safe_int(val)
+        return 0
+
+    def _pick_float(*keys: str) -> float:
+        """Return the first non-None float found in raw or the flat array."""
+        if raw:
+            for k in keys:
+                val = raw.get(k)
+                if val is not None:
+                    return _safe_float(val)
+        for k in keys:
+            val = _find_key_value(array_data, k)
+            if val is not None:
+                return _safe_float(val)
+        return 0.0
+
+    return CareerStats(
+        total_distance_m=_pick_float("totalDistance", "totalDistM"),
+        total_elevation_m=_pick_float("totalElevation", "totalElevM"),
+        total_time_seconds=_pick_int("totalTime", "totalTimeSec"),
+        total_activities=_pick_int("totalActivities", "activityCount"),
+        total_achievements=_pick_int("achievements", "achievementCount"),
+        total_trophies=_pick_int("trophies", "trophyCount"),
+        experience_points=_pick_int("xp", "experiencePoints"),
+        level=_pick_int("level"),
+        coins=_pick_int("coins"),
+    )

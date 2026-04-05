@@ -56,7 +56,11 @@
       "favorite_routes_count": { "name": "Favorite Routes" },
       "routes_online_riders": { "name": "Online Riders (Favorites)" },
       "upcoming_events_count": { "name": "Upcoming Events" },
-      "next_event": { "name": "Next Event" }
+      "next_event": { "name": "Next Event" },
+      "career_level": { "name": "Career Level" },
+      "total_xp": { "name": "Total XP" },
+      "total_coins": { "name": "Total Coins" },
+      "career_total_distance": { "name": "Career Total Distance" }
     }
   }
 }
