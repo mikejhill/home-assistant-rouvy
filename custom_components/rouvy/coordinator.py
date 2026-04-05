@@ -13,7 +13,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .api_client.errors import AuthenticationError, RouvyApiError
-from .api_client.models import UserProfile
+from .api_client.models import RouvyCoordinatorData
 from .const import DEFAULT_SCAN_INTERVAL_HOURS
 
 if TYPE_CHECKING:
@@ -24,8 +24,8 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-class RouvyDataUpdateCoordinator(DataUpdateCoordinator[UserProfile]):
-    """Coordinator to fetch user profile data from Rouvy."""
+class RouvyDataUpdateCoordinator(DataUpdateCoordinator[RouvyCoordinatorData]):
+    """Coordinator to fetch data from Rouvy."""
 
     config_entry: RouvyConfigEntry
 
@@ -39,18 +39,19 @@ class RouvyDataUpdateCoordinator(DataUpdateCoordinator[UserProfile]):
         )
         self._consecutive_auth_failures = 0
 
-    async def _async_update_data(self) -> UserProfile:
-        """Fetch the latest user profile from the API.
+    async def _async_update_data(self) -> RouvyCoordinatorData:
+        """Fetch the latest data from the API.
 
         Session expiry is expected — the client handles re-auth automatically.
         Only escalate to ConfigEntryAuthFailed after multiple consecutive auth
         failures, which indicates the credentials themselves are invalid.
         """
+        client = self.config_entry.runtime_data.client
         try:
-            result = await self.config_entry.runtime_data.client.async_get_user_profile()
+            profile = await client.async_get_user_profile()
             self._consecutive_auth_failures = 0
             _LOGGER.debug("Coordinator update successful")
-            return result
+            return RouvyCoordinatorData(profile=profile)
         except AuthenticationError as err:
             self._consecutive_auth_failures += 1
             _LOGGER.warning(

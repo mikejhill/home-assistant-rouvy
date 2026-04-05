@@ -81,3 +81,41 @@ class ActivitySummary:
     """Activity summary from the profile overview endpoint."""
 
     recent_activities: list[Activity] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class ActivityTypeStats:
+    """Statistics for a single activity type within a week."""
+
+    distance_m: float = 0.0
+    elevation_m: float = 0.0
+    calories: float = 0.0
+    moving_time_seconds: int = 0
+    intensity_factor: float = 0.0
+    training_score: float = 0.0
+    activity_count: int = 0
+
+
+@dataclass(frozen=True)
+class WeeklyActivityStats:
+    """Weekly activity statistics aggregated across activity types."""
+
+    week_start: str = ""
+    week_end: str = ""
+    ride: ActivityTypeStats = field(default_factory=ActivityTypeStats)
+    workout: ActivityTypeStats = field(default_factory=ActivityTypeStats)
+    event: ActivityTypeStats = field(default_factory=ActivityTypeStats)
+    outdoor: ActivityTypeStats = field(default_factory=ActivityTypeStats)
+
+
+@dataclass(frozen=True)
+class RouvyCoordinatorData:
+    """Composite data object held by the coordinator.
+
+    Aggregates all data fetched during a single update cycle. Each field
+    is optional so the coordinator can populate them incrementally as
+    new API categories are implemented.
+    """
+
+    profile: UserProfile = field(default_factory=UserProfile)
+    activity_stats: list[WeeklyActivityStats] = field(default_factory=list)

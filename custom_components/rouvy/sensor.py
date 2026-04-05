@@ -21,7 +21,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .api_client.models import UserProfile
+from .api_client.models import RouvyCoordinatorData
 from .data import RouvyConfigEntry
 from .entity import RouvyEntity
 
@@ -35,7 +35,7 @@ _LOGGER = logging.getLogger(__name__)
 class RouvySensorDescription(SensorEntityDescription):
     """Describe a Rouvy sensor."""
 
-    value_fn: Callable[[UserProfile], Any]
+    value_fn: Callable[[RouvyCoordinatorData], Any]
 
 
 SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
@@ -46,7 +46,7 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
         device_class=SensorDeviceClass.WEIGHT,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
-        value_fn=lambda p: p.weight_kg if p.weight_kg else None,
+        value_fn=lambda d: d.profile.weight_kg if d.profile.weight_kg else None,
     ),
     RouvySensorDescription(
         key="height",
@@ -55,7 +55,7 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
         device_class=SensorDeviceClass.DISTANCE,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
-        value_fn=lambda p: p.height_cm if p.height_cm else None,
+        value_fn=lambda d: d.profile.height_cm if d.profile.height_cm else None,
     ),
     RouvySensorDescription(
         key="ftp",
@@ -63,24 +63,26 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda p: p.ftp_watts if p.ftp_watts else None,
+        value_fn=lambda d: d.profile.ftp_watts if d.profile.ftp_watts else None,
     ),
     RouvySensorDescription(
         key="max_heart_rate",
         translation_key="max_heart_rate",
         native_unit_of_measurement="bpm",
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda p: p.max_heart_rate,
+        value_fn=lambda d: d.profile.max_heart_rate,
     ),
     RouvySensorDescription(
         key="units",
         translation_key="units",
-        value_fn=lambda p: p.units,
+        value_fn=lambda d: d.profile.units,
     ),
     RouvySensorDescription(
         key="name",
         translation_key="name",
-        value_fn=lambda p: f"{p.first_name} {p.last_name}".strip() or p.username or None,
+        value_fn=lambda d: (
+            f"{d.profile.first_name} {d.profile.last_name}".strip() or d.profile.username or None
+        ),
     ),
 )
 

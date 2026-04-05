@@ -286,7 +286,7 @@ class RouvyClient:
             if isinstance(data, list) and len(data) > 0:
                 return bool(data[0] == ["SingleFetchRedirect", 1])
             return False
-        except (ValueError, TypeError, IndexError):
+        except ValueError, TypeError, IndexError:
             return False
 
 
