@@ -40,7 +40,7 @@ All sensors are created under the `sensor.rouvy_*` entity namespace.
 | `max_heart_rate` | bpm | `185` | Maximum heart rate |
 | `units` | — | `METRIC` | Preferred unit system |
 | `name` | — | `John Doe` | Display name |
-| `ftp_source` | — | `MANUAL` | How FTP was determined (MANUAL / AUTO) |
+| `ftp_source` | — | `MANUAL` | How FTP was determined (MANUAL / ESTIMATED) |
 | `country` | — | `US` | Account country code |
 
 ### Weekly Activity Stats
@@ -77,8 +77,8 @@ Current-week ride totals, refreshed each update cycle.
 
 | Sensor | Unit | Example | Description |
 | --- | --- | --- | --- |
-| `power_zones` | — | `[55, 75, 90, 105, 120]` | Power zone boundaries (% of FTP) |
-| `hr_zones` | — | `[60, 70, 80, 90]` | Heart rate zone boundaries (% of max HR) |
+| `power_zones` | — | `[55, 75, 90, 105, 120, 150]` | Power zone boundaries (% of FTP) |
+| `hr_zones` | — | `[60, 65, 75, 82, 89, 94]` | Heart rate zone boundaries (% of max HR) |
 
 ### Connected Apps
 
@@ -132,10 +132,11 @@ Current-week ride totals, refreshed each update cycle.
 | `rouvy.update_weight` | `weight` (kg) | Update body weight |
 | `rouvy.update_height` | `height` (cm) | Update height |
 | `rouvy.update_units` | `units` (METRIC/IMPERIAL) | Switch unit system |
-| `rouvy.update_profile` | `userName`, `firstName`, `team`, `accountPrivacy` | Update profile fields |
+| `rouvy.update_profile` | `userName`, `firstName`, `lastName`, `team`, `countryIsoCode`, `accountPrivacy` | Update profile fields |
 | `rouvy.update_timezone` | `timezone` (IANA) | Update timezone |
 | `rouvy.update_ftp` | `ftp_source` (MANUAL/ESTIMATED), `value` (W) | Update FTP source and value |
 | `rouvy.update_zones` | `zone_type` (power/heartRate), `zones` (list) | Update zone boundaries |
+| `rouvy.update_max_heart_rate` | `max_heart_rate` (bpm) | Update maximum heart rate |
 | `rouvy.update_settings` | `settings` (object) | Update arbitrary settings |
 
 ### Action Services
