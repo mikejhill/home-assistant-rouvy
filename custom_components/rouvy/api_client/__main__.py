@@ -113,11 +113,11 @@ def _json_ok() -> None:
     print(json.dumps({"status": "ok"}))
 
 
-def _as_dict(obj: object) -> dict | list[dict]:
+def _as_dict(obj: object) -> dict[str, object] | list[dict[str, object]]:
     """Convert a dataclass instance (or list of them) to a dict."""
     if isinstance(obj, list):
-        return [dataclasses.asdict(item) for item in obj]
-    return dataclasses.asdict(obj)
+        return [dataclasses.asdict(item) for item in obj]  # ty: ignore[invalid-argument-type]
+    return dataclasses.asdict(obj)  # ty: ignore[invalid-argument-type]
 
 
 # ---------------------------------------------------------------------------
