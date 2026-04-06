@@ -1,0 +1,638 @@
+# Rouvy CLI Command Catalog
+# Single-file catalog of all CLI commands, their arguments, and example outputs.
+
+commands:
+
+  # ── Read Commands ──────────────────────────────────────────────────────────
+
+  - id: activities
+    command: rouvy-api activities
+    summary: Display recent activities
+    category: read
+    arguments: []
+    output:
+      schema: activities
+    examples:
+      - description: Display recent activities
+        invocation: rouvy-api activities
+        output:
+          - activity_id: "act-9f8e7d6c-5b4a-3210-fedc-ba9876543210"
+            title: "Col du Tourmalet"
+            start_utc: "2025-01-18T07:30:00Z"
+            training_type: "RIDE"
+            distance_m: 42350.0
+            elevation_m: 1268.0
+            moving_time_seconds: 5640
+            intensity_factor: 0.82
+          - activity_id: "act-1a2b3c4d-5e6f-7890-abcd-ef1234567890"
+            title: "Recovery Spin"
+            start_utc: "2025-01-17T18:00:00Z"
+            training_type: "WORKOUT"
+            distance_m: 15200.0
+            elevation_m: 45.0
+            moving_time_seconds: 1800
+            intensity_factor: 0.55
+    stability: stable
+
+  - id: activity-stats
+    command: rouvy-api activity-stats
+    summary: Display weekly activity statistics for a given month
+    category: read
+    arguments:
+      - name: --year
+        type: int
+        required: true
+        description: Calendar year to query
+      - name: --month
+        type: int
+        required: true
+        description: Calendar month to query (1-12)
+    output:
+      schema: activity-stats
+    examples:
+      - description: Display weekly stats for January 2025
+        invocation: rouvy-api activity-stats --year 2025 --month 1
+        output:
+          - week_start: "2025-01-06"
+            week_end: "2025-01-12"
+            ride:
+              distance_m: 128500.0
+              elevation_m: 1850.0
+              calories: 3200.0
+              moving_time_seconds: 14400
+              intensity_factor: 0.75
+              training_score: 245.0
+              activity_count: 4
+            workout:
+              distance_m: 22000.0
+              elevation_m: 0.0
+              calories: 580.0
+              moving_time_seconds: 3600
+              intensity_factor: 0.65
+              training_score: 52.0
+              activity_count: 2
+            event:
+              distance_m: 45000.0
+              elevation_m: 620.0
+              calories: 1100.0
+              moving_time_seconds: 5400
+              intensity_factor: 0.88
+              training_score: 110.0
+              activity_count: 1
+            outdoor:
+              distance_m: 0.0
+              elevation_m: 0.0
+              calories: 0.0
+              moving_time_seconds: 0
+              intensity_factor: 0.0
+              training_score: 0.0
+              activity_count: 0
+          - week_start: "2025-01-13"
+            week_end: "2025-01-19"
+            ride:
+              distance_m: 95000.0
+              elevation_m: 1420.0
+              calories: 2400.0
+              moving_time_seconds: 10800
+              intensity_factor: 0.72
+              training_score: 185.0
+              activity_count: 3
+            workout:
+              distance_m: 0.0
+              elevation_m: 0.0
+              calories: 0.0
+              moving_time_seconds: 0
+              intensity_factor: 0.0
+              training_score: 0.0
+              activity_count: 0
+            event:
+              distance_m: 0.0
+              elevation_m: 0.0
+              calories: 0.0
+              moving_time_seconds: 0
+              intensity_factor: 0.0
+              training_score: 0.0
+              activity_count: 0
+            outdoor:
+              distance_m: 35000.0
+              elevation_m: 480.0
+              calories: 850.0
+              moving_time_seconds: 4200
+              intensity_factor: 0.68
+              training_score: 72.0
+              activity_count: 1
+    stability: stable
+
+  - id: apps
+    command: rouvy-api apps
+    summary: Display connected third-party apps
+    category: read
+    arguments: []
+    output:
+      schema: apps
+    examples:
+      - description: Display connected apps
+        invocation: rouvy-api apps
+        output:
+          - provider_id: "strava"
+            name: "Strava"
+            status: "CONNECTED"
+            upload_mode: "AUTO"
+            description: "Automatically sync rides to Strava"
+            logo_path: "/images/apps/strava-logo.png"
+            permissions:
+              - "activity_upload"
+              - "profile_read"
+          - provider_id: "trainingpeaks"
+            name: "TrainingPeaks"
+            status: "DISCONNECTED"
+            upload_mode: null
+            description: "Sync workouts with TrainingPeaks"
+            logo_path: "/images/apps/trainingpeaks-logo.png"
+            permissions: []
+    stability: stable
+
+  - id: career
+    command: rouvy-api career
+    summary: Display career statistics
+    category: read
+    arguments: []
+    output:
+      schema: career
+    examples:
+      - description: Display career statistics
+        invocation: rouvy-api career
+        output:
+          total_distance_m: 2456780.0
+          total_elevation_m: 34520.0
+          total_time_seconds: 432000
+          total_activities: 187
+          total_achievements: 42
+          total_trophies: 8
+          experience_points: 12450
+          level: 15
+          coins: 3275
+    stability: stable
+
+  - id: challenges
+    command: rouvy-api challenges
+    summary: Display available challenges
+    category: read
+    arguments: []
+    output:
+      schema: challenges
+    examples:
+      - description: Display available challenges
+        invocation: rouvy-api challenges
+        output:
+          - id: "ch-winter-warrior-2025"
+            user_status: "REGISTERED"
+            state: "ACTIVE"
+            registered_count: 14523
+            registered: true
+            title: "Winter Warrior 2025"
+            logo: "https://cdn.rouvy.com/challenges/winter-warrior-2025.png"
+            experience: 500
+            coins: 250
+            start_date_time: "2025-01-01T00:00:00Z"
+            end_date_time: "2025-02-28T23:59:59Z"
+            is_past: false
+            is_upcoming: false
+            is_done: false
+            segments: []
+          - id: "ch-alps-explorer"
+            user_status: "NOT_REGISTERED"
+            state: "UPCOMING"
+            registered_count: 3210
+            registered: false
+            title: "Alps Explorer"
+            logo: "https://cdn.rouvy.com/challenges/alps-explorer.png"
+            experience: 750
+            coins: 400
+            start_date_time: "2025-03-01T00:00:00Z"
+            end_date_time: "2025-04-30T23:59:59Z"
+            is_past: false
+            is_upcoming: true
+            is_done: false
+            segments: []
+    stability: stable
+
+  - id: events
+    command: rouvy-api events
+    summary: Display upcoming events
+    category: read
+    arguments: []
+    output:
+      schema: events
+    examples:
+      - description: Display upcoming events
+        invocation: rouvy-api events
+        output:
+          - event_id: "evt-sat-group-ride-2025-01-25"
+            title: "Saturday Group Ride"
+            event_type: "GROUP_RIDE"
+            start_date_time: "2025-01-25T09:00:00Z"
+            capacity: 100
+            registered: true
+            official: true
+            coins_for_completion: 50
+            experience: 100
+            laps: 1
+          - event_id: "evt-hill-climb-challenge-2025-01-27"
+            title: "Hill Climb Challenge"
+            event_type: "RACE"
+            start_date_time: "2025-01-27T18:30:00Z"
+            capacity: 50
+            registered: false
+            official: false
+            coins_for_completion: 75
+            experience: 150
+            laps: 3
+    stability: stable
+
+  - id: friends
+    command: rouvy-api friends
+    summary: Display friends summary
+    category: read
+    arguments: []
+    output:
+      schema: friends
+    examples:
+      - description: Display friends summary
+        invocation: rouvy-api friends
+        output:
+          total_friends: 23
+          online_friends: 4
+    stability: stable
+
+  - id: profile
+    command: rouvy-api profile
+    summary: Display user profile
+    category: read
+    arguments: []
+    output:
+      schema: profile
+    examples:
+      - description: Display user profile
+        invocation: rouvy-api profile
+        output:
+          email: "jan.novak@example.com"
+          username: "JanTheRider"
+          first_name: "Jan"
+          last_name: "Novak"
+          weight_kg: 78.5
+          height_cm: 182.0
+          units: "METRIC"
+          ftp_watts: 245
+          ftp_source: "MANUAL"
+          max_heart_rate: 186
+          gender: "MALE"
+          birth_date: "1988-03-15"
+          country: "CZ"
+          timezone: "Europe/Prague"
+          account_privacy: "PUBLIC"
+          user_id: "usr-a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    stability: stable
+
+  - id: raw
+    command: rouvy-api raw
+    summary: Fetch a raw API endpoint
+    category: read
+    arguments:
+      - name: endpoint
+        type: string
+        required: true
+        positional: true
+        description: API endpoint path to fetch
+    output:
+      schema: raw
+    examples:
+      - description: Fetch raw user endpoint
+        invocation: rouvy-api raw /api/v2/user
+        output:
+          endpoint: "/api/v2/user"
+          data:
+            id: "usr-a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            attributes:
+              username: "JanTheRider"
+              email: "jan.novak@example.com"
+    notes:
+      - Output structure varies depending on the endpoint queried
+    stability: stable
+
+  - id: routes
+    command: rouvy-api routes
+    summary: Display favorite routes
+    category: read
+    arguments: []
+    output:
+      schema: routes
+    examples:
+      - description: Display favorite routes
+        invocation: rouvy-api routes
+        output:
+          - route_id: 10245
+            name: "Col du Tourmalet"
+            distance_m: 42350.0
+            elevation_m: 1268.0
+            estimated_time_seconds: 5400
+            rating: 4.7
+            country_code: "FR"
+            favorite: true
+            completed_distance_m: 42350.0
+            online_count: 38
+            coins_for_completion: 150
+          - route_id: 8872
+            name: "Mallorca Coastal Loop"
+            distance_m: 65200.0
+            elevation_m: 780.0
+            estimated_time_seconds: 7200
+            rating: 4.5
+            country_code: "ES"
+            favorite: true
+            completed_distance_m: 0.0
+            online_count: 15
+            coins_for_completion: 200
+    stability: stable
+
+  - id: zones
+    command: rouvy-api zones
+    summary: Display training zones
+    category: read
+    arguments: []
+    output:
+      schema: zones
+    examples:
+      - description: Display training zones
+        invocation: rouvy-api zones
+        output:
+          ftp_watts: 245
+          max_heart_rate: 186
+          power_zone_values: [0, 135, 184, 220, 245, 294, 368]
+          power_zone_defaults: [0, 135, 184, 220, 245, 294, 368]
+          hr_zone_values: [0, 112, 130, 149, 167, 186]
+          hr_zone_defaults: [0, 112, 130, 149, 167, 186]
+    stability: stable
+
+  # ── Write Commands ─────────────────────────────────────────────────────────
+
+  - id: register-challenge
+    command: rouvy-api register-challenge
+    summary: Register for a challenge
+    category: write
+    arguments:
+      - name: --slug
+        type: string
+        required: true
+        description: Unique slug identifier for the challenge
+    output:
+      schema: write-response
+    examples:
+      - description: Register for a challenge
+        invocation: rouvy-api register-challenge --slug summer-sprint-2025
+        output:
+          status: "ok"
+          message: "Successfully registered for challenge 'summer-sprint-2025'"
+    stability: stable
+
+  - id: register-event
+    command: rouvy-api register-event
+    summary: Register for an event
+    category: write
+    arguments:
+      - name: --event-id
+        type: string
+        required: true
+        description: Unique event identifier
+    output:
+      schema: write-response
+    examples:
+      - description: Register for an event
+        invocation: rouvy-api register-event --event-id evt-abc123
+        output:
+          status: "ok"
+          message: "Successfully registered for event 'evt-abc123'"
+    stability: stable
+
+  - id: set
+    command: rouvy-api set
+    summary: Update one or more settings
+    category: write
+    arguments:
+      - name: settings
+        type: string
+        required: true
+        positional: true
+        description: One or more KEY=VALUE pairs to update
+    output:
+      schema: write-response
+    examples:
+      - description: Update multiple settings
+        invocation: rouvy-api set units=METRIC weight_kg=75.0
+        output:
+          status: "ok"
+          message: "Updated settings: units=METRIC, weight_kg=75.0"
+    stability: stable
+
+  - id: set-ftp
+    command: rouvy-api set-ftp
+    summary: Update FTP setting
+    category: write
+    arguments:
+      - name: --source
+        type: string
+        required: true
+        choices: [MANUAL, ESTIMATED]
+        description: FTP source type
+      - name: --value
+        type: integer
+        required: false
+        description: FTP value in watts
+    output:
+      schema: write-response
+    examples:
+      - description: Set FTP manually
+        invocation: rouvy-api set-ftp --source MANUAL --value 220
+        output:
+          status: "ok"
+          message: "FTP updated to 220 watts (source: MANUAL)"
+    stability: stable
+
+  - id: set-height
+    command: rouvy-api set-height
+    summary: Update height
+    category: write
+    arguments:
+      - name: --height
+        type: number
+        required: true
+        description: Height in centimeters
+    output:
+      schema: write-response
+    examples:
+      - description: Set height
+        invocation: rouvy-api set-height --height 180.5
+        output:
+          status: "ok"
+          message: "Height updated to 180.5 cm"
+    stability: stable
+
+  - id: set-max-hr
+    command: rouvy-api set-max-hr
+    summary: Update maximum heart rate
+    category: write
+    arguments:
+      - name: --max-hr
+        type: integer
+        required: true
+        description: Maximum heart rate in bpm
+    output:
+      schema: write-response
+    examples:
+      - description: Set max heart rate
+        invocation: rouvy-api set-max-hr --max-hr 185
+        output:
+          status: "ok"
+          message: "Max heart rate updated to 185 bpm"
+    stability: stable
+
+  - id: set-profile
+    command: rouvy-api set-profile
+    summary: Update profile fields
+    category: write
+    arguments:
+      - name: --username
+        type: string
+        required: false
+        description: Username
+      - name: --first-name
+        type: string
+        required: false
+        description: First name
+      - name: --last-name
+        type: string
+        required: false
+        description: Last name
+      - name: --team
+        type: string
+        required: false
+        description: Team name
+      - name: --country
+        type: string
+        required: false
+        description: Country code
+      - name: --privacy
+        type: string
+        required: false
+        choices: [PUBLIC, PRIVATE]
+        description: Account privacy setting
+    output:
+      schema: write-response
+    examples:
+      - description: Update username and country
+        invocation: rouvy-api set-profile --username rider42 --country CZ
+        output:
+          status: "ok"
+          message: "Profile updated: username=rider42, country=CZ"
+    stability: stable
+
+  - id: set-timezone
+    command: rouvy-api set-timezone
+    summary: Update timezone
+    category: write
+    arguments:
+      - name: --timezone
+        type: string
+        required: true
+        description: IANA timezone identifier
+    output:
+      schema: write-response
+    examples:
+      - description: Set timezone
+        invocation: rouvy-api set-timezone --timezone Europe/Prague
+        output:
+          status: "ok"
+          message: "Timezone updated to Europe/Prague"
+    stability: stable
+
+  - id: set-units
+    command: rouvy-api set-units
+    summary: Update measurement units
+    category: write
+    arguments:
+      - name: --units
+        type: string
+        required: true
+        choices: [METRIC, IMPERIAL]
+        description: Measurement unit system
+    output:
+      schema: write-response
+    examples:
+      - description: Set units to metric
+        invocation: rouvy-api set-units --units METRIC
+        output:
+          status: "ok"
+          message: "Units updated to METRIC"
+    stability: stable
+
+  - id: set-weight
+    command: rouvy-api set-weight
+    summary: Update weight
+    category: write
+    arguments:
+      - name: --weight
+        type: number
+        required: true
+        description: Weight in kilograms
+    output:
+      schema: write-response
+    examples:
+      - description: Set weight
+        invocation: rouvy-api set-weight --weight 75.5
+        output:
+          status: "ok"
+          message: "Weight updated to 75.5 kg"
+    stability: stable
+
+  - id: set-zones
+    command: rouvy-api set-zones
+    summary: Update training zones
+    category: write
+    arguments:
+      - name: --type
+        type: string
+        required: true
+        choices: [power, heartRate]
+        description: Zone type to update
+      - name: --zones
+        type: string
+        required: true
+        description: Comma-separated zone boundary percentages
+    output:
+      schema: write-response
+    examples:
+      - description: Update power zones
+        invocation: rouvy-api set-zones --type power --zones 55,75,90,105,120
+        output:
+          status: "ok"
+          message: "Power zones updated: 55,75,90,105,120"
+    stability: stable
+
+  - id: unregister-event
+    command: rouvy-api unregister-event
+    summary: Unregister from an event
+    category: write
+    arguments:
+      - name: --event-id
+        type: string
+        required: true
+        description: Unique event identifier
+    output:
+      schema: write-response
+    examples:
+      - description: Unregister from an event
+        invocation: rouvy-api unregister-event --event-id evt-abc123
+        output:
+          status: "ok"
+          message: "Successfully unregistered from event 'evt-abc123'"
+    stability: stable

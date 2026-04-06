@@ -1,0 +1,432 @@
+# Rouvy CLI Output Schemas
+# JSON Schema definitions (draft 2020-12) for all CLI output types.
+
+schemas:
+
+  activities:
+    title: Activities
+    type: array
+    items:
+      type: object
+      required:
+        - activity_id
+        - title
+        - training_type
+        - distance_m
+        - elevation_m
+        - moving_time_seconds
+      additionalProperties: false
+      properties:
+        activity_id:
+          type: string
+        title:
+          type: string
+        start_utc:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        training_type:
+          type: string
+        distance_m:
+          type: number
+        elevation_m:
+          type: number
+        moving_time_seconds:
+          type: integer
+        intensity_factor:
+          oneOf:
+            - type: number
+            - type: "null"
+
+  activity-stats:
+    title: WeeklyActivityStats
+    type: array
+    items:
+      type: object
+      required:
+        - week_start
+        - week_end
+        - ride
+        - workout
+        - event
+        - outdoor
+      additionalProperties: false
+      properties:
+        week_start:
+          type: string
+          format: date
+        week_end:
+          type: string
+          format: date
+        ride:
+          $ref: "#/$defs/ActivityTypeStats"
+        workout:
+          $ref: "#/$defs/ActivityTypeStats"
+        event:
+          $ref: "#/$defs/ActivityTypeStats"
+        outdoor:
+          $ref: "#/$defs/ActivityTypeStats"
+    $defs:
+      ActivityTypeStats:
+        type: object
+        required:
+          - distance_m
+          - elevation_m
+          - calories
+          - moving_time_seconds
+          - intensity_factor
+          - training_score
+          - activity_count
+        additionalProperties: false
+        properties:
+          distance_m:
+            type: number
+          elevation_m:
+            type: number
+          calories:
+            type: number
+          moving_time_seconds:
+            type: integer
+          intensity_factor:
+            type: number
+          training_score:
+            type: number
+          activity_count:
+            type: integer
+
+  apps:
+    title: ConnectedApps
+    type: array
+    items:
+      type: object
+      required:
+        - provider_id
+        - name
+        - status
+      additionalProperties: false
+      properties:
+        provider_id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+        upload_mode:
+          oneOf:
+            - type: string
+            - type: "null"
+        description:
+          oneOf:
+            - type: string
+            - type: "null"
+        logo_path:
+          oneOf:
+            - type: string
+            - type: "null"
+        permissions:
+          type: array
+          items:
+            type: string
+
+  career:
+    title: CareerStats
+    type: object
+    required:
+      - total_distance_m
+      - total_elevation_m
+      - total_time_seconds
+      - total_activities
+      - total_achievements
+      - total_trophies
+      - experience_points
+      - level
+      - coins
+    additionalProperties: false
+    properties:
+      total_distance_m:
+        type: number
+      total_elevation_m:
+        type: number
+      total_time_seconds:
+        type: integer
+      total_activities:
+        type: integer
+      total_achievements:
+        type: integer
+      total_trophies:
+        type: integer
+      experience_points:
+        type: integer
+      level:
+        type: integer
+      coins:
+        type: integer
+
+  challenges:
+    title: Challenges
+    type: array
+    items:
+      type: object
+      required:
+        - id
+        - user_status
+        - state
+        - registered_count
+        - registered
+        - title
+        - logo
+        - experience
+        - coins
+        - start_date_time
+        - end_date_time
+        - is_past
+        - is_upcoming
+        - is_done
+        - segments
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        user_status:
+          type: string
+        state:
+          type: string
+        registered_count:
+          type: integer
+        registered:
+          type: boolean
+        title:
+          type: string
+        logo:
+          type: string
+        experience:
+          type: integer
+        coins:
+          type: integer
+        start_date_time:
+          type: string
+          format: date-time
+        end_date_time:
+          type: string
+          format: date-time
+        is_past:
+          type: boolean
+        is_upcoming:
+          type: boolean
+        is_done:
+          type: boolean
+        segments:
+          type: array
+
+  events:
+    title: Events
+    type: array
+    items:
+      type: object
+      required:
+        - event_id
+        - title
+        - event_type
+        - start_date_time
+        - capacity
+        - registered
+        - official
+        - coins_for_completion
+        - experience
+        - laps
+      additionalProperties: false
+      properties:
+        event_id:
+          type: string
+        title:
+          type: string
+        event_type:
+          type: string
+        start_date_time:
+          type: string
+          format: date-time
+        capacity:
+          type: integer
+        registered:
+          type: boolean
+        official:
+          type: boolean
+        coins_for_completion:
+          type: integer
+        experience:
+          type: integer
+        laps:
+          type: integer
+
+  friends:
+    title: FriendsSummary
+    type: object
+    required:
+      - total_friends
+      - online_friends
+    additionalProperties: false
+    properties:
+      total_friends:
+        type: integer
+      online_friends:
+        type: integer
+
+  profile:
+    title: UserProfile
+    type: object
+    required:
+      - email
+      - username
+      - first_name
+      - last_name
+      - weight_kg
+      - height_cm
+      - units
+      - ftp_watts
+      - ftp_source
+    additionalProperties: false
+    properties:
+      email:
+        type: string
+      username:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      weight_kg:
+        type: number
+      height_cm:
+        type: number
+      units:
+        type: string
+        enum:
+          - METRIC
+          - IMPERIAL
+      ftp_watts:
+        type: integer
+      ftp_source:
+        type: string
+      max_heart_rate:
+        oneOf:
+          - type: integer
+          - type: "null"
+      gender:
+        oneOf:
+          - type: string
+          - type: "null"
+      birth_date:
+        oneOf:
+          - type: string
+            format: date
+          - type: "null"
+      country:
+        oneOf:
+          - type: string
+          - type: "null"
+      timezone:
+        oneOf:
+          - type: string
+          - type: "null"
+      account_privacy:
+        oneOf:
+          - type: string
+          - type: "null"
+      user_id:
+        oneOf:
+          - type: string
+          - type: "null"
+
+  raw:
+    title: RawResponse
+    type: object
+    additionalProperties: true
+
+  routes:
+    title: Routes
+    type: array
+    items:
+      type: object
+      required:
+        - route_id
+        - name
+        - distance_m
+        - elevation_m
+        - estimated_time_seconds
+        - rating
+        - country_code
+        - favorite
+        - completed_distance_m
+        - online_count
+        - coins_for_completion
+      additionalProperties: false
+      properties:
+        route_id:
+          type: integer
+        name:
+          type: string
+        distance_m:
+          type: number
+        elevation_m:
+          type: number
+        estimated_time_seconds:
+          type: integer
+        rating:
+          type: number
+        country_code:
+          type: string
+        favorite:
+          type: boolean
+        completed_distance_m:
+          type: number
+        online_count:
+          type: integer
+        coins_for_completion:
+          type: integer
+
+  write-response:
+    title: WriteResponse
+    type: object
+    required:
+      - status
+      - message
+    additionalProperties: false
+    properties:
+      status:
+        type: string
+      message:
+        type: string
+
+  zones:
+    title: TrainingZones
+    type: object
+    required:
+      - ftp_watts
+      - max_heart_rate
+      - power_zone_values
+      - power_zone_defaults
+      - hr_zone_values
+      - hr_zone_defaults
+    additionalProperties: false
+    properties:
+      ftp_watts:
+        type: integer
+      max_heart_rate:
+        type: integer
+      power_zone_values:
+        type: array
+        items:
+          type: integer
+      power_zone_defaults:
+        type: array
+        items:
+          type: integer
+      hr_zone_values:
+        type: array
+        items:
+          type: integer
+      hr_zone_defaults:
+        type: array
+        items:
+          type: integer

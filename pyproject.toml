@@ -26,6 +26,11 @@ dev = [
     "types-requests>=2.31.0",
     "pytest-homeassistant-custom-component>=0.13.320",
 ]
+docs = [
+    "jsonschema>=4.26.0",
+    "mkdocs-material>=9.7.6",
+    "pyyaml>=6.0.3",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["custom_components"]

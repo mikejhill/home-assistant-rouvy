@@ -1,0 +1,90 @@
+site_name: Home Assistant Rouvy
+site_description: >-
+  Rouvy indoor cycling integration for Home Assistant with CLI and turbo-stream
+  API support.
+site_url: https://mikejhill.github.io/home-assistant-rouvy/
+repo_url: https://github.com/mikejhill/home-assistant-rouvy
+repo_name: mikejhill/home-assistant-rouvy
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep orange
+      accent: orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep orange
+      accent: orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.copy
+    - navigation.instant
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - CLI Reference:
+      - Overview: reference/commands/index.md
+      - Read Commands:
+          - profile: reference/commands/profile.md
+          - zones: reference/commands/zones.md
+          - activities: reference/commands/activities.md
+          - activity-stats: reference/commands/activity-stats.md
+          - apps: reference/commands/apps.md
+          - career: reference/commands/career.md
+          - challenges: reference/commands/challenges.md
+          - events: reference/commands/events.md
+          - friends: reference/commands/friends.md
+          - routes: reference/commands/routes.md
+          - raw: reference/commands/raw.md
+      - Write Commands:
+          - set: reference/commands/set.md
+          - set-ftp: reference/commands/set-ftp.md
+          - set-height: reference/commands/set-height.md
+          - set-max-hr: reference/commands/set-max-hr.md
+          - set-profile: reference/commands/set-profile.md
+          - set-timezone: reference/commands/set-timezone.md
+          - set-units: reference/commands/set-units.md
+          - set-weight: reference/commands/set-weight.md
+          - set-zones: reference/commands/set-zones.md
+          - register-challenge: reference/commands/register-challenge.md
+          - register-event: reference/commands/register-event.md
+          - unregister-event: reference/commands/unregister-event.md
+  - Schema Reference: reference/schemas/index.md
+  - Guides:
+      - Home Assistant Setup: guides/home-assistant-setup.md
+  - Architecture:
+      - Project Structure: architecture/project-structure.md
+      - Turbo-Stream Protocol: architecture/turbo-stream.md

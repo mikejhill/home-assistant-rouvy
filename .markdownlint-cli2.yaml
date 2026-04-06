@@ -14,6 +14,10 @@ config:
   MD033: false
   # Allow bare URLs
   MD034: false
+  # Allow emphasis for inline labels (e.g., *Stability: stable*)
+  MD036: false
+  # Table column alignment style (too strict for generated docs)
+  MD060: false
 
 ignores:
   - "CHANGELOG.md"
