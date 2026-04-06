@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
@@ -21,6 +22,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .api_client.models import Activity, ActivityTypeStats, RouvyCoordinatorData
 from .data import RouvyConfigEntry
@@ -52,6 +54,14 @@ def _last_activity(data: RouvyCoordinatorData) -> Activity | None:
     """Get the most recent activity, or None."""
     if data.activity_summary and data.activity_summary.recent_activities:
         return data.activity_summary.recent_activities[0]
+    return None
+
+
+def _last_activity_datetime(data: RouvyCoordinatorData) -> datetime | None:
+    """Get the start time of the most recent activity as a datetime."""
+    act = _last_activity(data)
+    if act and act.start_utc:
+        return dt_util.parse_datetime(act.start_utc)
     return None
 
 
@@ -245,7 +255,7 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
         key="last_activity_date",
         translation_key="last_activity_date",
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda d: a.start_utc if (a := _last_activity(d)) else None,
+        value_fn=_last_activity_datetime,
     ),
     RouvySensorDescription(
         key="total_activities",

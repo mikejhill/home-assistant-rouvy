@@ -6,6 +6,8 @@ without requiring Home Assistant. We import only the pure data types.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from custom_components.rouvy.api_client.models import (
     Activity,
     ActivitySummary,
@@ -649,10 +651,25 @@ class TestLastActivityDateSensor:
         from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
 
         desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "last_activity_date")
-        assert desc.value_fn(d) == "2026-04-01T07:30:00Z"
+        result = desc.value_fn(d)
+        assert result == datetime(2026, 4, 1, 7, 30, tzinfo=UTC)
 
     def test_returns_none_when_no_summary(self) -> None:
         d = _make_data_with_activities(summary=None)
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "last_activity_date")
+        assert desc.value_fn(d) is None
+
+    def test_returns_none_when_start_utc_is_none(self) -> None:
+        d = _make_data_with_activities([_make_activity(start_utc=None)])
+        from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
+
+        desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "last_activity_date")
+        assert desc.value_fn(d) is None
+
+    def test_returns_none_for_unparseable_date(self) -> None:
+        d = _make_data_with_activities([_make_activity(start_utc="not-a-date")])
         from custom_components.rouvy.sensor import SENSOR_DESCRIPTIONS
 
         desc = next(s for s in SENSOR_DESCRIPTIONS if s.key == "last_activity_date")
