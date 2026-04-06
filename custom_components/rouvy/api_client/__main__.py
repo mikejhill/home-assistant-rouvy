@@ -1,32 +1,41 @@
 #!/usr/bin/env python3
-"""Rouvy API client - Command-line interface for making API calls.
+"""Rouvy API client — async CLI for all Rouvy API endpoints.
 
-Supports both subcommands (profile, zones, apps, activities, set, raw)
-and legacy flags (--endpoint, --set, --raw) for backward compatibility.
+Usage:
+    python -m custom_components.rouvy.api_client <subcommand> [options]
+
+Requires ROUVY_EMAIL and ROUVY_PASSWORD in a .env file.
 """
 
 from __future__ import annotations
 
 import argparse
+import asyncio
+import dataclasses
 import json
 import logging
 import os
+import sys
 from typing import Any
 
+import aiohttp
 from dotenv import load_dotenv
 
-from . import (
+from ..api import RouvyAsyncApiClient
+from .models import (
     Activity,
     ActivitySummary,
-    ApiResponseError,
+    CareerStats,
+    Challenge,
     ConnectedApp,
-    RouvyClient,
-    RouvyConfig,
+    Event,
+    FriendsSummary,
+    Route,
     TrainingZones,
     UserProfile,
-    extract_user_profile,
-    parse_response,
+    WeeklyActivityStats,
 )
+from .parser import parse_response
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,6 +46,25 @@ _ZONE_LABELS: list[str] = [
     "Threshold",
     "VO2Max",
     "Anaerobic",
+]
+
+_PROFILE_FIELDS: list[str] = [
+    "email",
+    "username",
+    "first_name",
+    "last_name",
+    "weight_kg",
+    "height_cm",
+    "units",
+    "ftp_watts",
+    "ftp_source",
+    "max_heart_rate",
+    "gender",
+    "birth_date",
+    "country",
+    "timezone",
+    "account_privacy",
+    "user_id",
 ]
 
 
@@ -57,7 +85,8 @@ def load_credentials() -> tuple[str, str]:
     return email, password
 
 
-def _configure_logging(log_level: str) -> None:
+def _configure_logging(args: argparse.Namespace) -> None:
+    log_level = "DEBUG" if args.debug else args.log_level
     logging.basicConfig(
         level=getattr(logging, log_level, logging.WARNING),
         format="%(asctime)s %(name)s %(levelname)s %(message)s",
@@ -65,94 +94,30 @@ def _configure_logging(log_level: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Argument parsing
+# Output helpers
 # ---------------------------------------------------------------------------
 
 
-def _add_common_flags(parser: argparse.ArgumentParser) -> None:
-    """Add --debug and --log-level flags shared by all subcommands."""
-    parser.add_argument(
-        "--log-level",
-        default="WARNING",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Set logging level for the client",
-    )
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Shortcut for --log-level DEBUG",
-    )
+def _json_out(obj: dict | list) -> None:
+    """Print a JSON-serialisable object to stdout."""
+    print(json.dumps(obj, indent=2, default=str))
 
 
-def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Rouvy API client - Fetch and parse API endpoints",
-    )
+def _json_err(message: str) -> None:
+    """Print a JSON error object to stderr."""
+    print(json.dumps({"error": message}), file=sys.stderr)
 
-    # Legacy flags (kept for backward compatibility)
-    parser.add_argument(
-        "--endpoint",
-        "-e",
-        default=None,
-        help="(legacy) API endpoint to call",
-    )
-    parser.add_argument(
-        "--raw",
-        action="store_true",
-        default=False,
-        help="(legacy) Show raw decoded response instead of formatted output",
-    )
-    parser.add_argument(
-        "--set",
-        action="append",
-        metavar="KEY=VALUE",
-        dest="legacy_set",
-        help=(
-            "(legacy) Update a user setting (can be used multiple times). "
-            "Example: --set weight=86 --set height=178"
-        ),
-    )
-    _add_common_flags(parser)
 
-    # Subcommands
-    sub = parser.add_subparsers(dest="subcommand")
+def _json_ok() -> None:
+    """Print a JSON success object to stdout."""
+    print(json.dumps({"status": "ok"}))
 
-    # profile
-    sp_profile = sub.add_parser("profile", help="Display user profile (default)")
-    _add_common_flags(sp_profile)
 
-    # zones
-    sp_zones = sub.add_parser("zones", help="Display training zones")
-    _add_common_flags(sp_zones)
-
-    # apps
-    sp_apps = sub.add_parser("apps", help="Display connected apps")
-    _add_common_flags(sp_apps)
-
-    # activities
-    sp_activities = sub.add_parser("activities", help="Display recent activities")
-    _add_common_flags(sp_activities)
-
-    # set KEY=VALUE ...
-    sp_set = sub.add_parser("set", help="Update user settings")
-    sp_set.add_argument(
-        "settings",
-        nargs="+",
-        metavar="KEY=VALUE",
-        help="Settings to update (e.g. weight=86 height=178)",
-    )
-    _add_common_flags(sp_set)
-
-    # raw ENDPOINT
-    sp_raw = sub.add_parser("raw", help="Show raw decoded output for any endpoint")
-    sp_raw.add_argument(
-        "raw_endpoint",
-        metavar="ENDPOINT",
-        help="API endpoint to fetch",
-    )
-    _add_common_flags(sp_raw)
-
-    return parser.parse_args()
+def _as_dict(obj: object) -> dict | list[dict]:
+    """Convert a dataclass instance (or list of them) to a dict."""
+    if isinstance(obj, list):
+        return [dataclasses.asdict(item) for item in obj]
+    return dataclasses.asdict(obj)
 
 
 # ---------------------------------------------------------------------------
@@ -172,13 +137,13 @@ def _coerce_value(value: str) -> int | float | str:
         return value
 
 
-def _parse_settings(raw_settings: list[str]) -> dict[str, Any] | None:
-    """Parse a list of KEY=VALUE strings into a dict.  Returns None on error."""
+def _parse_settings(raw_settings: list[str]) -> dict[str, Any]:
+    """Parse a list of KEY=VALUE strings into a dict."""
     updates: dict[str, Any] = {}
     for setting in raw_settings:
         if "=" not in setting:
-            print(f"Error: Invalid format '{setting}'. Use KEY=VALUE format.")
-            return None
+            msg = f"Invalid format '{setting}'. Use KEY=VALUE format."
+            raise ValueError(msg)
         key, value = setting.split("=", 1)
         updates[key] = _coerce_value(value)
     return updates
@@ -217,88 +182,209 @@ def _format_time(seconds: int) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Subcommand handlers
+# Argument parsing
 # ---------------------------------------------------------------------------
 
 
-def _cmd_profile(client: RouvyClient) -> None:
-    profile: UserProfile = client.get_user_profile()
-    print("=" * 70)
-    print("USER PROFILE")
-    print("=" * 70)
-    for field_name in [
-        "email",
-        "username",
-        "first_name",
-        "last_name",
-        "weight_kg",
-        "height_cm",
-        "units",
-        "ftp_watts",
-        "ftp_source",
-        "max_heart_rate",
-        "gender",
-        "birth_date",
-        "country",
-        "timezone",
-        "account_privacy",
-        "user_id",
-    ]:
-        value = getattr(profile, field_name)
-        if value is None:
-            continue
-        label = _format_profile_field(field_name)
-        print(f"{label:25s}: {value}")
-    print("=" * 70)
+def _add_common_flags(parser: argparse.ArgumentParser) -> None:
+    """Add flags shared by all subcommands."""
+    parser.add_argument(
+        "--log-level",
+        default="WARNING",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Set logging level",
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Shortcut for --log-level DEBUG",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Output as JSON instead of formatted text",
+    )
 
 
-def _cmd_zones(client: RouvyClient) -> None:
-    zones: TrainingZones = client.get_training_zones()
-    print("=" * 70)
-    print("TRAINING ZONES")
-    print("=" * 70)
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Rouvy API client — async CLI for all Rouvy API endpoints",
+    )
+    _add_common_flags(parser)
 
-    if zones.ftp_watts:
-        print(f"\n  FTP: {zones.ftp_watts} watts")
-    if zones.max_heart_rate:
-        print(f"  Max HR: {zones.max_heart_rate} bpm")
+    sub = parser.add_subparsers(dest="subcommand")
 
-    # Power zones
-    pz = zones.power_zone_values or zones.power_zone_defaults
-    if pz:
-        print("\nPower Zones (% FTP):")
-        for idx, val in enumerate(pz):
-            label = _ZONE_LABELS[idx] if idx < len(_ZONE_LABELS) else f"Zone {idx + 1}"
-            print(f"  Zone {idx + 1} ({label:12s}): {val}%")
+    # --- Read subcommands (alphabetical) ---
 
-    # Heart-rate zones
-    hr = zones.hr_zone_values or zones.hr_zone_defaults
-    if hr:
-        print("\nHeart Rate Zones (% Max HR):")
-        for idx, val in enumerate(hr):
-            label = _ZONE_LABELS[idx] if idx < len(_ZONE_LABELS) else f"Zone {idx + 1}"
-            print(f"  Zone {idx + 1} ({label:12s}): {val}%")
+    sp = sub.add_parser("activities", help="Display recent activities")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_activities)
 
-    print("=" * 70)
+    sp = sub.add_parser("activity-stats", help="Weekly activity statistics")
+    sp.add_argument("--year", type=int, required=True, help="Calendar year")
+    sp.add_argument("--month", type=int, required=True, help="Calendar month (1-12)")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_activity_stats)
+
+    sp = sub.add_parser("apps", help="Display connected apps")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_apps)
+
+    sp = sub.add_parser("career", help="Career progression stats")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_career)
+
+    sp = sub.add_parser("challenges", help="List available challenges")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_challenges)
+
+    sp = sub.add_parser("events", help="List upcoming events")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_events)
+
+    sp = sub.add_parser("friends", help="Friends summary")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_friends)
+
+    sp = sub.add_parser("profile", help="Display user profile (default)")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_profile)
+
+    sp = sub.add_parser("raw", help="Fetch raw decoded output for any endpoint")
+    sp.add_argument("raw_endpoint", metavar="ENDPOINT", help="API endpoint to fetch")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_raw)
+
+    sp = sub.add_parser("register-challenge", help="Register for a challenge")
+    sp.add_argument("--slug", required=True, help="Challenge slug")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_register_challenge)
+
+    sp = sub.add_parser("register-event", help="Register for an event")
+    sp.add_argument("--event-id", required=True, help="Event ID")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_register_event)
+
+    sp = sub.add_parser("routes", help="List favorite routes")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_routes)
+
+    # --- Write subcommands (alphabetical) ---
+
+    sp = sub.add_parser("set", help="Update user settings (KEY=VALUE pairs)")
+    sp.add_argument(
+        "settings",
+        nargs="+",
+        metavar="KEY=VALUE",
+        help="Settings to update (e.g. weight=86 height=178)",
+    )
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_set)
+
+    sp = sub.add_parser("set-ftp", help="Update FTP")
+    sp.add_argument(
+        "--source",
+        required=True,
+        choices=["MANUAL", "ESTIMATED"],
+        help="FTP source",
+    )
+    sp.add_argument("--value", type=int, default=None, help="FTP in watts (required for MANUAL)")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_set_ftp)
+
+    sp = sub.add_parser("set-height", help="Update height")
+    sp.add_argument("--height", type=float, required=True, help="Height in cm")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_set_height)
+
+    sp = sub.add_parser("set-max-hr", help="Update max heart rate")
+    sp.add_argument("--max-hr", type=int, required=True, help="Max heart rate in bpm")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_set_max_hr)
+
+    sp = sub.add_parser("set-profile", help="Update profile fields")
+    sp.add_argument("--username", default=None, help="Display username")
+    sp.add_argument("--first-name", default=None, help="First name")
+    sp.add_argument("--last-name", default=None, help="Last name")
+    sp.add_argument("--team", default=None, help="Team name")
+    sp.add_argument("--country", default=None, help="Two-letter country code")
+    sp.add_argument(
+        "--privacy",
+        default=None,
+        choices=["PUBLIC", "PRIVATE"],
+        help="Account privacy",
+    )
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_set_profile)
+
+    sp = sub.add_parser("set-timezone", help="Update timezone")
+    sp.add_argument("--timezone", required=True, help="IANA timezone (e.g. America/New_York)")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_set_timezone)
+
+    sp = sub.add_parser("set-units", help="Update units")
+    sp.add_argument(
+        "--units",
+        required=True,
+        choices=["METRIC", "IMPERIAL"],
+        help="Unit system",
+    )
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_set_units)
+
+    sp = sub.add_parser("set-weight", help="Update weight")
+    sp.add_argument("--weight", type=float, required=True, help="Weight in kg")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_set_weight)
+
+    sp = sub.add_parser("set-zones", help="Update zone boundaries")
+    sp.add_argument(
+        "--type",
+        required=True,
+        choices=["power", "heartRate"],
+        dest="zone_type",
+        help="Zone type",
+    )
+    sp.add_argument(
+        "--zones",
+        required=True,
+        help="Comma-separated zone boundary percentages (e.g. 55,75,90,105,120,150)",
+    )
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_set_zones)
+
+    sp = sub.add_parser("unregister-event", help="Unregister from an event")
+    sp.add_argument("--event-id", required=True, help="Event ID")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_unregister_event)
+
+    sp = sub.add_parser("zones", help="Display training zones")
+    _add_common_flags(sp)
+    sp.set_defaults(handler=_cmd_zones)
+
+    args = parser.parse_args()
+
+    # Default to profile when no subcommand is given
+    if not hasattr(args, "handler") or args.handler is None:
+        args.handler = _cmd_profile
+
+    return args
 
 
-def _cmd_apps(client: RouvyClient) -> None:
-    apps: list[ConnectedApp] = client.get_connected_apps()
-    print("=" * 70)
-    print("CONNECTED APPS")
-    print("=" * 70)
-    print(f"\nFound {len(apps)} app integrations:\n")
-    print(f"  {'Status':<12s} {'Name':<25s} {'Provider'}")
-    print(f"  {'-' * 10:<12s} {'-' * 23:<25s} {'-' * 20}")
-    for app in apps:
-        icon = "✓" if app.status.lower() == "connected" else "✗"
-        print(f"  {icon} {app.status:<10s} {app.name:<25s} {app.provider_id}")
-    print("=" * 70)
+# ---------------------------------------------------------------------------
+# Read-command handlers
+# ---------------------------------------------------------------------------
 
 
-def _cmd_activities(client: RouvyClient) -> None:
-    summary: ActivitySummary = client.get_activity_summary()
+async def _cmd_activities(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    summary: ActivitySummary = await client.async_get_activity_summary()
     activities: list[Activity] = summary.recent_activities
+
+    if args.json_output:
+        _json_out(_as_dict(summary))
+        return
+
     print("=" * 70)
     print("RECENT ACTIVITIES")
     print("=" * 70)
@@ -320,59 +406,178 @@ def _cmd_activities(client: RouvyClient) -> None:
     print("=" * 70)
 
 
-def _cmd_set(client: RouvyClient, settings: list[str]) -> None:
-    updates = _parse_settings(settings)
-    if updates is None:
+async def _cmd_activity_stats(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    stats: list[WeeklyActivityStats] = await client.async_get_activity_stats(
+        args.year, args.month
+    )
+
+    if args.json_output:
+        _json_out(_as_dict(stats))
         return
 
-    print(f"Updating user settings: {updates}")
-    response = client.update_user_settings(updates)
-    print(f"Response: {response.status_code}")
+    print("=" * 70)
+    print(f"ACTIVITY STATS — {args.year}/{args.month:02d}")
+    print("=" * 70)
 
-    if response.status_code < 300:
-        print("✓ Settings updated successfully")
-        print("\nFetching updated settings...")
-        profile: UserProfile = client.get_user_profile()
-        update_keys = set(updates.keys())
-
-        print("\n" + "=" * 70)
-        print("UPDATED USER PROFILE")
+    if not stats:
+        print("\n  No activity stats found for this period.")
         print("=" * 70)
-        for field_name in [
-            "email",
-            "username",
-            "first_name",
-            "last_name",
-            "weight_kg",
-            "height_cm",
-            "units",
-            "ftp_watts",
-            "ftp_source",
-            "max_heart_rate",
-            "gender",
-            "birth_date",
-            "country",
-            "timezone",
-            "account_privacy",
-            "user_id",
-        ]:
-            value = getattr(profile, field_name)
-            if value is None:
-                continue
-            label = _format_profile_field(field_name)
-            is_updated = any(
-                uk in field_name.lower() or field_name.lower() in uk.lower() for uk in update_keys
-            )
-            marker = " ← UPDATED" if is_updated else ""
-            print(f"{label:25s}: {value}{marker}")
+        return
+
+    for week in stats:
+        print(f"\n  Week: {week.week_start} → {week.week_end}")
+        for activity_type in ("ride", "workout", "event", "outdoor"):
+            ts = getattr(week, activity_type)
+            if ts.activity_count > 0:
+                dist_km = ts.distance_m / 1000.0
+                print(
+                    f"    {activity_type.capitalize():<10s}: "
+                    f"{ts.activity_count} activities, "
+                    f"{dist_km:.1f} km, "
+                    f"{_format_time(ts.moving_time_seconds)}, "
+                    f"{ts.calories:.0f} cal"
+                )
+    print("=" * 70)
+
+
+async def _cmd_apps(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    apps: list[ConnectedApp] = await client.async_get_connected_apps()
+
+    if args.json_output:
+        _json_out(_as_dict(apps))
+        return
+
+    print("=" * 70)
+    print("CONNECTED APPS")
+    print("=" * 70)
+    print(f"\nFound {len(apps)} app integrations:\n")
+    print(f"  {'Status':<12s} {'Name':<25s} {'Provider'}")
+    print(f"  {'-' * 10:<12s} {'-' * 23:<25s} {'-' * 20}")
+    for app in apps:
+        icon = "✓" if app.status.lower() == "connected" else "✗"
+        print(f"  {icon} {app.status:<10s} {app.name:<25s} {app.provider_id}")
+    print("=" * 70)
+
+
+async def _cmd_career(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    career: CareerStats = await client.async_get_career()
+
+    if args.json_output:
+        _json_out(_as_dict(career))
+        return
+
+    print("=" * 70)
+    print("CAREER STATS")
+    print("=" * 70)
+    print(f"  Level              : {career.level}")
+    print(f"  Experience         : {career.experience_points:,} XP")
+    print(f"  Coins              : {career.coins:,}")
+    print(f"  Total Activities   : {career.total_activities:,}")
+    print(f"  Total Distance     : {career.total_distance_m / 1000.0:,.1f} km")
+    print(f"  Total Elevation    : {career.total_elevation_m:,.0f} m")
+    print(f"  Total Time         : {_format_time(career.total_time_seconds)}")
+    print(f"  Achievements       : {career.total_achievements}")
+    print(f"  Trophies           : {career.total_trophies}")
+    print("=" * 70)
+
+
+async def _cmd_challenges(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    challenges: list[Challenge] = await client.async_get_challenges()
+
+    if args.json_output:
+        _json_out(_as_dict(challenges))
+        return
+
+    print("=" * 70)
+    print("AVAILABLE CHALLENGES")
+    print("=" * 70)
+
+    if not challenges:
+        print("\n  No challenges available.")
         print("=" * 70)
+        return
+
+    print(f"\n  {'Title':<35s} {'State':<12s} {'Registered':<12s} {'Dates'}")
+    print(f"  {'-' * 33:<35s} {'-' * 10:<12s} {'-' * 10:<12s} {'-' * 25}")
+    for ch in challenges:
+        reg = "Yes" if ch.registered else "No"
+        dates = f"{ch.start_date_time[:10]} → {ch.end_date_time[:10]}"
+        title = (ch.title[:32] + "...") if len(ch.title) > 35 else ch.title
+        print(f"  {title:<35s} {ch.state:<12s} {reg:<12s} {dates}")
+    print("=" * 70)
 
 
-def _cmd_raw(client: RouvyClient, endpoint: str) -> None:
+async def _cmd_events(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    events: list[Event] = await client.async_get_events()
+
+    if args.json_output:
+        _json_out(_as_dict(events))
+        return
+
+    print("=" * 70)
+    print("UPCOMING EVENTS")
+    print("=" * 70)
+
+    if not events:
+        print("\n  No upcoming events.")
+        print("=" * 70)
+        return
+
+    print(f"\n  {'Title':<35s} {'Type':<12s} {'Start':<22s} {'Reg'}")
+    print(f"  {'-' * 33:<35s} {'-' * 10:<12s} {'-' * 20:<22s} {'-' * 5}")
+    for ev in events:
+        reg = "Yes" if ev.registered else "No"
+        title = (ev.title[:32] + "...") if len(ev.title) > 35 else ev.title
+        print(f"  {title:<35s} {ev.event_type:<12s} {ev.start_date_time:<22s} {reg}")
+    print("=" * 70)
+
+
+async def _cmd_friends(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    friends: FriendsSummary = await client.async_get_friends()
+
+    if args.json_output:
+        _json_out(_as_dict(friends))
+        return
+
+    print("=" * 70)
+    print("FRIENDS SUMMARY")
+    print("=" * 70)
+    print(f"  Total Friends  : {friends.total_friends}")
+    print(f"  Online Friends : {friends.online_friends}")
+    print("=" * 70)
+
+
+async def _cmd_profile(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    profile: UserProfile = await client.async_get_user_profile()
+
+    if args.json_output:
+        _json_out(_as_dict(profile))
+        return
+
+    print("=" * 70)
+    print("USER PROFILE")
+    print("=" * 70)
+    for field_name in _PROFILE_FIELDS:
+        value = getattr(profile, field_name)
+        if value is None:
+            continue
+        label = _format_profile_field(field_name)
+        print(f"{label:25s}: {value}")
+    print("=" * 70)
+
+
+async def _cmd_raw(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    endpoint: str = args.raw_endpoint
+    # Use the client's internal _request to fetch raw text
+    text: str = await client._request("GET", endpoint)
+    decoded = parse_response(text)
+
+    if args.json_output:
+        _json_out(decoded)
+        return
+
     print(f"Fetching: {endpoint}")
-    response = client.get(endpoint)
-    print(f"Response: {response.status_code} ({len(response.text):,} bytes)")
-    decoded = parse_response(response.text)
+    print(f"Response: {len(text):,} bytes")
     print("\n" + "=" * 70)
     print("RAW DECODED RESPONSE")
     print("=" * 70)
@@ -383,142 +588,251 @@ def _cmd_raw(client: RouvyClient, endpoint: str) -> None:
     print("=" * 70)
 
 
-# ---------------------------------------------------------------------------
-# Legacy flag handler (backward compatibility)
-# ---------------------------------------------------------------------------
+async def _cmd_routes(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    routes: list[Route] = await client.async_get_favorite_routes()
 
-
-def _legacy_main(client: RouvyClient, args: argparse.Namespace) -> None:
-    """Handle invocations using the old --endpoint / --set / --raw flags."""
-    # Handle update operations
-    if args.legacy_set:
-        updates = _parse_settings(args.legacy_set)
-        if updates is None:
-            return
-
-        print(f"Updating user settings: {updates}")
-        response = client.update_user_settings(updates)
-        print(f"Response: {response.status_code}")
-
-        if response.status_code < 300:
-            print("✓ Settings updated successfully")
-            print("\nFetching updated settings...")
-            user_response = client.get_user_settings()
-            user_info = extract_user_profile(user_response.text)
-            print("\n" + "=" * 70)
-            print("UPDATED USER PROFILE")
-            print("=" * 70)
-
-            update_keys = set(updates.keys())
-
-            for key, value in sorted(user_info.items()):
-                formatted_key = key.replace("_", " ").title()
-                is_updated = any(
-                    uk in key.lower() or key.lower() in uk.lower() for uk in update_keys
-                )
-                marker = " \u2190 UPDATED" if is_updated else ""
-                print(f"{formatted_key:25s}: {value}{marker}")
-            print("=" * 70)
+    if args.json_output:
+        _json_out(_as_dict(routes))
         return
-
-    # Normal GET request
-    endpoint = args.endpoint or "user-settings.data"
-    print(f"Fetching: {endpoint}")
-    response = client.get(endpoint)
-    print(f"Response: {response.status_code} ({len(response.text):,} bytes)")
-
-    decoded = parse_response(response.text)
-
-    if args.raw:
-        print("\n" + "=" * 70)
-        print("RAW DECODED RESPONSE")
-        print("=" * 70)
-        print(json.dumps(decoded, indent=2, default=str)[:2000])
-        print("\n... (truncated)")
-        return
-
-    # Format output based on endpoint
-    print("\n" + "=" * 70)
-
-    if endpoint == "user-settings.data":
-        print("USER PROFILE")
-        print("=" * 70)
-        user_info = extract_user_profile(response.text)
-        for key, value in sorted(user_info.items()):
-            formatted_key = key.replace("_", " ").title()
-            print(f"{formatted_key:25s}: {value}")
-
-    elif endpoint == "user-settings/zones.data":
-        print("TRAINING ZONES")
-        print("=" * 70)
-        if isinstance(decoded, list):
-            for i in range(len(decoded)):
-                if decoded[i] == "zones" and i + 1 < len(decoded):
-                    zones_data = decoded[i + 1]
-                    if isinstance(zones_data, dict):
-                        if "power" in zones_data:
-                            power = zones_data["power"]
-                            print("\nPower Zones (FTP-based):")
-                            if isinstance(power, dict):
-                                if "values" in power:
-                                    values = power["values"]
-                                    if isinstance(values, list):
-                                        for idx, val in enumerate(values):
-                                            if idx < len(_ZONE_LABELS):
-                                                print(
-                                                    f"  Zone {idx + 1}"
-                                                    f" ({_ZONE_LABELS[idx]:12s}): {val}% FTP"
-                                                )
-                                if "defaultValues" in power:
-                                    print(f"  Default values: {power['defaultValues']}")
-
-                        if "heartRate" in zones_data:
-                            hr = zones_data["heartRate"]
-                            print("\nHeart Rate Zones:")
-                            if isinstance(hr, dict):
-                                if "values" in hr:
-                                    values = hr["values"]
-                                    if isinstance(values, list):
-                                        print(f"  Custom values: {values}")
-                                if "defaultValues" in hr:
-                                    default = hr["defaultValues"]
-                                    if isinstance(default, list):
-                                        print(f"  Default values: {default}")
-                    break
-
-    elif endpoint == "user-settings/connected-apps.data":
-        print("CONNECTED APPS")
-        print("=" * 70)
-        if isinstance(decoded, list):
-            for i in range(len(decoded)):
-                if decoded[i] == "connectedApps" and i + 1 < len(decoded):
-                    apps_data = decoded[i + 1]
-                    if isinstance(apps_data, list):
-                        print(f"\nFound {len(apps_data)} app integrations:")
-                        for app in apps_data:
-                            if isinstance(app, dict):
-                                name = app.get("name", "Unknown")
-                                connected = app.get("connected", False)
-                                status = "✓ Connected" if connected else "  Not connected"
-                                print(f"  {status:20s} - {name}")
-                    break
-
-    else:
-        print(f"PARSED RESPONSE: {endpoint}")
-        print("=" * 70)
-        print(f"Type: {type(decoded).__name__}")
-        if isinstance(decoded, list):
-            print(f"Length: {len(decoded)} elements")
-            print("\nFirst 10 elements:")
-            for i in range(min(10, len(decoded))):
-                print(f"  [{i}]: {repr(decoded[i])[:100]}")
-        elif isinstance(decoded, dict):
-            print(f"Keys: {len(decoded)} keys")
-            print("\nTop-level keys:")
-            for key in list(decoded.keys())[:10]:
-                print(f"  - {key}: {type(decoded[key]).__name__}")
 
     print("=" * 70)
+    print("FAVORITE ROUTES")
+    print("=" * 70)
+
+    if not routes:
+        print("\n  No favorite routes found.")
+        print("=" * 70)
+        return
+
+    print(f"\n  {'Name':<35s} {'Distance':>10s} {'Elevation':>10s} {'Country'}")
+    print(f"  {'-' * 33:<35s} {'-' * 10:>10s} {'-' * 10:>10s} {'-' * 7}")
+    for route in routes:
+        dist_km = route.distance_m / 1000.0
+        name = (route.name[:32] + "...") if len(route.name) > 35 else route.name
+        print(
+            f"  {name:<35s} {dist_km:>9.1f}km {route.elevation_m:>9.0f}m "
+            f"{route.country_code}"
+        )
+    print("=" * 70)
+
+
+async def _cmd_zones(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    zones: TrainingZones = await client.async_get_training_zones()
+
+    if args.json_output:
+        _json_out(_as_dict(zones))
+        return
+
+    print("=" * 70)
+    print("TRAINING ZONES")
+    print("=" * 70)
+
+    if zones.ftp_watts:
+        print(f"\n  FTP: {zones.ftp_watts} watts")
+    if zones.max_heart_rate:
+        print(f"  Max HR: {zones.max_heart_rate} bpm")
+
+    pz = zones.power_zone_values or zones.power_zone_defaults
+    if pz:
+        print("\nPower Zones (% FTP):")
+        for idx, val in enumerate(pz):
+            label = _ZONE_LABELS[idx] if idx < len(_ZONE_LABELS) else f"Zone {idx + 1}"
+            print(f"  Zone {idx + 1} ({label:12s}): {val}%")
+
+    hr = zones.hr_zone_values or zones.hr_zone_defaults
+    if hr:
+        print("\nHeart Rate Zones (% Max HR):")
+        for idx, val in enumerate(hr):
+            label = _ZONE_LABELS[idx] if idx < len(_ZONE_LABELS) else f"Zone {idx + 1}"
+            print(f"  Zone {idx + 1} ({label:12s}): {val}%")
+
+    print("=" * 70)
+
+
+# ---------------------------------------------------------------------------
+# Write-command handlers
+# ---------------------------------------------------------------------------
+
+
+async def _cmd_register_challenge(
+    client: RouvyAsyncApiClient, args: argparse.Namespace
+) -> None:
+    success: bool = await client.async_register_challenge(args.slug)
+
+    if args.json_output:
+        _json_out({"status": "ok", "registered": success})
+        return
+
+    if success:
+        print(f"✓ Registered for challenge: {args.slug}")
+    else:
+        print(f"✗ Failed to register for challenge: {args.slug}")
+
+
+async def _cmd_register_event(
+    client: RouvyAsyncApiClient, args: argparse.Namespace
+) -> None:
+    success: bool = await client.async_register_event(args.event_id)
+
+    if args.json_output:
+        _json_out({"status": "ok", "registered": success})
+        return
+
+    if success:
+        print(f"✓ Registered for event: {args.event_id}")
+    else:
+        print(f"✗ Failed to register for event: {args.event_id}")
+
+
+async def _cmd_set(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    updates = _parse_settings(args.settings)
+
+    await client.async_update_user_settings(updates)
+
+    if args.json_output:
+        _json_ok()
+        return
+
+    print(f"✓ Settings updated: {updates}")
+    print("\nFetching updated profile...")
+    profile: UserProfile = await client.async_get_user_profile()
+    update_keys = set(updates.keys())
+
+    print("\n" + "=" * 70)
+    print("UPDATED USER PROFILE")
+    print("=" * 70)
+    for field_name in _PROFILE_FIELDS:
+        value = getattr(profile, field_name)
+        if value is None:
+            continue
+        label = _format_profile_field(field_name)
+        is_updated = any(
+            uk in field_name.lower() or field_name.lower() in uk.lower()
+            for uk in update_keys
+        )
+        marker = " ← UPDATED" if is_updated else ""
+        print(f"{label:25s}: {value}{marker}")
+    print("=" * 70)
+
+
+async def _cmd_set_ftp(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    await client.async_update_ftp(args.source, args.value)
+
+    if args.json_output:
+        _json_ok()
+        return
+
+    value_str = f" ({args.value}W)" if args.value is not None else ""
+    print(f"✓ FTP updated: source={args.source}{value_str}")
+
+
+async def _cmd_set_height(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    await client.async_update_user_settings({"height": args.height})
+
+    if args.json_output:
+        _json_ok()
+        return
+
+    print(f"✓ Height updated to {args.height} cm")
+
+
+async def _cmd_set_max_hr(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    await client.async_update_max_heart_rate(args.max_hr)
+
+    if args.json_output:
+        _json_ok()
+        return
+
+    print(f"✓ Max heart rate updated to {args.max_hr} bpm")
+
+
+async def _cmd_set_profile(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    # Build profile updates from provided flags
+    updates: dict[str, Any] = {}
+    if args.username is not None:
+        updates["username"] = args.username
+    if args.first_name is not None:
+        updates["firstName"] = args.first_name
+    if args.last_name is not None:
+        updates["lastName"] = args.last_name
+    if args.team is not None:
+        updates["team"] = args.team
+    if args.country is not None:
+        updates["countryIsoCode"] = args.country
+
+    if not updates and args.privacy is None:
+        msg = "No profile fields specified. Use --username, --first-name, etc."
+        raise ValueError(msg)
+
+    if updates:
+        await client.async_update_user_profile(updates)
+    if args.privacy is not None:
+        await client.async_update_user_social(args.privacy)
+
+    if args.json_output:
+        _json_ok()
+        return
+
+    changed = {**updates}
+    if args.privacy is not None:
+        changed["privacy"] = args.privacy
+    print(f"✓ Profile updated: {changed}")
+
+
+async def _cmd_set_timezone(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    await client.async_update_timezone(args.timezone)
+
+    if args.json_output:
+        _json_ok()
+        return
+
+    print(f"✓ Timezone updated to {args.timezone}")
+
+
+async def _cmd_set_units(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    await client.async_update_user_settings({"units": args.units})
+
+    if args.json_output:
+        _json_ok()
+        return
+
+    print(f"✓ Units updated to {args.units}")
+
+
+async def _cmd_set_weight(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    await client.async_update_user_settings({"weight": args.weight})
+
+    if args.json_output:
+        _json_ok()
+        return
+
+    print(f"✓ Weight updated to {args.weight} kg")
+
+
+async def _cmd_set_zones(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
+    zone_values = [int(v.strip()) for v in args.zones.split(",")]
+    await client.async_update_zones(args.zone_type, zone_values)
+
+    if args.json_output:
+        _json_ok()
+        return
+
+    print(f"✓ {args.zone_type} zones updated to {zone_values}")
+
+
+async def _cmd_unregister_event(
+    client: RouvyAsyncApiClient, args: argparse.Namespace
+) -> None:
+    success: bool = await client.async_unregister_event(args.event_id)
+
+    if args.json_output:
+        _json_out({"status": "ok", "unregistered": success})
+        return
+
+    if success:
+        print(f"✓ Unregistered from event: {args.event_id}")
+    else:
+        print(f"✗ Failed to unregister from event: {args.event_id}")
 
 
 # ---------------------------------------------------------------------------
@@ -526,47 +840,36 @@ def _legacy_main(client: RouvyClient, args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 
 
+async def _async_main(args: argparse.Namespace) -> None:
+    """Create an aiohttp session, authenticate, and dispatch the command."""
+    email, password = load_credentials()
+    async with aiohttp.ClientSession() as session:
+        client = RouvyAsyncApiClient(email, password, session)
+        await args.handler(client, args)
+
+
 def main() -> None:
     """Parse arguments, configure logging, and dispatch the CLI command."""
     args = _parse_args()
-    log_level = "DEBUG" if args.debug else args.log_level
-    _configure_logging(log_level)
-
-    email, password = load_credentials()
-    config = RouvyConfig(email=email, password=password)
-    client = RouvyClient(config)
+    _configure_logging(args)
 
     try:
-        # Determine whether we're using legacy flags or subcommands
-        using_legacy = args.subcommand is None and (
-            args.endpoint is not None or args.legacy_set is not None or args.raw
-        )
-
-        if using_legacy:
-            _legacy_main(client, args)
-            return
-
-        # Subcommand dispatch (default to 'profile' when nothing specified)
-        cmd = args.subcommand or "profile"
-
-        if cmd == "profile":
-            _cmd_profile(client)
-        elif cmd == "zones":
-            _cmd_zones(client)
-        elif cmd == "apps":
-            _cmd_apps(client)
-        elif cmd == "activities":
-            _cmd_activities(client)
-        elif cmd == "set":
-            _cmd_set(client, args.settings)
-        elif cmd == "raw":
-            _cmd_raw(client, args.raw_endpoint)
-
-    except ApiResponseError as e:
-        print(f"API error: {e.status_code} - {e.payload}")
-    except Exception as e:
-        print(f"Error: {e}")
-        raise
+        asyncio.run(_async_main(args))
+    except KeyboardInterrupt:
+        pass
+    except ValueError as exc:
+        if args.json_output:
+            _json_err(str(exc))
+            sys.exit(1)
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as exc:
+        if args.json_output:
+            _json_err(str(exc))
+            sys.exit(1)
+        print(f"Error: {exc}", file=sys.stderr)
+        _LOGGER.debug("Traceback:", exc_info=True)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
