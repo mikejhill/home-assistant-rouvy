@@ -264,18 +264,14 @@ class RouvyAsyncApiClient:
         return False
 
     async def async_update_user_settings(self, updates: dict[str, Any]) -> None:
-        """Update user settings.
+        """Update weight, height, and/or units (intent=update-units).
 
         Fetches current values first to fill required fields, then posts
-        the update.  Supports any user-settings field including:
+        the update.  Supported fields:
 
-        - ``weight`` — body weight
-        - ``height`` — body height
+        - ``weight`` — body weight (kg)
+        - ``height`` — body height (cm)
         - ``units`` — "METRIC" or "IMPERIAL"
-        - ``userName`` — display username
-        - ``firstName`` — first name
-        - ``team`` — team name
-        - ``accountPrivacy`` — "PUBLIC" or "PRIVATE"
 
         Args:
             updates: Dict of field names to new values.
@@ -301,6 +297,77 @@ class RouvyAsyncApiClient:
             headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
         )
         _LOGGER.info("User settings updated")
+
+    async def async_update_user_profile(self, updates: dict[str, Any]) -> None:
+        """Update profile identity fields (intent=update-profile).
+
+        Fetches current values first to populate required fields.  Supported:
+
+        - ``username`` / ``userName`` — display username
+        - ``firstName`` — first name
+        - ``lastName`` — last name
+        - ``gender`` — "MALE" or "FEMALE"
+        - ``dateOfBirth`` — ISO date string (YYYY-MM-DD)
+        - ``countryIsoCode`` — two-letter country code
+        - ``team`` — team name
+
+        The Rouvy API requires ``countryIsoCode``, ``gender``, and
+        ``dateOfBirth`` on every profile update.  If the current profile
+        does not have them and the caller does not supply them, sensible
+        defaults are used.
+
+        Args:
+            updates: Dict of field names to new values.
+        """
+        from .api_client.parser import extract_user_profile
+
+        _LOGGER.debug("Updating user profile: %s", updates)
+        current_text = await self._request("GET", "user-settings.data")
+        current = extract_user_profile(current_text)
+
+        # Map convenience keys to API field names
+        if "userName" in updates:
+            updates["username"] = updates.pop("userName")
+
+        # Build full payload — Rouvy requires all profile fields
+        payload: dict[str, Any] = {
+            "currentUsername": current.get("username", ""),
+            "username": current.get("username", ""),
+            "firstName": current.get("first_name", ""),
+            "lastName": current.get("last_name", ""),
+            "gender": current.get("gender") or "MALE",
+            "dateOfBirth": current.get("birth_date") or "2000-01-01",
+            "countryIsoCode": current.get("country") or "US",
+            "team": current.get("team", ""),
+            "intent": "update-profile",
+        }
+
+        # Apply user updates (these always take precedence)
+        payload.update(updates)
+
+        _LOGGER.debug("Profile update payload: %s", payload)
+        await self._request(
+            "POST",
+            "user-settings.data?index",
+            data=payload,
+            headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+        )
+        _LOGGER.info("User profile updated")
+
+    async def async_update_user_social(self, privacy: str) -> None:
+        """Update account privacy (intent=update-social).
+
+        Args:
+            privacy: "PUBLIC" or "PRIVATE".
+        """
+        _LOGGER.debug("Updating account privacy to %s", privacy)
+        await self._request(
+            "POST",
+            "user-settings.data?index",
+            data={"privacy": privacy, "intent": "update-social"},
+            headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+        )
+        _LOGGER.info("Account privacy updated to %s", privacy)
 
     async def async_update_timezone(self, timezone: str) -> None:
         """Update the user's timezone.

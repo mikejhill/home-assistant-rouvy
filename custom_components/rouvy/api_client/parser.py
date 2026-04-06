@@ -258,39 +258,61 @@ def extract_user_profile(response_text: str) -> dict[str, Any]:
         if array_data[i] == "userProfile" and i + 1 < len(array_data):
             profile_obj = array_data[i + 1]
             if isinstance(profile_obj, dict):
-                # Extract fields from userProfile object
-                if "userName" in profile_obj:
-                    user_data["username"] = profile_obj["userName"]
-                if "userId" in profile_obj:
-                    user_data["user_id"] = profile_obj["userId"]
-                if "firstName" in profile_obj and profile_obj["firstName"] is not UNDEFINED:
-                    user_data["first_name"] = profile_obj["firstName"]
-                if "lastName" in profile_obj and profile_obj["lastName"] is not UNDEFINED:
-                    user_data["last_name"] = profile_obj["lastName"]
-                if "ftp" in profile_obj:
-                    user_data["ftp_watts"] = profile_obj["ftp"]
-                if "ftpSource" in profile_obj:
-                    val = profile_obj["ftpSource"]
-                    if isinstance(val, str):
-                        user_data["ftp_source"] = val
-                if "weight" in profile_obj:
-                    user_data["weight_kg"] = profile_obj["weight"]
-                if "height" in profile_obj:
-                    user_data["height_cm"] = profile_obj["height"]
-                if "gender" in profile_obj:
-                    user_data["gender"] = profile_obj["gender"]
-                if "maxHeartRate" in profile_obj:
-                    user_data["max_heart_rate"] = profile_obj["maxHeartRate"]
-                if "countryIsoCode" in profile_obj:
-                    user_data["country"] = profile_obj["countryIsoCode"]
-                if "timezone" in profile_obj:
-                    user_data["timezone"] = profile_obj["timezone"]
-                if "units" in profile_obj:
-                    user_data["units"] = profile_obj["units"]
-                if "accountPrivacy" in profile_obj:
-                    val = profile_obj["accountPrivacy"]
-                    if isinstance(val, str):
-                        user_data["account_privacy"] = val
+                # Extract fields, skipping UNDEFINED sentinel values
+                def _get_str(key: str, obj: dict[str, Any] = profile_obj) -> str | None:
+                    val = obj.get(key)
+                    if val is None or val is UNDEFINED or not isinstance(val, str):
+                        return None
+                    return val
+
+                def _get_num(key: str, obj: dict[str, Any] = profile_obj) -> Any:
+                    val = obj.get(key)
+                    if val is None or val is UNDEFINED:
+                        return None
+                    return val
+
+                name = _get_str("userName")
+                if name is not None:
+                    user_data["username"] = name
+                uid = _get_str("userId")
+                if uid is not None:
+                    user_data["user_id"] = uid
+                first = _get_str("firstName")
+                if first is not None:
+                    user_data["first_name"] = first
+                last = _get_str("lastName")
+                if last is not None:
+                    user_data["last_name"] = last
+                ftp = _get_num("ftp")
+                if ftp is not None:
+                    user_data["ftp_watts"] = ftp
+                ftp_src = _get_str("ftpSource")
+                if ftp_src is not None:
+                    user_data["ftp_source"] = ftp_src
+                weight = _get_num("weight")
+                if weight is not None:
+                    user_data["weight_kg"] = weight
+                height = _get_num("height")
+                if height is not None:
+                    user_data["height_cm"] = height
+                gender = _get_str("gender")
+                if gender is not None:
+                    user_data["gender"] = gender
+                max_hr = _get_num("maxHeartRate")
+                if max_hr is not None:
+                    user_data["max_heart_rate"] = max_hr
+                country = _get_str("countryIsoCode")
+                if country is not None:
+                    user_data["country"] = country
+                tz = _get_str("timezone")
+                if tz is not None:
+                    user_data["timezone"] = tz
+                units = _get_str("units")
+                if units is not None:
+                    user_data["units"] = units
+                privacy = _get_str("accountPrivacy")
+                if privacy is not None:
+                    user_data["account_privacy"] = privacy
                 if "birthDate" in profile_obj:
                     birth_date = profile_obj["birthDate"]
                     if isinstance(birth_date, datetime):
@@ -404,21 +426,21 @@ def extract_user_profile_model(response_text: str) -> UserProfile:
 
     return UserProfile(
         email=raw.get("email", ""),
-        username=raw.get("username", ""),
-        first_name=raw.get("first_name", ""),
-        last_name=raw.get("last_name", ""),
+        username=_safe_str(raw.get("username")),
+        first_name=_safe_str(raw.get("first_name")),
+        last_name=_safe_str(raw.get("last_name")),
         weight_kg=_safe_float(raw.get("weight_kg", 0)),
         height_cm=_safe_float(raw.get("height_cm", 0)),
-        units=raw.get("units", "METRIC"),
+        units=_safe_str(raw.get("units")) or "METRIC",
         ftp_watts=_safe_int(raw.get("ftp_watts", 0)),
-        ftp_source=raw.get("ftp_source", ""),
+        ftp_source=_safe_str(raw.get("ftp_source")),
         max_heart_rate=_safe_int(raw.get("max_heart_rate")) or None,
-        gender=raw.get("gender"),
+        gender=_safe_str(raw.get("gender")) or None,
         birth_date=birth_date,
-        country=raw.get("country"),
-        timezone=raw.get("timezone"),
-        account_privacy=raw.get("account_privacy"),
-        user_id=raw.get("user_id"),
+        country=_safe_str(raw.get("country")) or None,
+        timezone=_safe_str(raw.get("timezone")) or None,
+        account_privacy=_safe_str(raw.get("account_privacy")) or None,
+        user_id=_safe_str(raw.get("user_id")) or None,
     )
 
 

@@ -76,6 +76,8 @@ def _mock_client(profile: UserProfile | None = None) -> AsyncMock:
     client.async_get_favorite_routes = AsyncMock(return_value=[])
     client.async_get_friends = AsyncMock(return_value=FriendsSummary())
     client.async_update_user_settings = AsyncMock()
+    client.async_update_user_profile = AsyncMock()
+    client.async_update_user_social = AsyncMock()
     client.async_get_events = AsyncMock(return_value=[])
     client.async_register_event = AsyncMock(return_value=True)
     client.async_unregister_event = AsyncMock(return_value=True)
@@ -479,9 +481,8 @@ class TestServices:
             {"userName": "NewName", "accountPrivacy": "PRIVATE"},
             blocking=True,
         )
-        client.async_update_user_settings.assert_called_once_with(
-            {"userName": "NewName", "accountPrivacy": "PRIVATE"}
-        )
+        client.async_update_user_social.assert_called_once_with("PRIVATE")
+        client.async_update_user_profile.assert_called_once_with({"userName": "NewName"})
 
     async def test_update_units_service(self, hass: HomeAssistant) -> None:
         """Test update_units service calls the API."""

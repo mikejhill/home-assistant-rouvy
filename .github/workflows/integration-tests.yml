@@ -31,6 +31,6 @@ jobs:
           ROUVY_TEST_PASSWORD: ${{ secrets.ROUVY_TEST_PASSWORD }}
         run: >-
           uv run pytest tests/integration/ -m integration
-          --override-ini='addopts='
+          --force-enable-socket
           -v --tb=short
           ${{ inputs.test_filter && format('-k "{0}"', inputs.test_filter) || '' }}

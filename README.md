@@ -2,16 +2,15 @@
 
 [![CI](https://github.com/mikejhill/home-assistant-rouvy/actions/workflows/ci.yml/badge.svg)](https://github.com/mikejhill/home-assistant-rouvy/actions/workflows/ci.yml)
 [![Release](https://github.com/mikejhill/home-assistant-rouvy/actions/workflows/release.yml/badge.svg)](https://github.com/mikejhill/home-assistant-rouvy/actions/workflows/release.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License](https://img.shields.io/github/license/mikejhill/home-assistant-rouvy)](LICENSE)
 
 > **⚠️ Alpha** — This integration is under active development and is not
 > yet fully tested in production. Expect breaking changes.
 
 A custom [Home Assistant](https://www.home-assistant.io/) integration for
 the [Rouvy](https://rouvy.com/) indoor cycling platform, installable via
-[HACS](https://hacs.xyz/). Exposes 41 sensors and 17 services covering your
-Rouvy profile, activity history, training zones, challenges, routes, events,
-career progress, and social data.
+[HACS](https://hacs.xyz/). Covers your Rouvy profile, activity history,
+training zones, challenges, routes, events, career progress, and social data.
 
 ## Installation (HACS)
 
@@ -218,23 +217,24 @@ uv run ruff format . # Format
 ### Integration Tests
 
 > **⚠️ Warning:** Integration tests run against the **real** Rouvy API and
-> modify account settings. Use a **dedicated test account** only — never a
-> real user account. Settings are restored on a best-effort basis.
+> **will modify** account settings (weight, height, timezone, FTP, zones,
+> username, etc.). Settings are restored on a best-effort basis, but
+> restoration may fail if tests are interrupted.
 
 **Local:**
 
 ```bash
-export ROUVY_TEST_EMAIL="test@example.com"
+export ROUVY_TEST_EMAIL="email@example.com"
 export ROUVY_TEST_PASSWORD="password"
-uv run pytest tests/integration/ -m integration --override-ini='addopts=' -v
+uv run pytest tests/integration/ -m integration -v
 ```
 
 **GitHub Actions:** Trigger the **Integration Tests** workflow manually from
 the Actions tab. Configure the following secrets in a `rouvy-test`
 environment:
 
-- `ROUVY_TEST_EMAIL` — Test account email
-- `ROUVY_TEST_PASSWORD` — Test account password
+- `ROUVY_TEST_EMAIL` — Rouvy account email
+- `ROUVY_TEST_PASSWORD` — Rouvy account password
 
 ### Project Structure
 

@@ -102,12 +102,16 @@ def _register_services(hass: Any) -> None:
 
     async def _handle_update_profile(call: Any) -> None:
         updates: dict[str, Any] = {}
-        for key in ("userName", "firstName", "team", "accountPrivacy"):
+        for key in ("userName", "firstName", "team"):
             if key in call.data:
                 updates[key] = call.data[key]
-        _LOGGER.info("Service call: update_profile %s", updates)
         rd = _first_client(hass)
-        await rd.client.async_update_user_settings(updates)
+        if "accountPrivacy" in call.data:
+            _LOGGER.info("Service call: update_social %s", call.data["accountPrivacy"])
+            await rd.client.async_update_user_social(call.data["accountPrivacy"])
+        if updates:
+            _LOGGER.info("Service call: update_profile %s", updates)
+            await rd.client.async_update_user_profile(updates)
         await rd.coordinator.async_request_refresh()
 
     async def _handle_update_units(call: Any) -> None:

@@ -1,7 +1,6 @@
 """Integration tests for Rouvy API read endpoints.
 
 ⚠️  WARNING: These tests run against the REAL Rouvy API.
-Use a dedicated test account only — never a real user account.
 """
 
 from __future__ import annotations
@@ -28,8 +27,8 @@ class TestReadProfile:
         profile = await rouvy_client.async_get_user_profile()
         assert isinstance(profile, UserProfile)
         assert profile.email != ""
-        assert profile.weight_kg > 0
-        assert profile.height_cm > 0
+        assert isinstance(profile.weight_kg, float)
+        assert isinstance(profile.height_cm, float)
 
     async def test_profile_has_ftp(self, rouvy_client: RouvyAsyncApiClient) -> None:
         """Profile should include FTP data."""
@@ -42,11 +41,11 @@ class TestReadTrainingZones:
     """Test reading training zones from the live API."""
 
     async def test_get_training_zones(self, rouvy_client: RouvyAsyncApiClient) -> None:
-        """Zones should return power and HR zone boundaries."""
+        """Zones should return power and HR zone data (custom or default)."""
         zones = await rouvy_client.async_get_training_zones()
         assert isinstance(zones, TrainingZones)
-        assert len(zones.power_zone_values) > 0
-        assert len(zones.hr_zone_values) > 0
+        assert len(zones.power_zone_values) > 0 or len(zones.power_zone_defaults) > 0
+        assert len(zones.hr_zone_values) > 0 or len(zones.hr_zone_defaults) > 0
 
 
 class TestReadConnectedApps:

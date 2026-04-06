@@ -67,7 +67,7 @@ include = ["custom_components/"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = ["-p", "tests.windows_compat", "-m", "not integration"]
+addopts = ["-p", "tests.windows_compat"]
 markers = [
     "integration: tests that require real Rouvy API credentials (use --run-integration)",
 ]

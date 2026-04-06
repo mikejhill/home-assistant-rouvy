@@ -3,9 +3,6 @@
 ⚠️  WARNING: These tests MODIFY account settings on the REAL Rouvy API.
 They attempt to restore original values on completion, but restoration
 is best-effort and may fail if tests are interrupted.
-
-NEVER run these tests with a real user account. Use a dedicated test
-account with no valuable data.
 """
 
 from __future__ import annotations
@@ -132,13 +129,15 @@ class TestUpdateProfile:
         original = await rouvy_client.async_get_user_profile()
         original_name = original.username
         test_name = "TestBot9999"
+        # Rouvy requires non-empty username; use a fallback if original is blank
+        restore_name = original_name if original_name else "TestBotRestore"
 
         try:
-            await rouvy_client.async_update_user_settings({"userName": test_name})
+            await rouvy_client.async_update_user_profile({"userName": test_name})
             updated = await rouvy_client.async_get_user_profile()
             assert updated.username == test_name
         finally:
-            await rouvy_client.async_update_user_settings({"userName": original_name})
+            await rouvy_client.async_update_user_profile({"userName": restore_name})
 
     async def test_update_first_name_and_restore(self, rouvy_client: RouvyAsyncApiClient) -> None:
         """Change first name, verify, then restore."""
@@ -147,11 +146,11 @@ class TestUpdateProfile:
         test_first = "IntegrationTest"
 
         try:
-            await rouvy_client.async_update_user_settings({"firstName": test_first})
+            await rouvy_client.async_update_user_profile({"firstName": test_first})
             updated = await rouvy_client.async_get_user_profile()
             assert updated.first_name == test_first
         finally:
-            await rouvy_client.async_update_user_settings({"firstName": original_first})
+            await rouvy_client.async_update_user_profile({"firstName": original_first})
 
     async def test_update_privacy_and_restore(self, rouvy_client: RouvyAsyncApiClient) -> None:
         """Toggle account privacy, then restore."""
@@ -160,8 +159,8 @@ class TestUpdateProfile:
         test_privacy = "PRIVATE" if original_privacy == "PUBLIC" else "PUBLIC"
 
         try:
-            await rouvy_client.async_update_user_settings({"accountPrivacy": test_privacy})
+            await rouvy_client.async_update_user_social(test_privacy)
             updated = await rouvy_client.async_get_user_profile()
             assert updated.account_privacy == test_privacy
         finally:
-            await rouvy_client.async_update_user_settings({"accountPrivacy": original_privacy})
+            await rouvy_client.async_update_user_social(original_privacy)
