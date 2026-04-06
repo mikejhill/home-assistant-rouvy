@@ -190,13 +190,45 @@ ROUVY_PASSWORD=your-password
 
 ### Commands
 
+All commands support a `--json` flag for machine-readable output.
+
+**Read commands:**
+
 ```bash
-uv run rouvy-api profile       # View user profile
-uv run rouvy-api zones         # View training zones
-uv run rouvy-api apps          # View connected apps
-uv run rouvy-api activities    # View recent activities
-uv run rouvy-api set weight=86 height=178  # Update settings
-uv run rouvy-api raw user-settings/zones.data  # Raw decoded response
+uv run rouvy-api profile          # User profile (default)
+uv run rouvy-api zones            # Training zones (FTP, HR)
+uv run rouvy-api activities       # Recent activities
+uv run rouvy-api activity-stats --year 2026 --month 1  # Weekly stats
+uv run rouvy-api apps             # Connected apps
+uv run rouvy-api career           # Career progression
+uv run rouvy-api challenges       # Available challenges
+uv run rouvy-api events           # Upcoming events
+uv run rouvy-api friends          # Friends summary
+uv run rouvy-api routes           # Favorite routes
+uv run rouvy-api raw <endpoint>   # Raw decoded turbo-stream response
+```
+
+**Write commands:**
+
+```bash
+uv run rouvy-api set-weight 86.5
+uv run rouvy-api set-height 178
+uv run rouvy-api set-ftp 250 --source MANUAL
+uv run rouvy-api set-max-hr 185
+uv run rouvy-api set-units METRIC           # METRIC or IMPERIAL
+uv run rouvy-api set-timezone "Europe/Prague"
+uv run rouvy-api set-profile --username "NewName" --first-name "John"
+uv run rouvy-api set-zones --type power --boundaries 55,75,90,105,120,150
+uv run rouvy-api register-challenge <id>
+uv run rouvy-api register-event <id>
+uv run rouvy-api unregister-event <id>
+```
+
+**JSON output:**
+
+```bash
+uv run rouvy-api profile --json | jq .weight
+uv run rouvy-api zones --json
 ```
 
 ## Development
@@ -210,7 +242,7 @@ uv run rouvy-api raw user-settings/zones.data  # Raw decoded response
 
 ```bash
 uv sync              # Install all dependencies
-uv run pytest -q     # Run tests (468 unit tests)
+uv run pytest -q     # Run tests (483 unit tests)
 uv run ruff check .  # Lint
 uv run ruff format . # Format
 ```
