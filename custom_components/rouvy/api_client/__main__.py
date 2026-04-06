@@ -407,9 +407,7 @@ async def _cmd_activities(client: RouvyAsyncApiClient, args: argparse.Namespace)
 
 
 async def _cmd_activity_stats(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
-    stats: list[WeeklyActivityStats] = await client.async_get_activity_stats(
-        args.year, args.month
-    )
+    stats: list[WeeklyActivityStats] = await client.async_get_activity_stats(args.year, args.month)
 
     if args.json_output:
         _json_out(_as_dict(stats))
@@ -609,10 +607,7 @@ async def _cmd_routes(client: RouvyAsyncApiClient, args: argparse.Namespace) -> 
     for route in routes:
         dist_km = route.distance_m / 1000.0
         name = (route.name[:32] + "...") if len(route.name) > 35 else route.name
-        print(
-            f"  {name:<35s} {dist_km:>9.1f}km {route.elevation_m:>9.0f}m "
-            f"{route.country_code}"
-        )
+        print(f"  {name:<35s} {dist_km:>9.1f}km {route.elevation_m:>9.0f}m {route.country_code}")
     print("=" * 70)
 
 
@@ -654,9 +649,7 @@ async def _cmd_zones(client: RouvyAsyncApiClient, args: argparse.Namespace) -> N
 # ---------------------------------------------------------------------------
 
 
-async def _cmd_register_challenge(
-    client: RouvyAsyncApiClient, args: argparse.Namespace
-) -> None:
+async def _cmd_register_challenge(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
     success: bool = await client.async_register_challenge(args.slug)
 
     if args.json_output:
@@ -669,9 +662,7 @@ async def _cmd_register_challenge(
         print(f"✗ Failed to register for challenge: {args.slug}")
 
 
-async def _cmd_register_event(
-    client: RouvyAsyncApiClient, args: argparse.Namespace
-) -> None:
+async def _cmd_register_event(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
     success: bool = await client.async_register_event(args.event_id)
 
     if args.json_output:
@@ -707,8 +698,7 @@ async def _cmd_set(client: RouvyAsyncApiClient, args: argparse.Namespace) -> Non
             continue
         label = _format_profile_field(field_name)
         is_updated = any(
-            uk in field_name.lower() or field_name.lower() in uk.lower()
-            for uk in update_keys
+            uk in field_name.lower() or field_name.lower() in uk.lower() for uk in update_keys
         )
         marker = " ← UPDATED" if is_updated else ""
         print(f"{label:25s}: {value}{marker}")
@@ -820,9 +810,7 @@ async def _cmd_set_zones(client: RouvyAsyncApiClient, args: argparse.Namespace) 
     print(f"✓ {args.zone_type} zones updated to {zone_values}")
 
 
-async def _cmd_unregister_event(
-    client: RouvyAsyncApiClient, args: argparse.Namespace
-) -> None:
+async def _cmd_unregister_event(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
     success: bool = await client.async_unregister_event(args.event_id)
 
     if args.json_output:

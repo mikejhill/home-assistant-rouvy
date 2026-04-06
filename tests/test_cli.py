@@ -360,7 +360,9 @@ class TestCmdProfile:
 
         client = AsyncMock()
         client.async_get_user_profile.return_value = _mock_profile(
-            gender=None, birth_date=None, country=None,
+            gender=None,
+            birth_date=None,
+            country=None,
         )
         _run(_cmd_profile(client, _mock_args()))
         output = capsys.readouterr().out
@@ -713,8 +715,12 @@ class TestCmdSetProfile:
 
         client = AsyncMock()
         args = _mock_args(
-            username="NewName", first_name=None, last_name=None,
-            team=None, country=None, privacy=None,
+            username="NewName",
+            first_name=None,
+            last_name=None,
+            team=None,
+            country=None,
+            privacy=None,
         )
         _run(_cmd_set_profile(client, args))
         output = capsys.readouterr().out
@@ -726,8 +732,12 @@ class TestCmdSetProfile:
 
         client = AsyncMock()
         args = _mock_args(
-            username=None, first_name=None, last_name=None,
-            team=None, country=None, privacy="PRIVATE",
+            username=None,
+            first_name=None,
+            last_name=None,
+            team=None,
+            country=None,
+            privacy="PRIVATE",
         )
         _run(_cmd_set_profile(client, args))
         client.async_update_user_social.assert_called_once_with("PRIVATE")
@@ -737,8 +747,12 @@ class TestCmdSetProfile:
 
         client = AsyncMock()
         args = _mock_args(
-            username=None, first_name=None, last_name=None,
-            team=None, country=None, privacy=None,
+            username=None,
+            first_name=None,
+            last_name=None,
+            team=None,
+            country=None,
+            privacy=None,
         )
         with pytest.raises(ValueError, match="No profile fields"):
             _run(_cmd_set_profile(client, args))
@@ -914,7 +928,8 @@ class TestMain:
         assert exc_info.value.code == 1
 
     def test_main_json_error_on_exception(
-        self, capsys: pytest.CaptureFixture[str],
+        self,
+        capsys: pytest.CaptureFixture[str],
     ) -> None:
         from custom_components.rouvy.api_client.__main__ import main
 
