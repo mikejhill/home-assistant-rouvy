@@ -102,7 +102,7 @@ def _register_services(hass: Any) -> None:
 
     async def _handle_update_profile(call: Any) -> None:
         updates: dict[str, Any] = {}
-        for key in ("userName", "firstName", "team"):
+        for key in ("userName", "firstName", "lastName", "team", "countryIsoCode"):
             if key in call.data:
                 updates[key] = call.data[key]
         rd = _first_client(hass)
@@ -142,6 +142,13 @@ def _register_services(hass: Any) -> None:
         _LOGGER.info("Service call: update_zones type=%s zones=%s", zone_type, zones)
         rd = _first_client(hass)
         await rd.client.async_update_zones(zone_type, zones)
+        await rd.coordinator.async_request_refresh()
+
+    async def _handle_update_max_heart_rate(call: Any) -> None:
+        max_hr = int(call.data["max_heart_rate"])
+        _LOGGER.info("Service call: update_max_heart_rate to %d", max_hr)
+        rd = _first_client(hass)
+        await rd.client.async_update_max_heart_rate(max_hr)
         await rd.coordinator.async_request_refresh()
 
     async def _handle_register_challenge(call: Any) -> None:
@@ -212,6 +219,7 @@ def _register_services(hass: Any) -> None:
         ("update_timezone", _handle_update_timezone, None),
         ("update_ftp", _handle_update_ftp, None),
         ("update_zones", _handle_update_zones, None),
+        ("update_max_heart_rate", _handle_update_max_heart_rate, None),
         ("register_challenge", _handle_register_challenge, None),
         ("register_event", _handle_register_event, None),
         ("unregister_event", _handle_unregister_event, None),

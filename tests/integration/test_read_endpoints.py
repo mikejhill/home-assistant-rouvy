@@ -36,6 +36,21 @@ class TestReadProfile:
         assert profile.ftp_watts >= 0
         assert profile.ftp_source in ("MANUAL", "ESTIMATED", "")
 
+    async def test_profile_units_and_timezone(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Profile should include valid units and timezone."""
+        profile = await rouvy_client.async_get_user_profile()
+        assert profile.units in ("METRIC", "IMPERIAL")
+        if profile.timezone is not None:
+            assert isinstance(profile.timezone, str)
+            assert len(profile.timezone) > 0
+
+    async def test_profile_max_heart_rate(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Profile should include max heart rate if set."""
+        profile = await rouvy_client.async_get_user_profile()
+        if profile.max_heart_rate is not None:
+            assert isinstance(profile.max_heart_rate, int)
+            assert 50 <= profile.max_heart_rate <= 250
+
 
 class TestReadTrainingZones:
     """Test reading training zones from the live API."""
@@ -46,6 +61,12 @@ class TestReadTrainingZones:
         assert isinstance(zones, TrainingZones)
         assert len(zones.power_zone_values) > 0 or len(zones.power_zone_defaults) > 0
         assert len(zones.hr_zone_values) > 0 or len(zones.hr_zone_defaults) > 0
+
+    async def test_zones_have_ftp_and_max_hr(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Zones should include FTP watts and max heart rate reference values."""
+        zones = await rouvy_client.async_get_training_zones()
+        assert zones.ftp_watts >= 0
+        assert zones.max_heart_rate >= 0
 
 
 class TestReadConnectedApps:

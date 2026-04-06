@@ -60,11 +60,25 @@ update_profile:
       example: "John"
       selector:
         text:
+    lastName:
+      name: Last Name
+      description: Last name shown on profile.
+      required: false
+      example: "Smith"
+      selector:
+        text:
     team:
       name: Team
       description: Team name.
       required: false
       example: "Weekend Warriors"
+      selector:
+        text:
+    countryIsoCode:
+      name: Country
+      description: Two-letter ISO country code (e.g., US, CZ, DE).
+      required: false
+      example: "US"
       selector:
         text:
     accountPrivacy:
@@ -152,6 +166,22 @@ update_zones:
       example: "[55, 75, 90, 105, 120, 150]"
       selector:
         object:
+
+update_max_heart_rate:
+  name: Update Max Heart Rate
+  description: Update the user's maximum heart rate in Rouvy.
+  fields:
+    max_heart_rate:
+      name: Max Heart Rate
+      description: Maximum heart rate in beats per minute.
+      required: true
+      example: 190
+      selector:
+        number:
+          min: 100
+          max: 250
+          step: 1
+          unit_of_measurement: bpm
 
 register_challenge:
   name: Register Challenge

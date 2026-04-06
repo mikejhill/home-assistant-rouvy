@@ -152,6 +152,43 @@ class TestUpdateProfile:
         finally:
             await rouvy_client.async_update_user_profile({"firstName": original_first})
 
+    async def test_update_last_name_and_restore(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Change last name, verify, then restore."""
+        original = await rouvy_client.async_get_user_profile()
+        original_last = original.last_name
+        test_last = "TestSurname"
+
+        try:
+            await rouvy_client.async_update_user_profile({"lastName": test_last})
+            updated = await rouvy_client.async_get_user_profile()
+            assert updated.last_name == test_last
+        finally:
+            await rouvy_client.async_update_user_profile({"lastName": original_last})
+
+    async def test_update_team_and_restore(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Change team name, verify, then restore."""
+        original_team = ""  # team is not parsed from turbo-stream response
+        test_team = "TestTeam42"
+
+        try:
+            await rouvy_client.async_update_user_profile({"team": test_team})
+            # Team may not be visible in profile read-back; verify no error
+        finally:
+            await rouvy_client.async_update_user_profile({"team": original_team})
+
+    async def test_update_country_and_restore(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Change country (nationality), verify, then restore."""
+        original = await rouvy_client.async_get_user_profile()
+        original_country = original.country or "US"
+        test_country = "CZ" if original_country != "CZ" else "DE"
+
+        try:
+            await rouvy_client.async_update_user_profile({"countryIsoCode": test_country})
+            updated = await rouvy_client.async_get_user_profile()
+            assert updated.country == test_country
+        finally:
+            await rouvy_client.async_update_user_profile({"countryIsoCode": original_country})
+
     async def test_update_privacy_and_restore(self, rouvy_client: RouvyAsyncApiClient) -> None:
         """Toggle account privacy, then restore."""
         original = await rouvy_client.async_get_user_profile()
@@ -164,3 +201,37 @@ class TestUpdateProfile:
             assert updated.account_privacy == test_privacy
         finally:
             await rouvy_client.async_update_user_social(original_privacy)
+
+
+class TestUpdateMaxHeartRate:
+    """Test updating max heart rate via the live API."""
+
+    async def test_update_and_restore_max_hr(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Change max heart rate, verify, then restore."""
+        original = await rouvy_client.async_get_training_zones()
+        original_hr = original.max_heart_rate
+        test_hr = 185 if original_hr != 185 else 195
+
+        try:
+            await rouvy_client.async_update_max_heart_rate(test_hr)
+            updated = await rouvy_client.async_get_training_zones()
+            assert updated.max_heart_rate == test_hr
+        finally:
+            await rouvy_client.async_update_max_heart_rate(original_hr)
+
+
+class TestUpdateHrZones:
+    """Test updating heart rate zone boundaries via the live API."""
+
+    async def test_update_hr_zones_and_restore(self, rouvy_client: RouvyAsyncApiClient) -> None:
+        """Modify heart rate zone boundaries, then restore originals."""
+        original = await rouvy_client.async_get_training_zones()
+        original_zones = list(original.hr_zone_values)
+        test_zones = [55, 65, 75, 82, 89, 96]
+
+        try:
+            await rouvy_client.async_update_zones("heartRate", test_zones)
+            updated = await rouvy_client.async_get_training_zones()
+            assert updated.hr_zone_values == test_zones
+        finally:
+            await rouvy_client.async_update_zones("heartRate", original_zones)

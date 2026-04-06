@@ -78,6 +78,7 @@ def _mock_client(profile: UserProfile | None = None) -> AsyncMock:
     client.async_update_user_settings = AsyncMock()
     client.async_update_user_profile = AsyncMock()
     client.async_update_user_social = AsyncMock()
+    client.async_update_max_heart_rate = AsyncMock()
     client.async_get_events = AsyncMock(return_value=[])
     client.async_register_event = AsyncMock(return_value=True)
     client.async_unregister_event = AsyncMock(return_value=True)
@@ -519,6 +520,30 @@ class TestServices:
             blocking=True,
         )
         client.async_update_zones.assert_called_once_with("power", [55, 75, 90, 105, 120, 150])
+
+    async def test_update_max_heart_rate_service(self, hass: HomeAssistant) -> None:
+        """Test update_max_heart_rate service calls the API."""
+        client = await self._setup(hass)
+        await hass.services.async_call(
+            DOMAIN,
+            "update_max_heart_rate",
+            {"max_heart_rate": 185},
+            blocking=True,
+        )
+        client.async_update_max_heart_rate.assert_called_once_with(185)
+
+    async def test_update_profile_with_lastname_and_country(self, hass: HomeAssistant) -> None:
+        """Test update_profile service passes lastName and countryIsoCode."""
+        client = await self._setup(hass)
+        await hass.services.async_call(
+            DOMAIN,
+            "update_profile",
+            {"lastName": "Smith", "countryIsoCode": "US"},
+            blocking=True,
+        )
+        client.async_update_user_profile.assert_called_once_with(
+            {"lastName": "Smith", "countryIsoCode": "US"}
+        )
 
     async def test_get_profile_service(self, hass: HomeAssistant) -> None:
         """Test get_profile service returns profile data."""

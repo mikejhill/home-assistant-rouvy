@@ -421,8 +421,9 @@ class RouvyAsyncApiClient:
     async def async_update_zones(self, zone_type: str, zones: list[int]) -> None:
         """Update training zone boundaries.
 
-        Fetches current zones and user settings first to preserve FTP value
-        and source, then posts the updated zone boundaries.
+        Fetches current zones and user settings first to preserve the
+        reference value (FTP for power, maxHR for heartRate), then posts
+        the updated zone boundaries.
 
         Args:
             zone_type: Zone type — "power" or "heartRate".
@@ -433,19 +434,21 @@ class RouvyAsyncApiClient:
 
         _LOGGER.debug("Updating %s zones: %s", zone_type, zones)
         current = await self.async_get_training_zones()
-        settings_text = await self._request("GET", "user-settings.data")
-        settings = extract_user_profile(settings_text)
-        ftp_source = settings.get("ftp_source", "ESTIMATED")
 
         zones_str = "[" + ",".join(str(v) for v in zones) + "]"
-        payload: dict[str, Any] = {
-            "type": zone_type,
-            "ftpSource": ftp_source,
-            "oldValue": current.ftp_watts,
-            "zones": zones_str,
-        }
-        if ftp_source == "MANUAL":
-            payload["value"] = current.ftp_watts
+        payload: dict[str, Any] = {"type": zone_type, "zones": zones_str}
+
+        if zone_type == "heartRate":
+            payload["oldValue"] = current.max_heart_rate
+            payload["value"] = current.max_heart_rate
+        else:
+            settings_text = await self._request("GET", "user-settings.data")
+            settings = extract_user_profile(settings_text)
+            ftp_source = settings.get("ftp_source", "ESTIMATED")
+            payload["ftpSource"] = ftp_source
+            payload["oldValue"] = current.ftp_watts
+            if ftp_source == "MANUAL":
+                payload["value"] = current.ftp_watts
 
         await self._request(
             "POST",
@@ -454,6 +457,36 @@ class RouvyAsyncApiClient:
             headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
         )
         _LOGGER.info("%s zones updated", zone_type)
+
+    async def async_update_max_heart_rate(self, max_hr: int) -> None:
+        """Update maximum heart rate.
+
+        Uses the heart rate zone endpoint to update the max HR value
+        while preserving current zone boundaries.
+
+        Args:
+            max_hr: Maximum heart rate in bpm.
+        """
+        _LOGGER.debug("Updating max heart rate to %d", max_hr)
+        current = await self.async_get_training_zones()
+
+        # Use custom values if set, otherwise fall back to defaults
+        hr_zones = current.hr_zone_values or current.hr_zone_defaults
+        zones_str = "[" + ",".join(str(v) for v in hr_zones) + "]"
+        payload: dict[str, Any] = {
+            "type": "heartRate",
+            "oldValue": current.max_heart_rate,
+            "value": max_hr,
+            "zones": zones_str,
+        }
+
+        await self._request(
+            "POST",
+            "user-settings/zones.data",
+            data=payload,
+            headers={"Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"},
+        )
+        _LOGGER.info("Max heart rate updated to %d", max_hr)
 
     async def async_get_favorite_routes(self) -> list[Route]:
         """Fetch routes and return only favorites."""
