@@ -259,7 +259,7 @@ uv run ruff format . # Format
 ```bash
 export ROUVY_TEST_EMAIL="email@example.com"
 export ROUVY_TEST_PASSWORD="password"
-uv run pytest tests/integration/ -m integration -v
+uv run pytest tests/integration/ -m integration -p no:socket -v
 ```
 
 **GitHub Actions:** Trigger the **Integration Tests** workflow manually from
