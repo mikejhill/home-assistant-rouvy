@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .models import (
+        AchievementsSummary,
         ActivitySummary,
         ActivityTypeStats,
         CareerStats,
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
         FriendsSummary,
         Route,
         TrainingZones,
+        TrophiesSummary,
         UserProfile,
         WeeklyActivityStats,
     )
@@ -934,3 +936,78 @@ def extract_friends_model(response_text: str) -> FriendsSummary:
             online += 1
 
     return FriendsSummary(total_friends=total, online_friends=online)
+
+
+def extract_achievements_model(response_text: str) -> AchievementsSummary:
+    """Extract an AchievementsSummary from a profile/achievements.data response.
+
+    The achievements endpoint returns a dict keyed by category (e.g.
+    ``workoutsAchievements``, ``distanceAchievements``). Each category is a
+    list of achievement objects, each having a ``goal`` with ``isCompleted``,
+    plus ``coins`` and ``experience`` reward fields.
+    """
+    from .models import AchievementsSummary
+
+    if not response_text or not response_text.strip():
+        return AchievementsSummary()
+
+    decoder = TurboStreamDecoder()
+    decoded = decoder.decode(response_text)
+    array_data: list[Any] = decoded if isinstance(decoded, list) else []
+
+    achievements = _find_key_value(array_data, "achievements")
+    if not isinstance(achievements, dict):
+        return AchievementsSummary()
+
+    total = 0
+    earned = 0
+    coins = 0
+    xp = 0
+
+    for category_items in achievements.values():
+        resolved_items = _resolve_index(category_items, decoder.index_map)
+        if not isinstance(resolved_items, list):
+            continue
+        for raw_item in resolved_items:
+            item = _resolve_index(raw_item, decoder.index_map)
+            if not isinstance(item, dict):
+                continue
+            total += 1
+            goal = item.get("goal", {})
+            if isinstance(goal, dict) and goal.get("isCompleted"):
+                earned += 1
+                coins += _safe_int(item.get("coins", 0))
+                xp += _safe_int(item.get("experience", 0))
+
+    return AchievementsSummary(
+        total_achievements=total,
+        earned_achievements=earned,
+        total_coins_from_achievements=coins,
+        total_xp_from_achievements=xp,
+    )
+
+
+def extract_trophies_model(response_text: str) -> TrophiesSummary:
+    """Extract a TrophiesSummary from a profile/trophies.data response.
+
+    The trophies endpoint returns a ``trophies`` key containing a list of
+    trophy objects (each with routeId, type, value, etc.). We count the total.
+    """
+    from .models import TrophiesSummary
+
+    if not response_text or not response_text.strip():
+        return TrophiesSummary()
+
+    decoder = TurboStreamDecoder()
+    decoded = decoder.decode(response_text)
+    array_data: list[Any] = decoded if isinstance(decoded, list) else []
+
+    trophies = _find_key_value(array_data, "trophies")
+    if not isinstance(trophies, list):
+        return TrophiesSummary()
+
+    # Resolve the list; each item is a trophy object
+    resolved = _resolve_index(trophies, decoder.index_map)
+    count = len(resolved) if isinstance(resolved, list) else len(trophies)
+
+    return TrophiesSummary(total_trophies=count)

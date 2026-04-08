@@ -16,10 +16,12 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.rouvy.api_client.errors import AuthenticationError, RouvyApiError
 from custom_components.rouvy.api_client.models import (
+    AchievementsSummary,
     ActivitySummary,
     CareerStats,
     FriendsSummary,
     TrainingZones,
+    TrophiesSummary,
     UserProfile,
 )
 from custom_components.rouvy.const import CONF_EMAIL, CONF_PASSWORD, DOMAIN
@@ -84,6 +86,8 @@ def _mock_client(profile: UserProfile | None = None) -> AsyncMock:
     client.async_unregister_event = AsyncMock(return_value=True)
     client.async_register_challenge = AsyncMock(return_value=True)
     client.async_get_career = AsyncMock(return_value=CareerStats())
+    client.async_get_achievements = AsyncMock(return_value=AchievementsSummary())
+    client.async_get_trophies = AsyncMock(return_value=TrophiesSummary())
     client.async_update_timezone = AsyncMock()
     client.async_update_ftp = AsyncMock()
     client.async_update_zones = AsyncMock()
@@ -393,14 +397,17 @@ class TestSensors:
         """Test that all 33 sensor entities are created.
 
         6 profile + 6 weekly + 2 challenges + 2 zones
-        + 2 connected apps + 5 activity + 2 routes + 2 events + 4 career + 2 friends.
+        # 8 profile + 6 weekly + 2 challenges + 2 zones
+        # + 2 connected apps + 5 activity + 2 routes + 2 events
+        # + 4 career/achievements/trophies + 2 friends = 36
+        # (5 career sensors disabled pending endpoint identification)
         """
         await self._setup(hass)
         sensor_states = [
             s for s in hass.states.async_all() if s.entity_id.startswith("sensor.rouvy")
         ]
-        assert len(sensor_states) == 41, (
-            f"Expected 41 sensors, got {len(sensor_states)}: {[s.entity_id for s in sensor_states]}"
+        assert len(sensor_states) == 36, (
+            f"Expected 36 sensors, got {len(sensor_states)}: {[s.entity_id for s in sensor_states]}"
         )
 
 

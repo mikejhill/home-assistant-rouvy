@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 
 from ..api import RouvyAsyncApiClient
 from .models import (
+    AchievementsSummary,
     Activity,
     ActivitySummary,
     CareerStats,
@@ -32,6 +33,7 @@ from .models import (
     FriendsSummary,
     Route,
     TrainingZones,
+    TrophiesSummary,
     UserProfile,
     WeeklyActivityStats,
 )
@@ -459,9 +461,18 @@ async def _cmd_apps(client: RouvyAsyncApiClient, args: argparse.Namespace) -> No
 
 async def _cmd_career(client: RouvyAsyncApiClient, args: argparse.Namespace) -> None:
     career: CareerStats = await client.async_get_career()
+    achievements: AchievementsSummary = await client.async_get_achievements()
+    trophies: TrophiesSummary = await client.async_get_trophies()
 
     if args.json_output:
-        _json_out(_as_dict(career))
+        career_dict = _as_dict(career)
+        assert isinstance(career_dict, dict)  # single dataclass, never list
+        combined = {
+            **career_dict,
+            "achievements": _as_dict(achievements),
+            "trophies": _as_dict(trophies),
+        }
+        _json_out(combined)
         return
 
     print("=" * 70)
@@ -469,13 +480,10 @@ async def _cmd_career(client: RouvyAsyncApiClient, args: argparse.Namespace) -> 
     print("=" * 70)
     print(f"  Level              : {career.level}")
     print(f"  Experience         : {career.experience_points:,} XP")
-    print(f"  Coins              : {career.coins:,}")
-    print(f"  Total Activities   : {career.total_activities:,}")
-    print(f"  Total Distance     : {career.total_distance_m / 1000.0:,.1f} km")
-    print(f"  Total Elevation    : {career.total_elevation_m:,.0f} m")
-    print(f"  Total Time         : {_format_time(career.total_time_seconds)}")
-    print(f"  Achievements       : {career.total_achievements}")
-    print(f"  Trophies           : {career.total_trophies}")
+    earned = achievements.earned_achievements
+    total = achievements.total_achievements
+    print(f"  Achievements       : {earned}/{total}")
+    print(f"  Trophies           : {trophies.total_trophies}")
     print("=" * 70)
 
 

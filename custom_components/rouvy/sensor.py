@@ -310,60 +310,66 @@ SENSOR_DESCRIPTIONS: tuple[RouvySensorDescription, ...] = (
         state_class=SensorStateClass.TOTAL,
         value_fn=lambda d: d.career.experience_points if d.career else None,
     ),
-    RouvySensorDescription(
-        key="total_coins",
-        translation_key="total_coins",
-        state_class=SensorStateClass.TOTAL,
-        value_fn=lambda d: d.career.coins if d.career else None,
-    ),
-    RouvySensorDescription(
-        key="career_total_distance",
-        translation_key="career_total_distance",
-        native_unit_of_measurement=UnitOfLength.KILOMETERS,
-        device_class=SensorDeviceClass.DISTANCE,
-        state_class=SensorStateClass.TOTAL,
-        suggested_display_precision=1,
-        value_fn=lambda d: (
-            round(d.career.total_distance_m / 1000, 1)
-            if d.career and d.career.total_distance_m
-            else None
-        ),
-    ),
-    RouvySensorDescription(
-        key="career_total_elevation",
-        translation_key="career_total_elevation",
-        native_unit_of_measurement=UnitOfLength.METERS,
-        device_class=SensorDeviceClass.DISTANCE,
-        state_class=SensorStateClass.TOTAL,
-        suggested_display_precision=0,
-        value_fn=lambda d: round(d.career.total_elevation_m) if d.career else None,
-    ),
-    RouvySensorDescription(
-        key="career_total_time",
-        translation_key="career_total_time",
-        native_unit_of_measurement=UnitOfTime.HOURS,
-        device_class=SensorDeviceClass.DURATION,
-        state_class=SensorStateClass.TOTAL,
-        suggested_display_precision=1,
-        value_fn=lambda d: round(d.career.total_time_seconds / 3600, 1) if d.career else None,
-    ),
-    RouvySensorDescription(
-        key="career_total_activities",
-        translation_key="career_total_activities",
-        state_class=SensorStateClass.TOTAL,
-        value_fn=lambda d: d.career.total_activities if d.career else None,
-    ),
+    # TODO(unavailable-endpoint): total coins not exposed by any known Rouvy API endpoint
+    # RouvySensorDescription(
+    #     key="total_coins",
+    #     translation_key="total_coins",
+    #     state_class=SensorStateClass.TOTAL,
+    #     value_fn=lambda d: d.career.coins if d.career else None,
+    # ),
+    # TODO(unavailable-endpoint): lifetime distance not exposed by any known Rouvy API endpoint
+    # RouvySensorDescription(
+    #     key="career_total_distance",
+    #     translation_key="career_total_distance",
+    #     native_unit_of_measurement=UnitOfLength.KILOMETERS,
+    #     device_class=SensorDeviceClass.DISTANCE,
+    #     state_class=SensorStateClass.TOTAL,
+    #     suggested_display_precision=1,
+    #     value_fn=lambda d: (
+    #         round(d.career.total_distance_m / 1000, 1)
+    #         if d.career and d.career.total_distance_m
+    #         else None
+    #     ),
+    # ),
+    # TODO(unavailable-endpoint): lifetime elevation not exposed by any known Rouvy API endpoint
+    # RouvySensorDescription(
+    #     key="career_total_elevation",
+    #     translation_key="career_total_elevation",
+    #     native_unit_of_measurement=UnitOfLength.METERS,
+    #     device_class=SensorDeviceClass.DISTANCE,
+    #     state_class=SensorStateClass.TOTAL,
+    #     suggested_display_precision=0,
+    #     value_fn=lambda d: round(d.career.total_elevation_m) if d.career else None,
+    # ),
+    # TODO(unavailable-endpoint): lifetime time not exposed by any known Rouvy API endpoint
+    # RouvySensorDescription(
+    #     key="career_total_time",
+    #     translation_key="career_total_time",
+    #     native_unit_of_measurement=UnitOfTime.HOURS,
+    #     device_class=SensorDeviceClass.DURATION,
+    #     state_class=SensorStateClass.TOTAL,
+    #     suggested_display_precision=1,
+    #     value_fn=lambda d: round(d.career.total_time_seconds / 3600, 1) if d.career else None,
+    # ),
+    # TODO(unavailable-endpoint): lifetime activities not exposed by Rouvy API
+    # RouvySensorDescription(
+    #     key="career_total_activities",
+    #     translation_key="career_total_activities",
+    #     state_class=SensorStateClass.TOTAL,
+    #     value_fn=lambda d: d.career.total_activities if d.career else None,
+    # ),
+    # Achievement and trophy sensors (from dedicated endpoints)
     RouvySensorDescription(
         key="career_achievements",
         translation_key="career_achievements",
         state_class=SensorStateClass.TOTAL,
-        value_fn=lambda d: d.career.total_achievements if d.career else None,
+        value_fn=lambda d: d.achievements.earned_achievements if d.achievements else None,
     ),
     RouvySensorDescription(
         key="career_trophies",
         translation_key="career_trophies",
         state_class=SensorStateClass.TOTAL,
-        value_fn=lambda d: d.career.total_trophies if d.career else None,
+        value_fn=lambda d: d.trophies.total_trophies if d.trophies else None,
     ),
     # Friends sensors
     RouvySensorDescription(

@@ -1556,3 +1556,147 @@ class TestExtractFriends:
         result = extract_friends_model(_build_friends_response(friends=friends))
         assert result.total_friends == 2
         assert result.online_friends == 0
+
+
+# ===================================================================
+# extract_achievements_model
+# ===================================================================
+
+
+def _build_achievements_response(
+    categories: dict[str, list[dict[str, object]]] | None = None,
+) -> str:
+    """Build a synthetic turbo-stream achievements response."""
+    if categories is None:
+        categories = {
+            "workoutsAchievements": [
+                {
+                    "id": "a1",
+                    "title": "First Ride",
+                    "experience": 100,
+                    "coins": 200,
+                    "goal": {"isCompleted": True, "value": 1, "target": 1},
+                },
+                {
+                    "id": "a2",
+                    "title": "Ten Rides",
+                    "experience": 500,
+                    "coins": 1000,
+                    "goal": {"isCompleted": False, "value": 3, "target": 10},
+                },
+            ],
+            "distanceAchievements": [
+                {
+                    "id": "a3",
+                    "title": "100km",
+                    "experience": 300,
+                    "coins": 500,
+                    "goal": {"isCompleted": True, "value": 100, "target": 100},
+                },
+            ],
+        }
+    return json.dumps(["achievements", categories])
+
+
+class TestExtractAchievements:
+    """Verify extract_achievements_model with synthetic data."""
+
+    def test_happy_path(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_achievements_model
+
+        result = extract_achievements_model(_build_achievements_response())
+        assert result.total_achievements == 3
+        assert result.earned_achievements == 2
+        assert result.total_coins_from_achievements == 700
+        assert result.total_xp_from_achievements == 400
+
+    def test_empty_response(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_achievements_model
+
+        result = extract_achievements_model("")
+        assert result.total_achievements == 0
+        assert result.earned_achievements == 0
+
+    def test_no_achievements_key(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_achievements_model
+
+        result = extract_achievements_model(json.dumps(["other", {}]))
+        assert result.total_achievements == 0
+
+    def test_all_completed(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_achievements_model
+
+        cats = {
+            "cat1": [
+                {"id": "x", "experience": 10, "coins": 20, "goal": {"isCompleted": True}},
+                {"id": "y", "experience": 30, "coins": 40, "goal": {"isCompleted": True}},
+            ],
+        }
+        result = extract_achievements_model(_build_achievements_response(categories=cats))
+        assert result.earned_achievements == 2
+        assert result.total_coins_from_achievements == 60
+        assert result.total_xp_from_achievements == 40
+
+    def test_none_completed(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_achievements_model
+
+        cats = {
+            "cat1": [
+                {"id": "x", "coins": 100, "goal": {"isCompleted": False}},
+            ],
+        }
+        result = extract_achievements_model(_build_achievements_response(categories=cats))
+        assert result.total_achievements == 1
+        assert result.earned_achievements == 0
+        assert result.total_coins_from_achievements == 0
+
+
+# ===================================================================
+# extract_trophies_model
+# ===================================================================
+
+
+def _build_trophies_response(trophies: list[dict[str, object]] | None = None) -> str:
+    """Build a synthetic turbo-stream trophies response."""
+    if trophies is None:
+        trophies = [
+            {"routeId": 1, "type": "top10", "value": 3, "timeSeconds": 27.6},
+            {"routeId": 2, "type": "top10", "value": 7, "timeSeconds": 55.2},
+        ]
+    return json.dumps(["trophies", trophies])
+
+
+class TestExtractTrophies:
+    """Verify extract_trophies_model with synthetic data."""
+
+    def test_happy_path(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_trophies_model
+
+        result = extract_trophies_model(_build_trophies_response())
+        assert result.total_trophies == 2
+
+    def test_empty_response(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_trophies_model
+
+        result = extract_trophies_model("")
+        assert result.total_trophies == 0
+
+    def test_no_trophies_key(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_trophies_model
+
+        result = extract_trophies_model(json.dumps(["other", []]))
+        assert result.total_trophies == 0
+
+    def test_empty_trophies_list(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_trophies_model
+
+        result = extract_trophies_model(_build_trophies_response(trophies=[]))
+        assert result.total_trophies == 0
+
+    def test_single_trophy(self) -> None:
+        from custom_components.rouvy.api_client.parser import extract_trophies_model
+
+        result = extract_trophies_model(
+            _build_trophies_response(trophies=[{"routeId": 99, "type": "top10"}])
+        )
+        assert result.total_trophies == 1

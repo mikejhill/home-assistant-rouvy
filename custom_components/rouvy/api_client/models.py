@@ -164,17 +164,40 @@ class Event:
 
 @dataclass(frozen=True)
 class CareerStats:
-    """Career progression stats from the profile/career endpoint."""
+    """Career progression stats from the profile/career endpoint.
 
+    Only ``experience_points`` and ``level`` are available from the career
+    endpoint.  Lifetime totals (distance, elevation, time, activities) and
+    coins are **not** exposed by any known Rouvy API endpoint and are left
+    at their defaults.
+    """
+
+    experience_points: int = 0
+    level: int = 0
+    # TODO(unavailable-endpoint): lifetime totals not exposed by Rouvy API
     total_distance_m: float = 0.0
     total_elevation_m: float = 0.0
     total_time_seconds: int = 0
     total_activities: int = 0
-    total_achievements: int = 0
-    total_trophies: int = 0
-    experience_points: int = 0
-    level: int = 0
+    # TODO(unavailable-endpoint): total coins not exposed by Rouvy API
     coins: int = 0
+
+
+@dataclass(frozen=True)
+class AchievementsSummary:
+    """Summary of user achievements from profile/achievements.data."""
+
+    total_achievements: int = 0
+    earned_achievements: int = 0
+    total_coins_from_achievements: int = 0
+    total_xp_from_achievements: int = 0
+
+
+@dataclass(frozen=True)
+class TrophiesSummary:
+    """Summary of user trophies from profile/trophies.data."""
+
+    total_trophies: int = 0
 
 
 @dataclass(frozen=True)
@@ -203,4 +226,6 @@ class RouvyCoordinatorData:
     favorite_routes: list[Route] = field(default_factory=list)
     upcoming_events: list[Event] = field(default_factory=list)
     career: CareerStats | None = None
+    achievements: AchievementsSummary | None = None
+    trophies: TrophiesSummary | None = None
     friends: FriendsSummary | None = None

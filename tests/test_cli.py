@@ -496,20 +496,23 @@ class TestCmdCareer:
 
     def test_prints_career_stats(self, capsys: pytest.CaptureFixture[str]) -> None:
         from custom_components.rouvy.api_client.__main__ import _cmd_career
+        from custom_components.rouvy.api_client.models import AchievementsSummary, TrophiesSummary
 
         career = CareerStats(
             level=25,
             experience_points=9500,
-            coins=3200,
-            total_activities=247,
-            total_distance_m=4567800.0,
-            total_elevation_m=45678.0,
-            total_time_seconds=1125000,
-            total_achievements=37,
-            total_trophies=12,
         )
+        achievements = AchievementsSummary(
+            total_achievements=44,
+            earned_achievements=37,
+            total_coins_from_achievements=4400,
+            total_xp_from_achievements=2100,
+        )
+        trophies = TrophiesSummary(total_trophies=12)
         client = AsyncMock()
         client.async_get_career.return_value = career
+        client.async_get_achievements.return_value = achievements
+        client.async_get_trophies.return_value = trophies
         _run(_cmd_career(client, _mock_args()))
         output = capsys.readouterr().out
         assert "CAREER STATS" in output
@@ -518,14 +521,19 @@ class TestCmdCareer:
 
     def test_json_output(self, capsys: pytest.CaptureFixture[str]) -> None:
         from custom_components.rouvy.api_client.__main__ import _cmd_career
+        from custom_components.rouvy.api_client.models import AchievementsSummary, TrophiesSummary
 
-        career = CareerStats(level=10, coins=500)
+        career = CareerStats(level=10)
+        achievements = AchievementsSummary(earned_achievements=5)
+        trophies = TrophiesSummary(total_trophies=3)
         client = AsyncMock()
         client.async_get_career.return_value = career
+        client.async_get_achievements.return_value = achievements
+        client.async_get_trophies.return_value = trophies
         _run(_cmd_career(client, _mock_args(json_output=True)))
         data = json.loads(capsys.readouterr().out)
         assert data["level"] == 10
-        assert data["coins"] == 500
+        assert data["achievements"]["earned_achievements"] == 5
 
 
 class TestCmdChallenges:
