@@ -227,32 +227,48 @@ class TestParsePromiseLine:
 
     def test_valid_numeric_promise(self) -> None:
         decoder = TurboStreamDecoder()
-        decoder._parse_promise_line("P42:100")
+        decoder._parse_promise_line("P42:100", 0)
         assert decoder.promise_values[42] == 100, (
             f"Expected promise 42 = 100, got {decoder.promise_values.get(42)}"
         )
 
     def test_valid_json_promise(self) -> None:
         decoder = TurboStreamDecoder()
-        decoder._parse_promise_line('P10:{"key": "val"}')
+        decoder._parse_promise_line('P10:{"key": "val"}', 0)
         assert decoder.promise_values[10] == {"key": "val"}, (
             f"Expected promise 10 = dict, got {decoder.promise_values.get(10)}"
         )
 
     def test_promise_line_without_colon_skipped(self) -> None:
         decoder = TurboStreamDecoder()
-        decoder._parse_promise_line("P42")
+        decoder._parse_promise_line("P42", 0)
         assert 42 not in decoder.promise_values, "Expected no promise stored for line without colon"
 
     def test_promise_line_with_invalid_id_skipped(self) -> None:
         decoder = TurboStreamDecoder()
-        decoder._parse_promise_line("Pabc:100")
+        decoder._parse_promise_line("Pabc:100", 0)
         assert len(decoder.promise_values) == 0, "Expected no promise stored for non-numeric ID"
 
     def test_promise_line_with_unparseable_value_logged(self) -> None:
         decoder = TurboStreamDecoder()
-        decoder._parse_promise_line("P1:not_json_not_number")
+        decoder._parse_promise_line("P1:not_json_not_number", 0)
         assert 1 not in decoder.promise_values, "Expected no promise stored for unparseable value"
+
+    def test_array_promise_extends_index_map(self) -> None:
+        decoder = TurboStreamDecoder()
+        next_idx = decoder._parse_promise_line('P5:[10, "hello", 30]', 100)
+        assert decoder.promise_values[5] == [10, "hello", 30]
+        assert decoder.index_map[100] == 10
+        assert decoder.index_map[101] == "hello"
+        assert decoder.index_map[102] == 30
+        assert next_idx == 103
+
+    def test_scalar_promise_does_not_extend_index_map(self) -> None:
+        decoder = TurboStreamDecoder()
+        next_idx = decoder._parse_promise_line("P5:-5", 100)
+        assert decoder.promise_values[5] == -5
+        assert 100 not in decoder.index_map
+        assert next_idx == 100
 
 
 # ===================================================================
@@ -1369,21 +1385,42 @@ class TestExtractEventsModel:
 # ===================================================================
 
 
-def _build_career_response(**overrides: object) -> str:
-    """Build a synthetic turbo-stream career response."""
-    stats: dict[str, object] = {
-        "totalDistance": 1_234_567.0,
-        "totalElevation": 45_000.0,
-        "totalTime": 360_000,
-        "totalActivities": 150,
-        "achievements": 42,
-        "trophies": 10,
-        "xp": 9500,
-        "level": 25,
-        "coins": 3200,
-    }
-    stats.update(overrides)
-    return json.dumps(["career", stats])
+def _build_career_response(
+    current_points: int = 9500,
+    career_levels: list[dict[str, object]] | None = None,
+) -> str:
+    """Build a synthetic turbo-stream career response.
+
+    Mirrors the real API structure: careerData[0] contains historyData
+    with currentPoints and a careerLevels list of main levels with sublevels.
+    """
+    if career_levels is None:
+        # Build 3 main levels with sublevels at points 0, 1000, 5000, 10000
+        career_levels = [
+            {
+                "id": "mainlevel-0",
+                "title": "Starter",
+                "sublevels": [
+                    {"id": "level-1", "title": "Level 1", "points": 0},
+                    {"id": "level-2", "title": "Level 2", "points": 1000},
+                ],
+            },
+            {
+                "id": "mainlevel-1",
+                "title": "Intermediate",
+                "sublevels": [
+                    {"id": "level-3", "title": "Level 3", "points": 5000},
+                    {"id": "level-4", "title": "Level 4", "points": 10000},
+                ],
+            },
+        ]
+    career_data = [
+        {
+            "historyData": {"currentPoints": current_points, "history": {}},
+            "careerLevels": career_levels,
+        }
+    ]
+    return json.dumps(["careerData", career_data])
 
 
 class TestExtractCareer:
@@ -1392,25 +1429,17 @@ class TestExtractCareer:
     def test_happy_path_returns_career(self) -> None:
         from custom_components.rouvy.api_client.parser import extract_career_model
 
+        # 9500 XP: sublevels at 0, 1000, 5000 are reached → level 3
         result = extract_career_model(_build_career_response())
-        assert result.total_distance_m == 1_234_567.0
-        assert result.total_elevation_m == 45_000.0
-        assert result.total_time_seconds == 360_000
-        assert result.total_activities == 150
-        assert result.total_achievements == 42
-        assert result.total_trophies == 10
         assert result.experience_points == 9500
-        assert result.level == 25
-        assert result.coins == 3200
+        assert result.level == 3
 
     def test_empty_response_returns_defaults(self) -> None:
         from custom_components.rouvy.api_client.parser import extract_career_model
 
         result = extract_career_model("")
         assert result.level == 0
-        assert result.coins == 0
         assert result.experience_points == 0
-        assert result.total_distance_m == 0.0
 
     def test_whitespace_only_response_returns_defaults(self) -> None:
         from custom_components.rouvy.api_client.parser import extract_career_model
@@ -1423,31 +1452,28 @@ class TestExtractCareer:
 
         result = extract_career_model(json.dumps(["other_key", {}]))
         assert result.level == 0
-        assert result.total_distance_m == 0.0
 
-    def test_flat_keys_without_nested_object(self) -> None:
+    def test_zero_xp_still_counts_level_one(self) -> None:
         from custom_components.rouvy.api_client.parser import extract_career_model
 
-        result = extract_career_model(json.dumps(["level", 12, "coins", 500]))
-        assert result.level == 12
-        assert result.coins == 500
+        # 0 XP: sublevel at 0 points is reached → level 1
+        result = extract_career_model(_build_career_response(current_points=0))
+        assert result.experience_points == 0
+        assert result.level == 1
 
-    def test_alternate_key_names(self) -> None:
+    def test_high_xp_reaches_all_levels(self) -> None:
         from custom_components.rouvy.api_client.parser import extract_career_model
 
-        data = {"totalDistM": 99.9, "totalElevM": 50.0, "totalTimeSec": 100}
-        result = extract_career_model(json.dumps(["stats", data]))
-        assert result.total_distance_m == 99.9
-        assert result.total_elevation_m == 50.0
-        assert result.total_time_seconds == 100
+        # 999999 XP: all 4 sublevels reached → level 4
+        result = extract_career_model(_build_career_response(current_points=999999))
+        assert result.level == 4
 
-    def test_partial_data_fills_defaults(self) -> None:
+    def test_no_sublevels_returns_zero(self) -> None:
         from custom_components.rouvy.api_client.parser import extract_career_model
 
-        result = extract_career_model(json.dumps(["career", {"level": 5}]))
-        assert result.level == 5
-        assert result.coins == 0
-        assert result.total_distance_m == 0.0
+        levels = [{"id": "main-0", "title": "Empty"}]
+        result = extract_career_model(_build_career_response(career_levels=levels))
+        assert result.level == 0
 
 
 # ===================================================================

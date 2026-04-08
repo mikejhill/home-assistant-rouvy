@@ -188,7 +188,7 @@ class RouvyAsyncApiClient:
             data = json.loads(body)
             if isinstance(data, list) and len(data) > 0:
                 return bool(data[0] == ["SingleFetchRedirect", 1])
-        except ValueError, TypeError, IndexError:
+        except (ValueError, TypeError, IndexError):  # fmt: skip
             pass
         return False
 
@@ -259,7 +259,7 @@ class RouvyAsyncApiClient:
             result = _json.loads(text)
             if isinstance(result, dict):
                 return bool(result.get("ok", False))
-        except ValueError, TypeError:
+        except (ValueError, TypeError):  # fmt: skip
             pass
         return False
 
@@ -513,7 +513,7 @@ class RouvyAsyncApiClient:
             result = _json.loads(text)
             if isinstance(result, dict):
                 return bool(result.get("registered", False))
-        except ValueError, TypeError:
+        except (ValueError, TypeError):  # fmt: skip
             pass
         return False
 
@@ -531,7 +531,7 @@ class RouvyAsyncApiClient:
             result = _json.loads(text)
             if isinstance(result, dict):
                 return not bool(result.get("registered", True))
-        except ValueError, TypeError:
+        except (ValueError, TypeError):  # fmt: skip
             pass
         return False
 

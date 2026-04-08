@@ -53,6 +53,13 @@ class TurboStreamDecoder:
     def decode(self, response_text: str) -> dict[str, Any] | list[Any] | Any:
         """Decode a turbo-stream formatted response.
 
+        The turbo-stream format uses a global flat index space. The first line
+        is a JSON array whose elements occupy indices 0..N-1. Subsequent promise
+        resolution lines (``P<id>:<json>``) may contain arrays whose elements
+        extend the index space sequentially. All ``_NNN`` key references in
+        objects point into this combined index space, so promise data **must**
+        be indexed before decoding begins.
+
         Args:
             response_text: Raw response text (may be multi-line)
 
@@ -62,22 +69,33 @@ class TurboStreamDecoder:
         lines = response_text.strip().split("\n")
         main_data = json.loads(lines[0])
 
-        # Parse promise resolutions from subsequent lines
-        for line in lines[1:]:
-            line = line.strip()
-            if line and line.startswith("P"):
-                self._parse_promise_line(line)
-
         # Build index map from the main array
+        next_index = 0
         if isinstance(main_data, list):
             for i, item in enumerate(main_data):
                 self.index_map[i] = item
+            next_index = len(main_data)
+
+        # Parse promise resolutions and extend the index map with their
+        # array elements so that _NNN references resolve correctly.
+        for line in lines[1:]:
+            line = line.strip()
+            if line and line.startswith("P"):
+                next_index = self._parse_promise_line(line, next_index)
 
         # Decode the main structure
         return self._decode_value(main_data)
 
-    def _parse_promise_line(self, line: str) -> None:
-        """Parse promise resolution lines like 'P132:-5' or 'P134:[...]'."""
+    def _parse_promise_line(self, line: str, next_index: int) -> int:
+        """Parse a promise resolution line and extend the index map.
+
+        Args:
+            line: Raw promise line (e.g. ``P339:[...]``).
+            next_index: Next available index in the global flat array.
+
+        Returns:
+            Updated next_index after adding any new elements.
+        """
         try:
             # Format: P<id>:<value>
             if ":" in line:
@@ -88,15 +106,24 @@ class TurboStreamDecoder:
                 # Try to parse as JSON
                 try:
                     value = json.loads(value_str)
-                    self.promise_values[promise_id] = value
                 except json.JSONDecodeError:
                     # Might be a simple value like -5
                     if value_str.lstrip("-").isdigit():
-                        self.promise_values[promise_id] = int(value_str)
+                        value = int(value_str)
                     else:
                         _LOGGER.warning("Could not parse promise value: %s", value_str)
+                        return next_index
+
+                self.promise_values[promise_id] = value
+
+                # Array promise values extend the global index space
+                if isinstance(value, list):
+                    for item in value:
+                        self.index_map[next_index] = item
+                        next_index += 1
         except Exception as e:
             _LOGGER.warning("Error parsing promise line '%s': %s", line, e)
+        return next_index
 
     def _decode_value(self, value: Any, resolve_int_as_index: bool = False) -> Any:
         """Recursively decode a value, resolving references and special types.
@@ -134,7 +161,7 @@ class TurboStreamDecoder:
                 if value[0] == "D" and isinstance(value[1], (int, float)):
                     try:
                         return datetime.fromtimestamp(value[1] / 1000)
-                    except ValueError, OSError:
+                    except (ValueError, OSError):  # fmt: skip
                         _LOGGER.warning("Invalid timestamp: %s", value[1])
                         return value
 
@@ -148,12 +175,17 @@ class TurboStreamDecoder:
                     # Promise not yet resolved
                     return f"<Promise:{promise_id}>"
 
-            # Regular array - decode each element (don't resolve ints as indices)
+            # Regular array - decode each element (don't resolve ints as indices
+            # because arrays may contain literal numeric values).
             return [self._decode_value(item, resolve_int_as_index=False) for item in value]
 
         # Handle objects with indexed references
         if isinstance(value, dict):
             result = {}
+            # If ANY key starts with '_', the object uses indexed encoding —
+            # all values (including those under literal string keys) are index
+            # references that must be resolved.
+            is_indexed_object = any(k.startswith("_") for k in value)
             for key, val in value.items():
                 if key.startswith("_"):
                     # This is an indexed reference for the KEY
@@ -183,8 +215,9 @@ class TurboStreamDecoder:
                     except ValueError:
                         result[key] = self._decode_value(val, resolve_int_as_index=False)
                 else:
-                    # Regular key - value is literal
-                    result[key] = self._decode_value(val, resolve_int_as_index=False)
+                    # Regular string key — resolve value as index ref only in
+                    # indexed objects (ones that also have _NNN keys).
+                    result[key] = self._decode_value(val, resolve_int_as_index=is_indexed_object)
             return result
 
         # Return other types as-is
@@ -386,7 +419,7 @@ def _safe_int(value: Any) -> int:
         return int(value)
     try:
         return int(value)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):  # fmt: skip
         return 0
 
 
@@ -396,7 +429,7 @@ def _safe_float(value: Any) -> float:
         return float(value)
     try:
         return float(value)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):  # fmt: skip
         return 0.0
 
 
@@ -793,9 +826,10 @@ def extract_events_model(response_text: str) -> list[Event]:
 def extract_career_model(response_text: str) -> CareerStats:
     """Extract typed CareerStats from a profile/career.data response.
 
-    This is speculative — the actual response keys are unknown because the
-    HAR capture returned empty text. We try several likely key names and
-    fall back to defaults when nothing matches.
+    The career endpoint returns:
+      - careerData[0].historyData.currentPoints → experience points (XP)
+      - careerData[0].careerLevels → list of main levels with sublevels,
+        each sublevel having a point threshold used to compute the current level.
     """
     from .models import CareerStats
 
@@ -806,58 +840,62 @@ def extract_career_model(response_text: str) -> CareerStats:
     decoded = decoder.decode(response_text)
     array_data: list[Any] = decoded if isinstance(decoded, list) else []
 
-    # Try to find a nested career/stats object first
-    raw: dict[str, Any] | None = None
-    for key in ("career", "stats", "careerStats", "userCareer"):
-        candidate = _find_key_value(array_data, key)
-        if isinstance(candidate, dict):
-            raw = _resolve_index(candidate, decoder.index_map)
-            if isinstance(raw, dict):
-                break
-            raw = None
-        elif isinstance(candidate, int) and candidate in decoder.index_map:
-            resolved = _resolve_index(candidate, decoder.index_map)
-            if isinstance(resolved, dict):
-                raw = resolved
-                break
+    career_data = _find_key_value(array_data, "careerData")
+    if not isinstance(career_data, list) or not career_data:
+        return CareerStats()
 
-    def _pick_int(*keys: str) -> int:
-        """Return the first non-None int found in raw or the flat array."""
-        if raw:
-            for k in keys:
-                val = raw.get(k)
-                if val is not None:
-                    return _safe_int(val)
-        for k in keys:
-            val = _find_key_value(array_data, k)
-            if val is not None:
-                return _safe_int(val)
-        return 0
+    cd0 = career_data[0]
+    if not isinstance(cd0, dict):
+        return CareerStats()
 
-    def _pick_float(*keys: str) -> float:
-        """Return the first non-None float found in raw or the flat array."""
-        if raw:
-            for k in keys:
-                val = raw.get(k)
-                if val is not None:
-                    return _safe_float(val)
-        for k in keys:
-            val = _find_key_value(array_data, k)
-            if val is not None:
-                return _safe_float(val)
-        return 0.0
+    # Extract XP from historyData
+    hist = cd0.get("historyData", {})
+    if not isinstance(hist, dict):
+        hist = {}
+    xp = _safe_int(hist.get("currentPoints", 0))
+
+    # Compute career level from careerLevels + currentPoints
+    level = _compute_career_level(cd0.get("careerLevels", []), xp, decoder.index_map)
 
     return CareerStats(
-        total_distance_m=_pick_float("totalDistance", "totalDistM"),
-        total_elevation_m=_pick_float("totalElevation", "totalElevM"),
-        total_time_seconds=_pick_int("totalTime", "totalTimeSec"),
-        total_activities=_pick_int("totalActivities", "activityCount"),
-        total_achievements=_pick_int("achievements", "achievementCount"),
-        total_trophies=_pick_int("trophies", "trophyCount"),
-        experience_points=_pick_int("xp", "experiencePoints"),
-        level=_pick_int("level"),
-        coins=_pick_int("coins"),
+        experience_points=xp,
+        level=level,
     )
+
+
+def _compute_career_level(
+    career_levels: list[Any],
+    current_points: int,
+    index_map: dict[int, Any],
+) -> int:
+    """Compute the overall career level number from career level definitions.
+
+    Career levels is a list of main levels, each containing sublevels with
+    point thresholds. The career level is the count of sublevels whose point
+    threshold is at or below the user's currentPoints.
+    """
+    if not isinstance(career_levels, list):
+        return 0
+
+    computed_level = 0
+    for raw_level in career_levels:
+        resolved_level = _resolve_index(raw_level, index_map)
+        if not isinstance(resolved_level, dict):
+            continue
+
+        sublevels = resolved_level.get("sublevels", [])
+        if not isinstance(sublevels, list):
+            continue
+
+        for raw_sub in sublevels:
+            resolved_sub = _resolve_index(raw_sub, index_map)
+            if not isinstance(resolved_sub, dict):
+                continue
+            threshold = _safe_int(resolved_sub.get("points", 0))
+            if current_points >= threshold:
+                computed_level += 1
+
+    return computed_level
 
 
 def extract_friends_model(response_text: str) -> FriendsSummary:
