@@ -97,6 +97,15 @@ jobs:
       - run: uv sync --locked
       - name: Prepare a throwaway release and re-run version-sensitive tests
         run: |
+          # Right after a release [Unreleased] is legitimately empty; seed a note for the rehearsal
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("CHANGELOG.md")
+          text = path.read_text(encoding="utf-8")
+          head, _, rest = text.partition("## [Unreleased]")
+          if not rest.split("\n## ", 1)[0].strip():
+              path.write_text(head + "## [Unreleased]\n\n- Dry-run placeholder.\n" + rest, encoding="utf-8")
+          PY
           uv run scripts/release.py prepare 99.0.0
           uv run poe vendor
           uv run pytest tests/scripts tests/ha/test_metadata.py --no-cov -q
