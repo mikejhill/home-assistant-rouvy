@@ -1,78 +1,204 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "home-assistant-rouvy"
-version = "0.1.0"
-description = "A Home Assistant integration for the Rouvy indoor cycling platform with CLI and turbo-stream API support"
+version = "2.0.0"
+description = "Async Rouvy API client, CLI, and Home Assistant integration for the Rouvy indoor cycling platform."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.14.2"
 authors = [{ name = "Mike Hill" }]
-dependencies = ["requests>=2.31.0", "python-dotenv>=1.0.0"]
+keywords = ["rouvy", "home-assistant", "cycling", "turbo-stream"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: AsyncIO",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
+dependencies = ["aiohttp>=3.12", "python-dotenv>=1.1"]
+
+[project.urls]
+Homepage = "https://github.com/mikejhill/home-assistant-rouvy"
+Issues = "https://github.com/mikejhill/home-assistant-rouvy/issues"
 
 [project.scripts]
-rouvy-api = "custom_components.rouvy.api_client.__main__:main"
+rouvy-api = "rouvy_api.cli.application:Application.main"
+
+[build-system]
+requires = ["uv_build>=0.11.0,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "rouvy_api"
 
 [dependency-groups]
 dev = [
-    "pytest>=8.0",
-    "pytest-cov>=6.0",
-    "pytest-asyncio>=0.24.0",
-    "responses>=0.25.0",
-    "aiohttp>=3.9.0",
-    "ruff>=0.7",
-    "ty>=0.0.1",
-    "types-requests>=2.31.0",
-    "pytest-homeassistant-custom-component>=0.13.320",
-]
-docs = [
-    "jsonschema>=4.26.0",
-    "mkdocs-material>=9.7.6",
-    "pyyaml>=6.0.3",
+    "aioresponses>=0.7.8",
+    "hypothesis>=6.150",
+    "poethepoet>=0.48",
+    "pytest>=9.0",
+    "pytest-asyncio>=1.2",
+    "pytest-benchmark>=5.1",
+    "pytest-cov>=7.0",
+    "pytest-homeassistant-custom-component>=0.13.371",
+    "pytest-timeout>=2.4",
+    "ruff>=0.17",
+    "ty>=0.0.86",
 ]
 
-[tool.hatch.build.targets.wheel]
-packages = ["custom_components"]
+# Ruff
 
 [tool.ruff]
-line-length = 100
 target-version = "py314"
-src = ["custom_components", "tests"]
+line-length = 100
+src = ["src", "tests", "."]
+extend-exclude = ["custom_components/rouvy/rouvy_api"]
 
 [tool.ruff.lint]
-select = ["E", "W", "F", "I", "N", "UP", "B", "SIM", "RUF", "D", "ANN", "PT", "RET", "ARG", "FA"]
-ignore = ["D100", "D104", "D107", "D203", "D213"]
+select = [
+    "A",     # flake8-builtins
+    "ANN",   # annotations, no Any
+    "ARG",   # unused arguments
+    "ASYNC", # async pitfalls
+    "B",     # bugbear
+    "BLE",   # no blind except
+    "C4",    # comprehensions
+    "C90",   # mccabe cyclomatic complexity
+    "D",     # docstrings
+    "DTZ",   # timezone-aware datetimes
+    "E",     # pycodestyle errors
+    "ERA",   # no commented-out code
+    "F",     # pyflakes
+    "FA",    # future annotations
+    "FBT",   # no boolean positional args
+    "G",     # logging format
+    "I",     # isort
+    "LOG",   # logging misuse
+    "N",     # naming
+    "PERF",  # performance anti-patterns
+    "PGH",   # no blanket ignores
+    "PIE",   # misc
+    "PL",    # pylint (incl. branch/statement/argument limits)
+    "PT",    # pytest style
+    "PTH",   # pathlib
+    "RET",   # returns
+    "RSE",   # raises
+    "RUF",   # ruff-specific
+    "S",     # bandit security
+    "SIM",   # simplify
+    "SLF",   # private member access
+    "T20",   # no print
+    "TID",   # tidy imports
+    "TRY",   # exception handling
+    "UP",    # pyupgrade
+    "W",     # warnings
+]
+ignore = [
+    "D107",   # class docstring covers __init__
+    "TRY003", # context-rich exception messages are required
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "TID251",  # HA tests import homeassistant
+    "S101",    # pytest asserts
+    "PLR2004", # literal expected values
+    "SLF001",  # tests may inspect internals of fakes
+    "FBT001",  # parametrized boolean arguments
+    "ARG002",  # fixtures requested only for their side effects (e.g. loaded_entry)
+    "PLR0913", # parametrized tests take many arguments
+    "PLR0917", # parametrized tests take many arguments
+    "S105",    # fake credentials for the fake portal
+    "S106",    # fake credentials for the fake portal
+]
+"scripts/**" = ["T20"]
+"custom_components/**" = ["TID251"] # HA imports are the point of the integration
+"custom_components/rouvy/const.py" = ["S105"] # CONF_PASSWORD is a config key, not a secret
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"homeassistant".msg = "rouvy_api must stay independent of Home Assistant."
+"requests".msg = "Use aiohttp; the library is async-only."
+
+[tool.ruff.lint.mccabe]
+max-complexity = 8
+
+[tool.ruff.lint.pylint]
+max-args = 6
+max-branches = 10
+max-returns = 6
+max-statements = 40
+
 [tool.ruff.lint.isort]
-known-first-party = ["custom_components"]
+known-first-party = ["rouvy_api", "custom_components", "tests"]
 
-[tool.ruff.lint.per-file-ignores]
-"tests/*" = ["D101", "D102", "D103", "ANN", "ARG", "E402", "PT017"]
-"scripts/*" = ["D102", "D103", "ANN", "E501"]
-"custom_components/rouvy/__init__.py" = ["ANN401"]
-"custom_components/rouvy/coordinator.py" = ["ANN401"]
-"custom_components/rouvy/sensor.py" = ["ANN401", "ARG001"]
-"custom_components/rouvy/config_flow.py" = ["ANN401"]
-"custom_components/rouvy/entity.py" = ["ANN401"]
-"custom_components/rouvy/api.py" = ["ANN401"]
-"custom_components/rouvy/api_client/client.py" = ["ANN401"]
-"custom_components/rouvy/api_client/errors.py" = ["ANN401"]
-"custom_components/rouvy/api_client/parser.py" = ["ANN401"]
+[tool.ruff.format]
+docstring-code-format = true
 
-[tool.ty.environment]
-python-version = "3.14"
+# ty
 
 [tool.ty.src]
-include = ["custom_components/"]
+include = ["src", "custom_components", "tests", "scripts"]
+exclude = ["custom_components/rouvy/rouvy_api"]
+
+[tool.ty.rules]
+all = "error"
+
+# pytest
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-asyncio_mode = "auto"
-addopts = ["-p", "tests.windows_compat"]
-markers = [
-    "integration: tests that require real Rouvy API credentials (use --run-integration)",
+pythonpath = ["."]
+addopts = [
+    "-p", "tests.windows_compat",
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+    "--import-mode=importlib",
+    "-m", "not live and not contract and not perf",
+    "--benchmark-disable",
 ]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+xfail_strict = true
+timeout = 60
+markers = [
+    "live: authenticated tests against the real Rouvy API (needs ROUVY_TEST_EMAIL/ROUVY_TEST_PASSWORD)",
+    "contract: unauthenticated canary tests against the real Rouvy API (needs network)",
+    "perf: performance budget and benchmark tests",
+]
+filterwarnings = ["error::pytest.PytestUnraisableExceptionWarning"]
+
+# Coverage
+
+[tool.coverage.run]
+source = ["rouvy_api", "custom_components.rouvy"]
+omit = ["custom_components/rouvy/rouvy_api/*"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 95
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "if __name__ == .__main__.:"]
+
+# Tasks
+
+[tool.poe.tasks]
+format = { cmd = "ruff format .", help = "Format code" }
+format-check = { cmd = "ruff format --check .", help = "Check formatting" }
+lint = { cmd = "ruff check .", help = "Lint, including cyclomatic complexity and security rules" }
+lint-fix = { cmd = "ruff check . --fix", help = "Lint and auto-fix" }
+typecheck = { cmd = "ty check", help = "Strict type check" }
+vendor = { cmd = "uv run scripts/vendor_library.py", help = "Copy src/rouvy_api into the integration" }
+vendor-check = { cmd = "uv run scripts/vendor_library.py --check", help = "Fail if the vendored library is stale" }
+test = { cmd = "pytest --cov --cov-report=term-missing --cov-report=xml", help = "Unit, HA, UX, property and e2e tests with coverage" }
+perf = { cmd = "pytest tests/perf -m perf --benchmark-enable --no-cov", help = "Performance budgets and benchmarks" }
+contract = { cmd = "pytest tests/contract -m contract -p no:randomly", help = "Live unauthenticated canaries against rouvy.com" }
+live = { cmd = "pytest tests/live -m live", help = "Live authenticated read-only smoke tests" }
+fix = { sequence = ["format", "lint-fix", "vendor"], help = "Auto-fix formatting, lint, and vendoring" }
+check = { sequence = ["format-check", "lint", "typecheck", "vendor-check", "test", "perf"], help = "Run every offline quality gate" }

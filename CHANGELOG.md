@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Login works again. Rouvy's firewall now rejects generic HTTP library user
+  agents and removed the `/_root.data` route the old client called after
+  login; the client now identifies itself, verifies the session explicitly,
+  and reports wrong passwords, disabled accounts, rate limiting, firewall
+  blocks, and sign-in flow changes as distinct errors.
+- Weekly sensors use the week containing today (previously the first week of
+  the month) and sum all activity types.
+- `update_profile` no longer fills missing gender, birth date, or country with
+  invented defaults, and sends the timezone and language Rouvy's profile form
+  now requires.
+- `update_timezone` uses Rouvy's profile form (the old timezone route is gone).
+- Favorite routes come from the favourites collection; events are read from
+  Rouvy's current events page (the old parser found none). Upcoming events and
+  Next event now track events you have joined.
+- Weekly stats parse Rouvy's display-format week dates.
+- Sensors become unavailable only when their data could not be fetched; a
+  sensor with no value (for example, no joined event) shows unknown.
+- The CLI no longer crashes on Windows consoles when titles contain emoji.
+
+### Changed
+
+- Rebuilt from scratch: typed async library `rouvy_api` (spec-correct
+  turbo-stream decoder, key-based parsers), thin Home Assistant integration,
+  and CLI. Entity unique ids and action names are unchanged.
+- Requires Home Assistant 2026.10 or newer.
+- Reauthentication asks only for the password; added a reconfigure step.
+- Optional data sections are fetched concurrently and keep their last value on
+  failure.
+
+### Added
+
+- Month- and year-to-date distance, ride time, and elevation sensors.
+- Diagnostics download with personal data redacted.
+- Daily contract canary against rouvy.com, property-based, performance, UX
+  consistency, and end-to-end tests.
+- Release workflow (`Actions -> Release`) driven by `scripts/release.py`, with
+  a downloadable `rouvy.zip` on every GitHub release.
+- Dependabot now updates `uv.lock`; the pre-commit hook runs ruff and the
+  vendoring check.
+
+### Removed
+
+- The `team` field of `update_profile` (Rouvy no longer lets riders edit it).
+- `update_profile` fields are now snake_case (`username`, `first_name`,
+  `last_name`, `country`, `date_of_birth`, `account_privacy`), as Home
+  Assistant requires.
+
+- Live tests that modified the account; live tests are now read-only.
+- The generated MkDocs command reference (superseded by `rouvy-api --help`).
+
+## 0.1.0 (unreleased prototype)
+
 ### Added
 
 - Typed data models: `UserProfile`, `TrainingZones`, `ConnectedApp`, `Activity`, `ActivitySummary`

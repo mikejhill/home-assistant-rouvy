@@ -1,13 +1,19 @@
 {
   "domain": "rouvy",
   "name": "Rouvy",
-  "codeowners": ["@mikejhill"],
+  "codeowners": [
+    "@mikejhill"
+  ],
   "config_flow": true,
+  "dependencies": [],
   "documentation": "https://github.com/mikejhill/home-assistant-rouvy",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/mikejhill/home-assistant-rouvy/issues",
+  "loggers": [
+    "custom_components.rouvy"
+  ],
   "requirements": [],
   "single_config_entry": true,
-  "version": "0.1.0"
+  "version": "2.0.0"
 }

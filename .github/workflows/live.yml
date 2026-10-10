@@ -1,0 +1,29 @@
+name: Live smoke tests
+
+# Read-only checks with a real Rouvy account. Configure the ROUVY_TEST_EMAIL and
+# ROUVY_TEST_PASSWORD secrets in the `rouvy-test` environment.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 6 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live
+  cancel-in-progress: true
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: rouvy-test
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --locked
+      - run: uv run poe live
+        env:
+          ROUVY_TEST_EMAIL: ${{ secrets.ROUVY_TEST_EMAIL }}
+          ROUVY_TEST_PASSWORD: ${{ secrets.ROUVY_TEST_PASSWORD }}

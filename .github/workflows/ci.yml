@@ -3,7 +3,6 @@ name: CI
 on:
   push:
     branches: [main]
-    paths-ignore: ["*.md", "docs/**", "LICENSE"]
   pull_request:
     branches: [main]
   merge_group:
@@ -27,55 +26,95 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  lint:
+  quality:
+    name: Lint, complexity, types, vendoring
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --locked
+      - name: Format
+        run: uv run poe format-check
+      - name: Lint (bugbear, security, docstrings, cyclomatic complexity <= 8)
+        run: uv run poe lint
+      - name: Strict type check (ty, every rule = error)
+        run: uv run poe typecheck
+      - name: Vendored library matches src/rouvy_api
+        run: uv run poe vendor-check
+
+  test:
+    name: Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --locked
+      - name: Unit, HA, UX, property and e2e tests (coverage >= 95%)
+        run: uv run poe test --junit-xml=test-results.xml
+      - name: Publish test report
+        if: always()
+        uses: dorny/test-reporter@v3
+        with:
+          name: Tests (${{ matrix.os }})
+          path: test-results.xml
+          reporter: java-junit
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+          retention-days: 14
+
+  performance:
+    name: Performance budgets
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --locked
+      - run: uv run poe perf --benchmark-json=benchmark.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks
+          path: benchmark.json
+          retention-days: 30
+
+  hassfest:
+    name: Home Assistant hassfest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: hacs/action@main
+        with:
+          category: integration
+          # Brand images ship in custom_components/rouvy/brand instead of home-assistant/brands
+          ignore: brands
+
+  audit:
+    name: Dependency audit
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
-      - run: uv sync --group dev
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - name: Type check
-        run: uv run ty check
-
-  test:
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        python-version: ["3.14"]
-        include:
-          - os: ubuntu-latest
-            python-version: "3.14"
-            coverage: true
-    name: "Test (${{ matrix.os }}, Python ${{ matrix.python-version }})"
-    steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
-      - run: uv python install ${{ matrix.python-version }}
-      - run: uv sync --group dev --python ${{ matrix.python-version }}
-
-      - name: Run tests
-        run: >-
-          uv run pytest --junit-xml=test-results.xml
-          ${{ matrix.coverage && '--cov=custom_components --cov-report=xml --cov-fail-under=80' || '' }}
-
-      - name: Publish test report
-        if: always()
-        uses: dorny/test-reporter@v3
-        with:
-          name: "Tests (${{ matrix.os }}, Python ${{ matrix.python-version }})"
-          path: test-results.xml
-          reporter: java-junit
-
-      - name: Write summary
-        if: always()
-        shell: bash
-        run: |
-          echo "## Test Results — ${{ matrix.os }}, Python ${{ matrix.python-version }}" >> "$GITHUB_STEP_SUMMARY"
+      - run: uv export --locked --no-dev --no-emit-project --format requirements-txt > runtime-requirements.txt
+      - run: uvx pip-audit --requirement runtime-requirements.txt --strict
 
   build:
     runs-on: ubuntu-latest
@@ -84,6 +123,8 @@ jobs:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - run: uv build
+      - name: Smoke-test the built CLI
+        run: uvx --from "$(ls dist/*.whl)" rouvy-api --help
       - uses: actions/upload-artifact@v4
         with:
           name: dist
@@ -99,17 +140,13 @@ jobs:
 
   ci-pass:
     if: always()
-    needs: [commit-lint, lint, test, build, markdown]
+    needs: [commit-lint, quality, test, performance, hassfest, hacs, audit, build, markdown]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Verify all jobs passed
         run: |
-          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
-            echo "::error::One or more required jobs failed"
-            exit 1
-          fi
-          if [[ "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
-            echo "::error::One or more required jobs were cancelled"
+          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "::error::One or more required jobs failed or were cancelled"
             exit 1
           fi

@@ -1,0 +1,39 @@
+name: Rouvy contract canary
+
+# Detects upstream changes to Rouvy's login and data routes. Needs no account.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: contract
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --locked
+      - run: uv run poe contract
+      - name: Open an issue when Rouvy changed
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Rouvy contract canary failed"
+          existing=$(gh issue list --state open --search "$title in:title" --json number --jq 'length')
+          if [ "$existing" = "0" ]; then
+            gh issue create --title "$title" --label bug \
+              --body "The daily contract canary failed: $RUN_URL. Rouvy may have changed its login or data routes."
+          fi

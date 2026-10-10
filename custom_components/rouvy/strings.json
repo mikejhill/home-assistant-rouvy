@@ -2,75 +2,379 @@
   "config": {
     "step": {
       "user": {
-        "title": "Rouvy Account",
-        "description": "Enter your Rouvy account credentials.",
+        "title": "Connect your Rouvy account",
+        "description": "Sign in with the email and password you use on riders.rouvy.com. If you only sign in with Google, Apple, or Facebook, first set a password under Security on account.rouvy.com.",
         "data": {
           "email": "Email",
           "password": "Password"
+        },
+        "data_description": {
+          "email": "Email address of your Rouvy account.",
+          "password": "Your Rouvy password. Home Assistant stores it and uses it only to sign in to Rouvy."
         }
       },
       "reauth_confirm": {
-        "title": "Re-authenticate Rouvy",
-        "description": "Your Rouvy credentials are no longer valid. Please re-enter them.",
+        "title": "Sign in to Rouvy again",
+        "description": "Rouvy no longer accepts the saved password for {email}. Enter the current password.",
         "data": {
-          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "reconfigure": {
+        "title": "Update Rouvy password",
+        "description": "Enter the current Rouvy password for {email}.",
+        "data": {
           "password": "Password"
         }
       }
     },
     "error": {
-      "invalid_auth": "Invalid email or password.",
-      "cannot_connect": "Unable to connect to Rouvy. Please check your network.",
-      "unknown": "An unexpected error occurred."
+      "invalid_auth": "Rouvy did not accept this email and password.",
+      "account_disabled": "This Rouvy account is disabled.",
+      "rate_limited": "Rouvy is temporarily blocking sign-in attempts. Wait a few minutes and try again.",
+      "blocked": "The Rouvy firewall rejected the request. Rouvy may have changed its site; check for an integration update.",
+      "auth_flow_changed": "Rouvy accepted the password but did not start a session. Rouvy may have changed its sign-in flow; check for an integration update.",
+      "cannot_connect": "Could not reach Rouvy. Check your internet connection and try again.",
+      "unknown": "Unexpected error. Check the Home Assistant log for details."
     },
     "abort": {
-      "already_configured": "This Rouvy account is already configured.",
-      "reauth_successful": "Re-authentication successful."
+      "already_configured": "This Rouvy account is already set up.",
+      "single_instance_allowed": "A Rouvy account is already set up. Only one account is supported.",
+      "reauth_successful": "Signed in to Rouvy again.",
+      "reconfigure_successful": "Rouvy password updated."
     }
   },
   "entity": {
     "sensor": {
-      "weight": { "name": "Weight" },
-      "height": { "name": "Height" },
-      "ftp": { "name": "FTP" },
-      "max_heart_rate": { "name": "Max Heart Rate" },
-      "units": { "name": "Units" },
-      "name": { "name": "Name" },
-      "ftp_source": { "name": "FTP Source" },
-      "country": { "name": "Country" },
-      "weekly_distance": { "name": "Weekly Distance" },
-      "weekly_elevation": { "name": "Weekly Elevation" },
-      "weekly_calories": { "name": "Weekly Calories" },
-      "weekly_ride_time": { "name": "Weekly Ride Time" },
-      "weekly_ride_count": { "name": "Weekly Ride Count" },
-      "weekly_training_score": { "name": "Weekly Training Score" },
-      "active_challenges": { "name": "Active Challenges" },
-      "completed_challenges": { "name": "Completed Challenges" },
-      "power_zones": { "name": "Power Zones" },
-      "hr_zones": { "name": "HR Zones" },
-      "connected_apps_count": { "name": "Connected Apps" },
-      "connected_apps_active": { "name": "Active Connected Apps" },
-      "last_activity_title": { "name": "Last Activity" },
-      "last_activity_distance": { "name": "Last Activity Distance" },
-      "last_activity_duration": { "name": "Last Activity Duration" },
-      "last_activity_date": { "name": "Last Activity Date" },
-      "total_activities": { "name": "Total Activities" },
-      "favorite_routes_count": { "name": "Favorite Routes" },
-      "routes_online_riders": { "name": "Online Riders (Favorites)" },
-      "upcoming_events_count": { "name": "Upcoming Events" },
-      "next_event": { "name": "Next Event" },
-      "next_event_time": { "name": "Next Event Time" },
-      "career_level": { "name": "Career Level" },
-      "total_xp": { "name": "Total XP" },
-      "total_coins": { "name": "Total Coins" },
-      "career_total_distance": { "name": "Career Total Distance" },
-      "career_total_elevation": { "name": "Career Total Elevation" },
-      "career_total_time": { "name": "Career Total Time" },
-      "career_total_activities": { "name": "Career Total Activities" },
-      "career_achievements": { "name": "Career Achievements" },
-      "career_trophies": { "name": "Career Trophies" },
-      "friends_count": { "name": "Friends" },
-      "friends_online": { "name": "Online Friends" }
+      "weight": {
+        "name": "Weight"
+      },
+      "height": {
+        "name": "Height"
+      },
+      "ftp": {
+        "name": "FTP"
+      },
+      "max_heart_rate": {
+        "name": "Max heart rate"
+      },
+      "ftp_source": {
+        "name": "FTP source",
+        "state": {
+          "manual": "Manual",
+          "estimated": "Estimated"
+        }
+      },
+      "units": {
+        "name": "Units",
+        "state": {
+          "metric": "Metric",
+          "imperial": "Imperial"
+        }
+      },
+      "name": {
+        "name": "Name"
+      },
+      "country": {
+        "name": "Country"
+      },
+      "weekly_distance": {
+        "name": "Weekly distance"
+      },
+      "weekly_elevation": {
+        "name": "Weekly elevation"
+      },
+      "weekly_calories": {
+        "name": "Weekly calories"
+      },
+      "weekly_ride_time": {
+        "name": "Weekly ride time"
+      },
+      "weekly_ride_count": {
+        "name": "Weekly activities"
+      },
+      "weekly_training_score": {
+        "name": "Weekly training score"
+      },
+      "monthly_distance": {
+        "name": "Monthly distance"
+      },
+      "monthly_ride_time": {
+        "name": "Monthly ride time"
+      },
+      "yearly_distance": {
+        "name": "Yearly distance"
+      },
+      "yearly_elevation": {
+        "name": "Yearly elevation"
+      },
+      "yearly_ride_time": {
+        "name": "Yearly ride time"
+      },
+      "last_activity_title": {
+        "name": "Last activity"
+      },
+      "last_activity_distance": {
+        "name": "Last activity distance"
+      },
+      "last_activity_duration": {
+        "name": "Last activity duration"
+      },
+      "last_activity_date": {
+        "name": "Last activity date"
+      },
+      "total_activities": {
+        "name": "Recent activities"
+      },
+      "active_challenges": {
+        "name": "Active challenges"
+      },
+      "completed_challenges": {
+        "name": "Completed challenges"
+      },
+      "upcoming_events_count": {
+        "name": "Upcoming events"
+      },
+      "next_event": {
+        "name": "Next event"
+      },
+      "next_event_time": {
+        "name": "Next event time"
+      },
+      "favorite_routes_count": {
+        "name": "Favorite routes"
+      },
+      "routes_online_riders": {
+        "name": "Online riders on favorite routes"
+      },
+      "career_level": {
+        "name": "Career level"
+      },
+      "total_xp": {
+        "name": "Total XP"
+      },
+      "career_achievements": {
+        "name": "Achievements"
+      },
+      "career_trophies": {
+        "name": "Trophies"
+      },
+      "friends_count": {
+        "name": "Friends"
+      },
+      "friends_online": {
+        "name": "Online friends"
+      },
+      "power_zones": {
+        "name": "Power zones"
+      },
+      "hr_zones": {
+        "name": "Heart rate zones"
+      },
+      "connected_apps_count": {
+        "name": "Connected apps"
+      },
+      "connected_apps_active": {
+        "name": "Active connected apps"
+      }
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "Rouvy rejected the saved credentials. Sign in again to keep the integration working."
+    },
+    "update_failed": {
+      "message": "Could not update Rouvy data: {error}"
+    },
+    "not_loaded": {
+      "message": "The Rouvy integration is not loaded. Check that the account is set up and online."
+    },
+    "invalid_request": {
+      "message": "Invalid request: {error}"
+    },
+    "request_failed": {
+      "message": "Rouvy request failed: {error}"
+    },
+    "profile_update_empty": {
+      "message": "Provide at least one profile field to change."
+    }
+  },
+  "services": {
+    "update_weight": {
+      "name": "Update weight",
+      "description": "Changes your body weight in Rouvy.",
+      "fields": {
+        "weight": {
+          "name": "Weight",
+          "description": "Body weight in kilograms."
+        }
+      }
+    },
+    "update_height": {
+      "name": "Update height",
+      "description": "Changes your height in Rouvy.",
+      "fields": {
+        "height": {
+          "name": "Height",
+          "description": "Height in centimeters."
+        }
+      }
+    },
+    "update_units": {
+      "name": "Update units",
+      "description": "Switches Rouvy between metric and imperial units.",
+      "fields": {
+        "units": {
+          "name": "Units",
+          "description": "Unit system to use."
+        }
+      }
+    },
+    "update_settings": {
+      "name": "Update body settings",
+      "description": "Changes weight, height, and/or units in one call.",
+      "fields": {
+        "settings": {
+          "name": "Settings",
+          "description": "Any of weight (kg), height (cm), and units (METRIC or IMPERIAL)."
+        }
+      }
+    },
+    "update_profile": {
+      "name": "Update profile",
+      "description": "Changes profile details and account privacy. Fields you leave out keep their current values.",
+      "fields": {
+        "username": {
+          "name": "Username",
+          "description": "Public username."
+        },
+        "first_name": {
+          "name": "First name",
+          "description": "First name shown on your profile."
+        },
+        "last_name": {
+          "name": "Last name",
+          "description": "Last name shown on your profile."
+        },
+        "country": {
+          "name": "Country",
+          "description": "Two-letter country code, for example US."
+        },
+        "gender": {
+          "name": "Gender",
+          "description": "Gender Rouvy uses for calculations."
+        },
+        "date_of_birth": {
+          "name": "Date of birth",
+          "description": "Date of birth."
+        },
+        "account_privacy": {
+          "name": "Account privacy",
+          "description": "Whether other riders can see your account."
+        }
+      }
+    },
+    "update_timezone": {
+      "name": "Update timezone",
+      "description": "Changes the timezone Rouvy uses for your account.",
+      "fields": {
+        "timezone": {
+          "name": "Timezone",
+          "description": "IANA timezone, for example Europe/Prague."
+        }
+      }
+    },
+    "update_ftp": {
+      "name": "Update FTP",
+      "description": "Sets a manual FTP or switches back to the Rouvy estimate.",
+      "fields": {
+        "ftp_source": {
+          "name": "FTP source",
+          "description": "MANUAL to set a value, ESTIMATED to let Rouvy estimate it."
+        },
+        "value": {
+          "name": "FTP",
+          "description": "FTP in watts. Required when the source is MANUAL."
+        }
+      }
+    },
+    "update_zones": {
+      "name": "Update zones",
+      "description": "Replaces power or heart rate zone boundaries.",
+      "fields": {
+        "zone_type": {
+          "name": "Zone type",
+          "description": "Which zones to change."
+        },
+        "zones": {
+          "name": "Boundaries",
+          "description": "Increasing zone boundaries in percent, for example [55, 75, 90, 105, 120, 150]."
+        }
+      }
+    },
+    "update_max_heart_rate": {
+      "name": "Update max heart rate",
+      "description": "Changes your maximum heart rate, keeping your zone boundaries.",
+      "fields": {
+        "max_heart_rate": {
+          "name": "Max heart rate",
+          "description": "Maximum heart rate in beats per minute."
+        }
+      }
+    },
+    "register_challenge": {
+      "name": "Join challenge",
+      "description": "Registers you for a challenge.",
+      "fields": {
+        "slug": {
+          "name": "Challenge",
+          "description": "Challenge identifier from the challenge URL."
+        }
+      }
+    },
+    "register_event": {
+      "name": "Join event",
+      "description": "Registers you for an event.",
+      "fields": {
+        "event_id": {
+          "name": "Event ID",
+          "description": "Event identifier (UUID)."
+        }
+      }
+    },
+    "unregister_event": {
+      "name": "Leave event",
+      "description": "Cancels your registration for an event.",
+      "fields": {
+        "event_id": {
+          "name": "Event ID",
+          "description": "Event identifier (UUID)."
+        }
+      }
+    },
+    "get_profile": {
+      "name": "Get profile",
+      "description": "Returns your Rouvy profile."
+    },
+    "get_events": {
+      "name": "Get events",
+      "description": "Returns upcoming events."
+    },
+    "get_challenges": {
+      "name": "Get challenges",
+      "description": "Returns challenges available to you."
+    },
+    "get_routes": {
+      "name": "Get favorite routes",
+      "description": "Returns your favorite routes."
+    },
+    "get_activities": {
+      "name": "Get activities",
+      "description": "Returns your recent activities."
+    },
+    "get_career": {
+      "name": "Get career",
+      "description": "Returns career level, XP, achievements, and trophies."
     }
   }
 }
