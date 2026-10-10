@@ -1,0 +1,179 @@
+{
+  "entity": {
+    "sensor": {
+      "ftp": {
+        "default": "mdi:lightning-bolt"
+      },
+      "max_heart_rate": {
+        "default": "mdi:heart-pulse"
+      },
+      "ftp_source": {
+        "default": "mdi:tune"
+      },
+      "units": {
+        "default": "mdi:ruler"
+      },
+      "name": {
+        "default": "mdi:account"
+      },
+      "country": {
+        "default": "mdi:flag"
+      },
+      "weekly_distance": {
+        "default": "mdi:bike"
+      },
+      "weekly_elevation": {
+        "default": "mdi:elevation-rise"
+      },
+      "weekly_calories": {
+        "default": "mdi:fire"
+      },
+      "weekly_ride_time": {
+        "default": "mdi:timer-outline"
+      },
+      "weekly_ride_count": {
+        "default": "mdi:counter"
+      },
+      "weekly_training_score": {
+        "default": "mdi:chart-line"
+      },
+      "monthly_distance": {
+        "default": "mdi:bike"
+      },
+      "monthly_ride_time": {
+        "default": "mdi:timer-outline"
+      },
+      "yearly_distance": {
+        "default": "mdi:bike"
+      },
+      "yearly_elevation": {
+        "default": "mdi:elevation-rise"
+      },
+      "yearly_ride_time": {
+        "default": "mdi:timer-outline"
+      },
+      "last_activity_title": {
+        "default": "mdi:bike-fast"
+      },
+      "last_activity_distance": {
+        "default": "mdi:map-marker-distance"
+      },
+      "last_activity_duration": {
+        "default": "mdi:timer"
+      },
+      "last_activity_date": {
+        "default": "mdi:calendar-clock"
+      },
+      "total_activities": {
+        "default": "mdi:format-list-numbered"
+      },
+      "active_challenges": {
+        "default": "mdi:flag-checkered"
+      },
+      "completed_challenges": {
+        "default": "mdi:trophy-outline"
+      },
+      "upcoming_events_count": {
+        "default": "mdi:calendar-multiple"
+      },
+      "next_event": {
+        "default": "mdi:calendar-star"
+      },
+      "next_event_time": {
+        "default": "mdi:calendar-clock"
+      },
+      "favorite_routes_count": {
+        "default": "mdi:map-marker-star"
+      },
+      "routes_online_riders": {
+        "default": "mdi:account-group"
+      },
+      "career_level": {
+        "default": "mdi:stairs-up"
+      },
+      "total_xp": {
+        "default": "mdi:star-circle"
+      },
+      "career_achievements": {
+        "default": "mdi:medal"
+      },
+      "career_trophies": {
+        "default": "mdi:trophy"
+      },
+      "friends_count": {
+        "default": "mdi:account-multiple"
+      },
+      "friends_online": {
+        "default": "mdi:account-multiple-check"
+      },
+      "power_zones": {
+        "default": "mdi:speedometer"
+      },
+      "hr_zones": {
+        "default": "mdi:heart-cog"
+      },
+      "connected_apps_count": {
+        "default": "mdi:link-variant"
+      },
+      "connected_apps_active": {
+        "default": "mdi:link-variant"
+      }
+    }
+  },
+  "services": {
+    "update_weight": {
+      "service": "mdi:scale-bathroom"
+    },
+    "update_height": {
+      "service": "mdi:human-male-height"
+    },
+    "update_units": {
+      "service": "mdi:ruler"
+    },
+    "update_settings": {
+      "service": "mdi:account-cog"
+    },
+    "update_profile": {
+      "service": "mdi:account-edit"
+    },
+    "update_timezone": {
+      "service": "mdi:map-clock"
+    },
+    "update_ftp": {
+      "service": "mdi:lightning-bolt"
+    },
+    "update_zones": {
+      "service": "mdi:speedometer"
+    },
+    "update_max_heart_rate": {
+      "service": "mdi:heart-pulse"
+    },
+    "register_challenge": {
+      "service": "mdi:flag-plus"
+    },
+    "register_event": {
+      "service": "mdi:calendar-plus"
+    },
+    "unregister_event": {
+      "service": "mdi:calendar-remove"
+    },
+    "get_profile": {
+      "service": "mdi:account-details"
+    },
+    "get_events": {
+      "service": "mdi:calendar-search"
+    },
+    "get_challenges": {
+      "service": "mdi:flag-checkered"
+    },
+    "get_routes": {
+      "service": "mdi:map-search"
+    },
+    "get_activities": {
+      "service": "mdi:bike"
+    },
+    "get_career": {
+      "service": "mdi:stairs-up"
+    }
+  }
+}

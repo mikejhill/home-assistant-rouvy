@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-DOMAIN = "rouvy"
+import logging
+from datetime import timedelta
+from typing import Final
 
-CONF_EMAIL = "email"
-CONF_PASSWORD = "password"
+DOMAIN: Final = "rouvy"
+LOGGER: Final = logging.getLogger(__package__)
 
-DEFAULT_SCAN_INTERVAL_HOURS = 1
+CONF_EMAIL: Final = "email"
+CONF_PASSWORD: Final = "password"
+
+UPDATE_INTERVAL: Final = timedelta(hours=1)
+MAX_CONCURRENT_REQUESTS: Final = 4

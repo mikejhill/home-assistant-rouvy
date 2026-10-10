@@ -1,31 +1,21 @@
 #!/bin/sh
-# Pre-commit hook: validates markdown files before committing.
+# Pre-commit hook: fast quality gates before each commit.
 # Activate: git config core.hooksPath .githooks
+# Full gate (types, tests, coverage, performance): uv run poe check
 
-# Check if any staged files are markdown
-STAGED_MD=$(git diff --cached --name-only --diff-filter=ACMR -- '*.md')
-if [ -z "$STAGED_MD" ]; then
-  exit 0
-fi
+set -e
 
-echo "[pre-commit] Markdown files staged — running markdownlint..."
-
-if command -v npx >/dev/null 2>&1; then
-  npx --yes markdownlint-cli2
-  STATUS=$?
-elif command -v markdownlint-cli2 >/dev/null 2>&1; then
-  markdownlint-cli2
-  STATUS=$?
+if command -v uv >/dev/null 2>&1; then
+  echo "[pre-commit] ruff format / lint, vendored library"
+  uv run --quiet poe format-check
+  uv run --quiet poe lint
+  uv run --quiet poe vendor-check
 else
-  echo "[pre-commit] WARNING: markdownlint-cli2 not available (install Node.js or npm i -g markdownlint-cli2)"
-  exit 0
+  echo "[pre-commit] WARNING: uv not found; skipping Python checks"
 fi
 
-if [ $STATUS -ne 0 ]; then
-  echo ""
-  echo "[pre-commit] Markdown lint failed. Fix violations before committing."
-  echo "[pre-commit] To bypass: git commit --no-verify"
-  exit 1
+STAGED_MD=$(git diff --cached --name-only --diff-filter=ACMR -- '*.md')
+if [ -n "$STAGED_MD" ] && command -v npx >/dev/null 2>&1; then
+  echo "[pre-commit] markdownlint"
+  npx --yes markdownlint-cli2
 fi
-
-exit 0

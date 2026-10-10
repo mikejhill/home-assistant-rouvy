@@ -1,244 +1,159 @@
 update_weight:
-  name: Update Weight
-  description: Update the user's weight in Rouvy.
   fields:
     weight:
-      name: Weight
-      description: Weight in kilograms.
       required: true
-      example: 80.0
+      example: 80.5
       selector:
         number:
           min: 20
           max: 250
           step: 0.1
           unit_of_measurement: kg
+          mode: box
 
 update_height:
-  name: Update Height
-  description: Update the user's height in Rouvy.
   fields:
     height:
-      name: Height
-      description: Height in centimeters.
       required: true
-      example: 178.0
+      example: 178
       selector:
         number:
           min: 100
           max: 250
-          step: 0.1
+          step: 0.5
           unit_of_measurement: cm
-
-update_settings:
-  name: Update Settings
-  description: Update arbitrary user settings in Rouvy (e.g., weight, height, units).
-  fields:
-    settings:
-      name: Settings
-      description: Key-value pairs to update.
-      required: true
-      example: '{"weight": 80, "height": 178}'
-      selector:
-        object:
-
-update_profile:
-  name: Update Profile
-  description: Update profile identity fields in Rouvy.
-  fields:
-    userName:
-      name: Username
-      description: Display username.
-      required: false
-      example: "MyRider"
-      selector:
-        text:
-    firstName:
-      name: First Name
-      description: First name shown on profile.
-      required: false
-      example: "John"
-      selector:
-        text:
-    lastName:
-      name: Last Name
-      description: Last name shown on profile.
-      required: false
-      example: "Smith"
-      selector:
-        text:
-    team:
-      name: Team
-      description: Team name.
-      required: false
-      example: "Weekend Warriors"
-      selector:
-        text:
-    countryIsoCode:
-      name: Country
-      description: Two-letter ISO country code (e.g., US, CZ, DE).
-      required: false
-      example: "US"
-      selector:
-        text:
-    accountPrivacy:
-      name: Account Privacy
-      description: Account visibility (PUBLIC or PRIVATE).
-      required: false
-      example: "PUBLIC"
-      selector:
-        select:
-          options:
-            - "PUBLIC"
-            - "PRIVATE"
+          mode: box
 
 update_units:
-  name: Update Units
-  description: Switch between metric and imperial unit systems.
   fields:
     units:
-      name: Units
-      description: Unit system preference.
       required: true
-      example: "METRIC"
       selector:
         select:
           options:
             - "METRIC"
             - "IMPERIAL"
 
+update_settings:
+  fields:
+    settings:
+      required: true
+      example: '{"weight": 80, "height": 178, "units": "METRIC"}'
+      selector:
+        object:
+
+update_profile:
+  fields:
+    userName:
+      example: "MyRider"
+      selector:
+        text:
+    firstName:
+      selector:
+        text:
+    lastName:
+      selector:
+        text:
+    countryIsoCode:
+      example: "US"
+      selector:
+        text:
+    gender:
+      selector:
+        select:
+          options:
+            - "MALE"
+            - "FEMALE"
+    dateOfBirth:
+      selector:
+        date:
+    accountPrivacy:
+      selector:
+        select:
+          options:
+            - "PUBLIC"
+            - "PRIVATE"
+
 update_timezone:
-  name: Update Timezone
-  description: Update the user's timezone in Rouvy.
   fields:
     timezone:
-      name: Timezone
-      description: IANA timezone identifier.
       required: true
-      example: "America/New_York"
+      example: "Europe/Prague"
       selector:
         text:
 
 update_ftp:
-  name: Update FTP
-  description: Update FTP value and source (manual or estimated).
   fields:
     ftp_source:
-      name: FTP Source
-      description: How FTP is determined.
       required: true
-      example: "MANUAL"
       selector:
         select:
           options:
             - "MANUAL"
             - "ESTIMATED"
     value:
-      name: FTP Value
-      description: FTP power in watts (required when source is MANUAL).
-      required: false
       example: 250
       selector:
         number:
           min: 50
-          max: 500
-          step: 1
+          max: 700
           unit_of_measurement: W
+          mode: box
 
 update_zones:
-  name: Update Zones
-  description: Update power or heart rate zone boundaries.
   fields:
     zone_type:
-      name: Zone Type
-      description: Type of zone to update.
       required: true
-      example: "power"
       selector:
         select:
           options:
             - "power"
             - "heartRate"
     zones:
-      name: Zones
-      description: Zone boundary percentages as a list of integers.
       required: true
       example: "[55, 75, 90, 105, 120, 150]"
       selector:
         object:
 
 update_max_heart_rate:
-  name: Update Max Heart Rate
-  description: Update the user's maximum heart rate in Rouvy.
   fields:
     max_heart_rate:
-      name: Max Heart Rate
-      description: Maximum heart rate in beats per minute.
       required: true
-      example: 190
+      example: 185
       selector:
         number:
-          min: 100
+          min: 60
           max: 250
-          step: 1
           unit_of_measurement: bpm
+          mode: box
 
 register_challenge:
-  name: Register Challenge
-  description: Register for a Rouvy challenge by its slug.
   fields:
     slug:
-      name: Slug
-      description: The challenge slug identifier (e.g., "april-2026-challenge").
       required: true
-      example: "april-2026-challenge"
+      example: "october-climb-2026"
       selector:
         text:
 
 register_event:
-  name: Register Event
-  description: Register for a Rouvy event by its ID.
   fields:
     event_id:
-      name: Event ID
-      description: The UUID of the event to register for.
       required: true
-      example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      example: "3f1c2b9a-5d7e-4a1b-9c3d-2e4f6a8b0c1d"
       selector:
         text:
 
 unregister_event:
-  name: Unregister Event
-  description: Unregister from a Rouvy event by its ID.
   fields:
     event_id:
-      name: Event ID
-      description: The UUID of the event to unregister from.
       required: true
-      example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      example: "3f1c2b9a-5d7e-4a1b-9c3d-2e4f6a8b0c1d"
       selector:
         text:
 
 get_profile:
-  name: Get Profile
-  description: Query the current user profile from Rouvy. Returns full profile data.
-
 get_events:
-  name: Get Events
-  description: Query upcoming events from Rouvy. Returns a list of events.
-
 get_challenges:
-  name: Get Challenges
-  description: Query available challenges from Rouvy. Returns a list of challenges.
-
 get_routes:
-  name: Get Routes
-  description: Query favorite routes from Rouvy. Returns a list of routes.
-
 get_activities:
-  name: Get Activities
-  description: Query recent activities from Rouvy. Returns a list of activities.
-
 get_career:
-  name: Get Career
-  description: Query career stats from Rouvy. Returns career progression data.

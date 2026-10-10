@@ -1,167 +1,177 @@
-"""DataUpdateCoordinator for the Rouvy integration."""
+"""Data update coordinator that polls Rouvy and keeps the last good data per section."""
 
 from __future__ import annotations
 
-import logging
-from datetime import timedelta
-from typing import TYPE_CHECKING
+import asyncio
+import dataclasses
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from datetime import date, datetime
+from typing import override
 
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
-    UpdateFailed,
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
+
+from custom_components.rouvy.api import RouvyConnection
+from custom_components.rouvy.const import DOMAIN, LOGGER, MAX_CONCURRENT_REQUESTS, UPDATE_INTERVAL
+from custom_components.rouvy.rouvy_api import (
+    AchievementsSummary,
+    Challenge,
+    ConnectedApp,
+    Event,
+    ProfileOverview,
+    Route,
+    RouvyAccountDisabledError,
+    RouvyClient,
+    RouvyError,
+    RouvyInvalidCredentialsError,
+    TrainingZones,
+    TrophiesSummary,
+    UserProfile,
+    WeeklyActivityStats,
 )
 
-from .api_client.errors import AuthenticationError, RouvyApiError
-from .api_client.models import RouvyCoordinatorData
-from .const import DEFAULT_SCAN_INTERVAL_HOURS
 
-if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant
+@dataclass(frozen=True, slots=True)
+class RouvySnapshot:
+    """Everything fetched in one refresh; None means the section is unavailable."""
 
-    from .data import RouvyConfigEntry
+    profile: UserProfile
+    fetched_at: datetime
+    zones: TrainingZones | None = None
+    connected_apps: tuple[ConnectedApp, ...] | None = None
+    overview: ProfileOverview | None = None
+    weekly_stats: tuple[WeeklyActivityStats, ...] | None = None
+    challenges: tuple[Challenge, ...] | None = None
+    favorite_routes: tuple[Route, ...] | None = None
+    events: tuple[Event, ...] | None = None
+    achievements: AchievementsSummary | None = None
+    trophies: TrophiesSummary | None = None
 
-_LOGGER = logging.getLogger(__name__)
+    def current_week(self, today: date) -> WeeklyActivityStats | None:
+        """Return the weekly stats that contain ``today``."""
+        if self.weekly_stats is None:
+            return None
+        return next((week for week in self.weekly_stats if week.contains(today)), None)
+
+    def upcoming_events(self, now: datetime) -> tuple[Event, ...] | None:
+        """Return joined events that have not started yet, soonest first."""
+        if self.events is None:
+            return None
+        return tuple(
+            e for e in self.events if e.registered and (e.starts_at is None or e.starts_at >= now)
+        )
 
 
-class RouvyDataUpdateCoordinator(DataUpdateCoordinator[RouvyCoordinatorData]):
-    """Coordinator to fetch data from Rouvy."""
+@dataclass(frozen=True, slots=True)
+class RouvyRuntimeData:
+    """Objects owned by a loaded config entry."""
+
+    coordinator: RouvyDataUpdateCoordinator
+    connection: RouvyConnection
+
+
+type RouvyConfigEntry = ConfigEntry[RouvyRuntimeData]
+type SectionValue = (
+    TrainingZones
+    | ProfileOverview
+    | AchievementsSummary
+    | TrophiesSummary
+    | tuple[ConnectedApp, ...]
+    | tuple[WeeklyActivityStats, ...]
+    | tuple[Challenge, ...]
+    | tuple[Route, ...]
+    | tuple[Event, ...]
+)
+
+
+class RouvyDataUpdateCoordinator(DataUpdateCoordinator[RouvySnapshot]):
+    """Fetch the profile (required) and every optional section concurrently."""
 
     config_entry: RouvyConfigEntry
 
-    def __init__(self, hass: HomeAssistant, config_entry: RouvyConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, entry: RouvyConfigEntry, client: RouvyClient) -> None:
         super().__init__(
-            hass,
-            _LOGGER,
-            config_entry=config_entry,
-            name="rouvy",
-            update_interval=timedelta(hours=DEFAULT_SCAN_INTERVAL_HOURS),
+            hass, LOGGER, config_entry=entry, name=DOMAIN, update_interval=UPDATE_INTERVAL
         )
-        self._consecutive_auth_failures = 0
+        self._client = client
+        self._limit = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+        self._last_sections: dict[str, SectionValue] = {}
 
-    async def _async_update_data(self) -> RouvyCoordinatorData:
-        """Fetch the latest data from the API.
+    @property
+    def client(self) -> RouvyClient:
+        """Return the API client."""
+        return self._client
 
-        Session expiry is expected — the client handles re-auth automatically.
-        Only escalate to ConfigEntryAuthFailed after multiple consecutive auth
-        failures, which indicates the credentials themselves are invalid.
-        """
-        client = self.config_entry.runtime_data.client
+    @override
+    async def _async_update_data(self) -> RouvySnapshot:
+        """Fetch a new snapshot."""
+        profile = await self._fetch_profile()
+        now = dt_util.now()
+        loaders: dict[str, Callable[[], Awaitable[SectionValue]]] = {
+            "zones": self._client.get_training_zones,
+            "connected_apps": self._tupled(self._client.get_connected_apps),
+            "overview": self._client.get_profile_overview,
+            "weekly_stats": self._tupled(
+                lambda: self._client.get_weekly_activity_stats(now.year, now.month)
+            ),
+            "challenges": self._tupled(self._client.get_challenges),
+            "favorite_routes": self._tupled(self._client.get_favorite_routes),
+            "events": self._tupled(self._client.get_events),
+            "achievements": self._client.get_achievements,
+            "trophies": self._client.get_trophies,
+        }
+        values = await asyncio.gather(*(self._section(n, f) for n, f in loaders.items()))
+        sections = dict(zip(loaders, values, strict=True))
+        return dataclasses.replace(
+            RouvySnapshot(profile=profile, fetched_at=dt_util.utcnow()),
+            **sections,
+        )
+
+    async def _fetch_profile(self) -> UserProfile:
+        """Fetch the profile, translating auth failures into a reauth request."""
         try:
-            profile = await client.async_get_user_profile()
-
-            # Fetch activity stats for the current month
-            activity_stats: list = []
-            try:
-                from datetime import datetime
-
-                now = datetime.now()
-                activity_stats = await client.async_get_activity_stats(now.year, now.month)
-            except Exception:
-                _LOGGER.debug("Failed to fetch activity stats, continuing without", exc_info=True)
-
-            # Fetch challenges
-            challenges: list = []
-            try:
-                challenges = await client.async_get_challenges()
-            except Exception:
-                _LOGGER.debug("Failed to fetch challenges, continuing without", exc_info=True)
-
-            # Fetch training zones
-            training_zones = None
-            try:
-                training_zones = await client.async_get_training_zones()
-            except Exception:
-                _LOGGER.debug("Failed to fetch training zones, continuing without", exc_info=True)
-
-            # Fetch connected apps
-            connected_apps: list = []
-            try:
-                connected_apps = await client.async_get_connected_apps()
-            except Exception:
-                _LOGGER.debug("Failed to fetch connected apps, continuing without", exc_info=True)
-
-            # Fetch activity summary
-            activity_summary = None
-            try:
-                activity_summary = await client.async_get_activity_summary()
-            except Exception:
-                _LOGGER.debug("Failed to fetch activity summary, continuing without", exc_info=True)
-
-            # Fetch favorite routes
-            favorite_routes: list = []
-            try:
-                favorite_routes = await client.async_get_favorite_routes()
-            except Exception:
-                _LOGGER.debug("Failed to fetch favorite routes, continuing without", exc_info=True)
-
-            # Fetch upcoming events
-            upcoming_events: list = []
-            try:
-                upcoming_events = await client.async_get_events()
-            except Exception:
-                _LOGGER.debug("Failed to fetch events, continuing without", exc_info=True)
-
-            # Fetch career stats
-            career = None
-            try:
-                career = await client.async_get_career()
-            except Exception:
-                _LOGGER.debug("Failed to fetch career stats, continuing without", exc_info=True)
-
-            # Fetch achievements summary
-            achievements = None
-            try:
-                achievements = await client.async_get_achievements()
-            except Exception:
-                _LOGGER.debug("Failed to fetch achievements, continuing without", exc_info=True)
-
-            # Fetch trophies summary
-            trophies = None
-            try:
-                trophies = await client.async_get_trophies()
-            except Exception:
-                _LOGGER.debug("Failed to fetch trophies, continuing without", exc_info=True)
-
-            # Fetch friends summary
-            friends = None
-            try:
-                friends = await client.async_get_friends()
-            except Exception:
-                _LOGGER.debug("Failed to fetch friends, continuing without", exc_info=True)
-
-            self._consecutive_auth_failures = 0
-            _LOGGER.debug("Coordinator update successful")
-            return RouvyCoordinatorData(
-                profile=profile,
-                activity_stats=activity_stats,
-                challenges=challenges,
-                training_zones=training_zones,
-                connected_apps=connected_apps,
-                activity_summary=activity_summary,
-                favorite_routes=favorite_routes,
-                upcoming_events=upcoming_events,
-                career=career,
-                achievements=achievements,
-                trophies=trophies,
-                friends=friends,
-            )
-        except AuthenticationError as err:
-            self._consecutive_auth_failures += 1
-            _LOGGER.warning(
-                "Authentication failed during update (attempt %d): %s",
-                self._consecutive_auth_failures,
-                err,
-            )
-            if self._consecutive_auth_failures >= 3:
-                raise ConfigEntryAuthFailed(
-                    f"Authentication failed {self._consecutive_auth_failures} consecutive "
-                    f"times — credentials may be invalid: {err}"
-                ) from err
-            raise UpdateFailed(
-                f"Authentication failed (attempt {self._consecutive_auth_failures}/3, "
-                f"will retry): {err}"
+            return await self._client.get_user_profile()
+        except (RouvyInvalidCredentialsError, RouvyAccountDisabledError) as err:
+            raise ConfigEntryAuthFailed(
+                translation_domain=DOMAIN, translation_key="auth_failed"
             ) from err
-        except RouvyApiError as err:
-            _LOGGER.warning("API error during update: %s", err)
-            raise UpdateFailed(err) from err
+        except RouvyError as err:
+            raise UpdateFailed(
+                translation_domain=DOMAIN,
+                translation_key="update_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err
+
+    async def _section(
+        self, name: str, loader: Callable[[], Awaitable[SectionValue]]
+    ) -> SectionValue | None:
+        """Fetch one optional section, falling back to the previous value on failure."""
+        async with self._limit:
+            try:
+                value = await loader()
+            except RouvyError as err:
+                previous = self._last_sections.get(name)
+                LOGGER.warning(
+                    "Could not refresh Rouvy %s (%s); %s",
+                    name,
+                    err,
+                    "keeping previous data" if previous is not None else "it will be unavailable",
+                )
+                return previous
+            self._last_sections[name] = value
+            return value
+
+    @staticmethod
+    def _tupled[T](
+        loader: Callable[[], Awaitable[list[T]]],
+    ) -> Callable[[], Awaitable[tuple[T, ...]]]:
+        """Wrap a list-returning loader so the snapshot stays immutable."""
+
+        async def load() -> tuple[T, ...]:
+            return tuple(await loader())
+
+        return load

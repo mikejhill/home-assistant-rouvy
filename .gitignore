@@ -222,3 +222,10 @@ __marimo__/
 
 # Local API response samples (may contain personal data)
 docs/private-samples/
+
+# Benchmarks and coverage reports
+.benchmarks/
+benchmark.json
+coverage.xml
+test-results.xml
+runtime-requirements.txt

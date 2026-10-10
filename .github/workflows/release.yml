@@ -1,12 +1,17 @@
 name: Release
 
+# Manually cut a release from main:
+#   Actions -> Release -> Run workflow -> version (e.g. 2.1.0)
+# The workflow bumps every version string, promotes the CHANGELOG's [Unreleased]
+# notes, re-vendors the library, runs every quality gate, then commits, tags,
+# and publishes a GitHub release that HACS picks up.
 on:
   workflow_dispatch:
     inputs:
-      force-patch:
-        description: "Force a patch bump when no feat/fix commits exist"
-        type: boolean
-        default: false
+      version:
+        description: "Version to release, without the v prefix (e.g. 2.1.0)"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -19,87 +24,64 @@ jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      VERSION: ${{ inputs.version }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - name: Require main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Releases are cut from main only"
+          exit 1
+
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Determine next version
-        id: version
-        uses: go-semantic-release/action@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          allow-initial-development-versions: true
-          force-bump-patch-version: ${{ inputs.force-patch }}
-          dry: true
-
-      - name: Require version bump
-        if: steps.version.outputs.version == ''
+      - name: Require a new tag
         run: |
-          echo "::error::No releasable commits found. Add feat:/fix: commits or use force-patch."
-          exit 1
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "::error::Tag v$VERSION already exists"
+            exit 1
+          fi
 
-      # ── Validation ──────────────────────────────────────────
       - uses: astral-sh/setup-uv@v7
-      - run: uv sync --group dev
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run ty check
-      - run: uv run pytest
 
-      # ── CHANGELOG ───────────────────────────────────────────
-      - name: Validate CHANGELOG structure
-        run: |
-          grep -q "^## \[Unreleased\]" CHANGELOG.md || {
-            echo "::error::CHANGELOG.md missing [Unreleased] section"
-            exit 1
-          }
+      # ── Prepare ─────────────────────────────────────────────
+      - name: Bump versions and promote CHANGELOG notes
+        run: uv run scripts/release.py prepare "$VERSION"
 
-      - name: Update CHANGELOG.md
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
+      - name: Refresh lockfile and vendored library
         run: |
-          DATE=$(date -u +%Y-%m-%d)
-          sed -i "s/^## \[Unreleased\]$/## [Unreleased]\n\n## [$VERSION] - $DATE/" CHANGELOG.md
-          grep -q "## \[$VERSION\]" CHANGELOG.md || {
-            echo "::error::CHANGELOG.md update failed — version header not found after sed"
-            exit 1
-          }
+          uv lock
+          uv sync --locked
+          uv run poe vendor
 
-      # ── Version bump ────────────────────────────────────────
-      - name: Update pyproject.toml version
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" pyproject.toml
+      # ── Validate (after the bump, so version-consistency tests see it) ──
+      - name: Quality gates
+        run: uv run poe check
 
       # ── Build ───────────────────────────────────────────────
       - run: uv build
+      - name: Package the integration for manual installs
+        run: cd custom_components/rouvy && zip -r ../../dist/rouvy.zip . -x "*/__pycache__/*"
+      - name: Release notes
+        run: uv run scripts/release.py notes "$VERSION" > release-notes.md
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-          retention-days: 90
-
-      # ── Tag and Release ─────────────────────────────────────
-      - name: Commit release changes and push tag
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
+      # ── Publish ─────────────────────────────────────────────
+      - name: Commit, tag, and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add -A -- pyproject.toml uv.lock CHANGELOG.md src custom_components
           git commit -m "chore(release): v$VERSION"
-          git tag "v$VERSION"
-          git push origin HEAD "v$VERSION"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin HEAD:main "v$VERSION"
 
-      - name: Create GitHub Release
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "v${{ steps.version.outputs.version }}"
-          name: "v${{ steps.version.outputs.version }}"
-          generate_release_notes: true
+          tag_name: v${{ inputs.version }}
+          name: v${{ inputs.version }}
+          body_path: release-notes.md
           files: |
             dist/*
