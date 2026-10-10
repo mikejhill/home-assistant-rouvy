@@ -36,6 +36,9 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          # main requires the ci-pass check; this write deploy key is the ruleset's
+          # only bypass actor, so it can push the version-bump commit and tag.
+          ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
 
       - name: Require a new tag
         run: |

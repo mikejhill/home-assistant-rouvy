@@ -26,6 +26,16 @@ The workflow then:
 5. commits `chore(release): v<version>`, tags `v<version>`, pushes both, and
    publishes a GitHub release whose notes are that CHANGELOG section.
 
+## Branch protection
+
+The **Require CI on main** ruleset only accepts commits on `main` whose
+`ci-pass` check succeeded, and blocks force-pushes and deletion. Changes land
+through pull requests. The Release workflow pushes its version-bump commit
+directly; it authenticates with the write deploy key stored in the
+`RELEASE_DEPLOY_KEY` secret, which is the ruleset's only bypass actor. To
+rotate it, add a new write deploy key, update the secret, and delete the old
+key.
+
 ## Preview locally
 
 ```bash
