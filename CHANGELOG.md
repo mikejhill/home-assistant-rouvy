@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `main` requires the `ci-pass` check; the Release workflow pushes with a
+  dedicated deploy key.
+
 ### Fixed
 
 - Releases no longer attach a stray `default.gitignore` file.
