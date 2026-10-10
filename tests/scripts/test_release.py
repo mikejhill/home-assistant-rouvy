@@ -37,18 +37,36 @@ def release() -> ModuleType:
     return ReleaseModule.load()
 
 
+SAMPLE_CHANGELOG = """# Changelog
+
+## [Unreleased]
+
+### Fixed
+
+- Login works again.
+
+## [1.0.0] - 2026-01-01
+
+- First release.
+"""
+
+
 @pytest.fixture
 def checkout(tmp_path: Path) -> Path:
-    """A copy of the version-bearing files."""
+    """Copies of the version-bearing files plus a changelog with pending notes.
+
+    The real CHANGELOG is not used: during a release its [Unreleased] section is
+    already promoted (empty) when the test suite runs.
+    """
     for relative in (
         "pyproject.toml",
-        "CHANGELOG.md",
         "src/rouvy_api/_version.py",
         "custom_components/rouvy/manifest.json",
     ):
         target = tmp_path / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(ROOT / relative, target)
+    (tmp_path / "CHANGELOG.md").write_text(SAMPLE_CHANGELOG, encoding="utf-8")
     return tmp_path
 
 
@@ -103,9 +121,9 @@ class TestPrepare:
         with pytest.raises(release.ReleaseError, match="no section"):
             release.ReleasePreparer(release.ReleaseFiles(checkout), "9.9.9").notes()
 
-    def test_repository_is_releasable(self, release: ModuleType, checkout: Path) -> None:
-        """The current CHANGELOG has Unreleased notes or the current version is already released."""
-        files = release.ReleaseFiles(checkout)
+    def test_repository_is_releasable(self, release: ModuleType) -> None:
+        """The real CHANGELOG has Unreleased notes or a section for the current version."""
+        files = release.ReleaseFiles(ROOT)
         version = json.loads(files.manifest.read_text(encoding="utf-8"))["version"]
         text = files.changelog.read_text(encoding="utf-8")
 
