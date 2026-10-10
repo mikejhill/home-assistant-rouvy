@@ -244,19 +244,19 @@
       "name": "Update profile",
       "description": "Changes profile details and account privacy. Fields you leave out keep their current values.",
       "fields": {
-        "userName": {
+        "username": {
           "name": "Username",
           "description": "Public username."
         },
-        "firstName": {
+        "first_name": {
           "name": "First name",
           "description": "First name shown on your profile."
         },
-        "lastName": {
+        "last_name": {
           "name": "Last name",
           "description": "Last name shown on your profile."
         },
-        "countryIsoCode": {
+        "country": {
           "name": "Country",
           "description": "Two-letter country code, for example US."
         },
@@ -264,11 +264,11 @@
           "name": "Gender",
           "description": "Gender Rouvy uses for calculations."
         },
-        "dateOfBirth": {
+        "date_of_birth": {
           "name": "Date of birth",
           "description": "Date of birth."
         },
-        "accountPrivacy": {
+        "account_privacy": {
           "name": "Account privacy",
           "description": "Whether other riders can see your account."
         }

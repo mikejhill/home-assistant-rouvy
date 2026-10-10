@@ -52,6 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - The `team` field of `update_profile` (Rouvy no longer lets riders edit it).
+- `update_profile` fields are now snake_case (`username`, `first_name`,
+  `last_name`, `country`, `date_of_birth`, `account_privacy`), as Home
+  Assistant requires.
 
 - Live tests that modified the account; live tests are now read-only.
 - The generated MkDocs command reference (superseded by `rouvy-api --help`).

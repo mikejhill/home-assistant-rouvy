@@ -58,7 +58,7 @@ value, or become unavailable if there is none.
 | `rouvy.update_height` | `height` (cm) |
 | `rouvy.update_units` | `units` (`METRIC` / `IMPERIAL`) |
 | `rouvy.update_settings` | `settings`: any of `weight`, `height`, `units` |
-| `rouvy.update_profile` | `userName`, `firstName`, `lastName`, `countryIsoCode`, `gender`, `dateOfBirth`, `accountPrivacy` |
+| `rouvy.update_profile` | `username`, `first_name`, `last_name`, `country`, `gender`, `date_of_birth`, `account_privacy` |
 | `rouvy.update_timezone` | `timezone` (IANA name) |
 | `rouvy.update_ftp` | `ftp_source` (`MANUAL` / `ESTIMATED`), `value` (W) |
 | `rouvy.update_zones` | `zone_type` (`power` / `heartRate`), `zones` (increasing %) |

@@ -52,14 +52,14 @@ class TestUpdateServices:
             ),
             pytest.param(
                 "update_profile",
-                {"firstName": "Ada", "userName": "ada_rides"},
+                {"first_name": "Ada", "username": "ada_rides"},
                 Endpoint.USER_SETTINGS_ACTION,
                 {"intent": "update-profile", "firstName": "Ada", "username": "ada_rides"},
                 id="profile",
             ),
             pytest.param(
                 "update_profile",
-                {"accountPrivacy": "private"},
+                {"account_privacy": "private"},
                 Endpoint.USER_SETTINGS_ACTION,
                 {"intent": "update-social", "privacy": "PRIVATE"},
                 id="privacy",

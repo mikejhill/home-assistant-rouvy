@@ -100,6 +100,21 @@ class TestTranslations:
         assert used
         assert used <= set(MetadataFiles.section(strings, "exceptions"))
 
+    def test_keys_follow_hassfest_rules(self, strings: dict[str, Json]) -> None:
+        """Every translation key is lowercase snake case, as hassfest requires."""
+        bad: list[str] = []
+        stack: list[tuple[str, Json]] = [("", strings)]
+        while stack:
+            path, node = stack.pop()
+            if not isinstance(node, dict):
+                continue
+            for key, value in node.items():
+                if not re.fullmatch(r"[a-z0-9][a-z0-9_-]*[a-z0-9]|[a-z0-9]", key):
+                    bad.append(f"{path}.{key}")
+                stack.append((f"{path}.{key}", value))
+
+        assert bad == []
+
     def test_messages_are_sentences(self, strings: dict[str, Json]) -> None:
         """Errors and descriptions start with a capital letter and end with punctuation."""
         texts = list(MetadataFiles.section(strings, "config", "error").values())

@@ -78,19 +78,19 @@ class RouvyActions:
         """Set profile identity fields and/or account privacy."""
         data = call.data
         update = ProfileUpdate(
-            username=data.get("userName"),
-            first_name=data.get("firstName"),
-            last_name=data.get("lastName"),
-            country=data.get("countryIsoCode"),
+            username=data.get("username"),
+            first_name=data.get("first_name"),
+            last_name=data.get("last_name"),
+            country=data.get("country"),
             gender=data.get("gender"),
-            birth_date=data.get("dateOfBirth"),
+            birth_date=data.get("date_of_birth"),
         )
-        if update.is_empty and "accountPrivacy" not in data:
+        if update.is_empty and "account_privacy" not in data:
             raise ServiceValidationError(
                 translation_domain=DOMAIN, translation_key="profile_update_empty"
             )
-        if "accountPrivacy" in data:
-            await client.update_account_privacy(AccountPrivacy(data["accountPrivacy"]))
+        if "account_privacy" in data:
+            await client.update_account_privacy(AccountPrivacy(data["account_privacy"]))
         if not update.is_empty:
             await client.update_profile(update)
 
@@ -200,13 +200,13 @@ UPDATE_SERVICES: Final[dict[str, UpdateService]] = {
     "update_profile": UpdateService(
         vol.Schema(
             {
-                vol.Optional("userName"): vol.All(cv.string, vol.Match(r"^[a-zA-Z0-9_.-]{4,25}$")),
-                vol.Optional("firstName"): cv.string,
-                vol.Optional("lastName"): cv.string,
-                vol.Optional("countryIsoCode"): vol.All(cv.string, vol.Upper, vol.Length(2, 2)),
+                vol.Optional("username"): vol.All(cv.string, vol.Match(r"^[a-zA-Z0-9_.-]{4,25}$")),
+                vol.Optional("first_name"): cv.string,
+                vol.Optional("last_name"): cv.string,
+                vol.Optional("country"): vol.All(cv.string, vol.Upper, vol.Length(2, 2)),
                 vol.Optional("gender"): vol.All(vol.Upper, vol.In(["MALE", "FEMALE"])),
-                vol.Optional("dateOfBirth"): cv.date,
-                vol.Optional("accountPrivacy"): vol.All(
+                vol.Optional("date_of_birth"): cv.date,
+                vol.Optional("account_privacy"): vol.All(
                     vol.Upper, vol.In([p.value for p in AccountPrivacy])
                 ),
             }

@@ -27,8 +27,16 @@ def fake_rouvy(payloads: RouvyPayloads) -> FakeRouvy:
 
 
 @pytest.fixture
-async def fake_rouvy_server(fake_rouvy: FakeRouvy) -> AsyncGenerator[TestServer]:
-    """The fake portal listening on a loopback port."""
+async def fake_rouvy_server(
+    fake_rouvy: FakeRouvy,
+    socket_enabled: None,
+) -> AsyncGenerator[TestServer]:
+    """The fake portal listening on a loopback port.
+
+    The HA test plugin blocks socket creation; ``socket_enabled`` lifts that while its
+    host allow-list still limits connections to loopback.
+    """
+    del socket_enabled
     server = TestServer(fake_rouvy.build_app(), host="127.0.0.1")
     await server.start_server(access_log=None)
     yield server

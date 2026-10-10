@@ -44,17 +44,17 @@ update_settings:
 
 update_profile:
   fields:
-    userName:
+    username:
       example: "MyRider"
       selector:
         text:
-    firstName:
+    first_name:
       selector:
         text:
-    lastName:
+    last_name:
       selector:
         text:
-    countryIsoCode:
+    country:
       example: "US"
       selector:
         text:
@@ -64,10 +64,10 @@ update_profile:
           options:
             - "MALE"
             - "FEMALE"
-    dateOfBirth:
+    date_of_birth:
       selector:
         date:
-    accountPrivacy:
+    account_privacy:
       selector:
         select:
           options:
