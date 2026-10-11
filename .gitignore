@@ -229,3 +229,6 @@ benchmark.json
 coverage.xml
 test-results.xml
 runtime-requirements.txt
+
+# Documentation build output
+/site/

@@ -28,6 +28,9 @@ class TestFields:
             (2.5, 2.5),
             ("4.5", 4.5),
             ("abc", None),
+            ("INF", None),
+            ("-inf", None),
+            ("NaN", None),
             (True, None),
             (math.nan, None),
             (math.inf, None),
@@ -38,6 +41,10 @@ class TestFields:
     def test_number(self, value: TurboValue, expected: float | None) -> None:
         """number() accepts finite numbers and numeric strings, not booleans."""
         assert Fields({"k": value}).number("k") == expected
+
+    def test_integer_rejects_non_finite_strings(self) -> None:
+        """integer() returns None for "INF" instead of raising OverflowError."""
+        assert Fields({"k": "INF"}).integer("k") is None
 
     def test_integer_rounds(self) -> None:
         """integer() rounds integral-looking values."""

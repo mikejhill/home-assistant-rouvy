@@ -1,0 +1,61 @@
+site_name: Home Assistant Rouvy
+site_description: >-
+  Home Assistant integration, async Python library, and CLI for the Rouvy indoor
+  cycling platform.
+site_url: https://mikejhill.github.io/home-assistant-rouvy/
+repo_url: https://github.com/mikejhill/home-assistant-rouvy
+repo_name: mikejhill/home-assistant-rouvy
+edit_uri: edit/main/docs/
+exclude_docs: |
+  private-samples/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep orange
+      accent: orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep orange
+      accent: orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.copy
+    - navigation.instant
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Project charter: project-charter.md
+  - Architecture: architecture.md
+  - Testing: testing.md
+  - Releasing: releasing.md
+  - Decisions:
+      - Vendored library: adr/0001-vendored-library.md
+      - Login and sessions: adr/0002-login-and-session-handling.md
+  - Changelog: changelog.md

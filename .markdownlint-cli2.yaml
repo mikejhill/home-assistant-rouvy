@@ -21,6 +21,9 @@ config:
 
 ignores:
   - "CHANGELOG.md"
+  # One-line include stubs for the docs site; the included files are linted directly
+  - "docs/index.md"
+  - "docs/changelog.md"
   - "docs/private-samples/**"
   - ".venv/**"
   - "node_modules/**"

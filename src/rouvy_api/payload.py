@@ -53,9 +53,10 @@ class Fields:
             return float(value) if math.isfinite(value) else None
         if isinstance(value, str):
             try:
-                return float(value)
+                parsed = float(value)
             except ValueError:
                 return None
+            return parsed if math.isfinite(parsed) else None
         return None
 
     def flag(self, key: str) -> bool:
