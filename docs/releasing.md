@@ -54,5 +54,6 @@ git checkout -- .
 
 - Live smoke tests (`poe live`) and the contract canary run on their own
   schedules; run them by hand after a release if Rouvy changed recently.
+- The Docs workflow republishes the site with the new changelog.
 - In Home Assistant, HACS shows the update on the Rouvy integration. Restart
   Home Assistant after updating.

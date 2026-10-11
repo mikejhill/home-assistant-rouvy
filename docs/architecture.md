@@ -67,4 +67,4 @@ session explicitly, and maps login errors precisely. The daily contract canary
 
 ## Decisions
 
-See [docs/adr](adr/).
+See [ADR 0001](adr/0001-vendored-library.md) and [ADR 0002](adr/0002-login-and-session-handling.md).

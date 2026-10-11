@@ -11,10 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `main` requires the `ci-pass` check; the Release workflow pushes with a
   dedicated deploy key.
+- The documentation site (https://mikejhill.github.io/home-assistant-rouvy/)
+  is rebuilt from the current docs on every change to `main`; CI checks that
+  it builds.
 
 ### Fixed
 
 - Releases no longer attach a stray `default.gitignore` file.
+- Numeric fields that arrive as strings such as `"INF"` or `"NaN"` are
+  treated as missing instead of crashing the parser (found by property tests).
 
 ## [2.0.0] - 2026-10-10
 

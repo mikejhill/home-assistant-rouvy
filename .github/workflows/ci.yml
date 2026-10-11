@@ -155,6 +155,16 @@ jobs:
           path: dist/
           retention-days: 7
 
+  docs:
+    name: Docs build (strict)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --locked --group docs
+      - run: uv run poe docs
+
   markdown:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -164,7 +174,7 @@ jobs:
 
   ci-pass:
     if: always()
-    needs: [commit-lint, quality, test, performance, release-dry-run, hassfest, hacs, audit, build, markdown]
+    needs: [commit-lint, quality, test, performance, release-dry-run, hassfest, hacs, audit, build, docs, markdown]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

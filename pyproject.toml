@@ -44,6 +44,10 @@ dev = [
     "ruff>=0.17",
     "ty>=0.0.86",
 ]
+docs = [
+    "mkdocs>=1.6,<2",
+    "mkdocs-material>=9.7.7",
+]
 
 # Ruff
 
@@ -200,5 +204,7 @@ test = { cmd = "pytest --cov --cov-report=term-missing --cov-report=xml", help =
 perf = { cmd = "pytest tests/perf -m perf --benchmark-enable --no-cov", help = "Performance budgets and benchmarks" }
 contract = { cmd = "pytest tests/contract -m contract -p no:randomly", help = "Live unauthenticated canaries against rouvy.com" }
 live = { cmd = "pytest tests/live -m live", help = "Live authenticated read-only smoke tests" }
+docs = { cmd = "mkdocs build --strict", help = "Build the documentation site (strict)" }
+docs-serve = { cmd = "mkdocs serve", help = "Preview the documentation site locally" }
 fix = { sequence = ["format", "lint-fix", "vendor"], help = "Auto-fix formatting, lint, and vendoring" }
 check = { sequence = ["format-check", "lint", "typecheck", "vendor-check", "test", "perf"], help = "Run every offline quality gate" }
