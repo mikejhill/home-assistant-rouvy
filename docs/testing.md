@@ -8,6 +8,7 @@
 | CLI | `tests/cli` | Parsing, output formats, exit codes, friendly errors | Every PR |
 | Home Assistant | `tests/ha` | Config flow (UX errors, reauth, reconfigure), setup/unload, coordinator resilience, every sensor value, every action, diagnostics redaction | Every PR |
 | UX consistency | `tests/ha/test_metadata.py` | Every sensor, action, field, error, and exception has English text and an icon; versions agree | Every PR |
+| Upgrade compatibility | `tests/ha/test_upgrade.py`, `tests/ha/__snapshots__` | v2 raises no statistics repairs (state class removed, unit or mean type changed) against the long-term statistics v1 recorded; any change to a sensor's class, unit, or category shows up as a snapshot diff | Every PR |
 | End to end | `tests/ha/test_e2e_journey.py`, `tests/e2e` | Full journeys against an in-process fake Rouvy portal over real HTTP: onboarding, actions, session expiry, password change, reauth, removal; CLI as a subprocess | Every PR |
 | Performance | `tests/perf` | Benchmarks and hard budgets for decoding and parsing; concurrent fetching | Every PR |
 | Contract | `tests/contract` | Live, account-free canaries: firewall accepts our user agent, login errors still parse, anonymous reads still redirect | Daily |

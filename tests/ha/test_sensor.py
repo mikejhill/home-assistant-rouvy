@@ -9,6 +9,7 @@ from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from syrupy.assertion import SnapshotAssertion
 
 from custom_components.rouvy.coordinator import RouvySnapshot
 from custom_components.rouvy.rouvy_api import (
@@ -143,6 +144,21 @@ class TestSensorRegistry:
 
         assert state is not None
         assert state.attributes.get("state_class") is not None
+
+    async def test_statistics_metadata_is_reviewed(self, snapshot: SnapshotAssertion) -> None:
+        """Changing a sensor's class, unit, or category shows up as a snapshot diff."""
+        metadata = {
+            d.key: {
+                "device_class": d.device_class,
+                "state_class": d.state_class,
+                "unit": d.native_unit_of_measurement,
+                "entity_category": d.entity_category,
+                "enabled_by_default": d.entity_registry_enabled_default,
+            }
+            for d in SENSORS
+        }
+
+        assert metadata == snapshot
 
     async def test_every_description_has_unique_key(self) -> None:
         """Sensor keys are unique."""

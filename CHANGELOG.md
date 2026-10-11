@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   so Home Assistant keeps recording their long-term statistics and no longer
   raises "state class removed" repairs after upgrading from v1.
 
+### Changed
+
+- Tests check every numeric sensor has a state class, replay v1's long-term
+  statistics metadata against v2 to catch upgrade repairs, and snapshot each
+  sensor's statistics metadata. Development uses Python 3.14.6, which fixes
+  `unittest.mock` autospec on lazily evaluated annotations.
+
 ## [2.0.1] - 2026-10-11
 
 ### Changed
