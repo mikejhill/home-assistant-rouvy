@@ -33,7 +33,7 @@ jobs:
           echo "::error::Releases are cut from main only"
           exit 1
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           # main requires the ci-pass check; this write deploy key is the ruleset's
@@ -81,7 +81,7 @@ jobs:
           git push origin HEAD:main "v$VERSION"
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ inputs.version }}
           name: v${{ inputs.version }}
