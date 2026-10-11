@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Count sensors (challenges, events, favorite routes, career level, friends,
+  connected apps, total activities) have the `measurement` state class again,
+  so Home Assistant keeps recording their long-term statistics and no longer
+  raises "state class removed" repairs after upgrading from v1.
+
 ## [2.0.1] - 2026-10-11
 
 ### Changed

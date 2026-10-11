@@ -62,6 +62,7 @@ EXPECTED_STATES = {
     "sensor.rouvy_connected_apps": "17",
     "sensor.rouvy_active_connected_apps": "2",
 }
+NUMERIC_SENSORS = [e for e, v in EXPECTED_STATES.items() if v.replace(".", "", 1).isdigit()]
 
 
 class TestSensorValues:
@@ -132,6 +133,16 @@ class TestSensorRegistry:
 
         assert set(SENSOR_SECTIONS) == keys - profile
         assert all(hasattr(RouvySnapshot, section) for section in SENSOR_SECTIONS.values())
+
+    @pytest.mark.parametrize("entity_id", NUMERIC_SENSORS)
+    async def test_numeric_sensors_record_statistics(
+        self, hass: HomeAssistant, loaded_entry: MockConfigEntry, entity_id: str
+    ) -> None:
+        """Numeric sensors keep a state class so HA's long-term statistics stay valid."""
+        state = hass.states.get(entity_id)
+
+        assert state is not None
+        assert state.attributes.get("state_class") is not None
 
     async def test_every_description_has_unique_key(self) -> None:
         """Sensor keys are unique."""

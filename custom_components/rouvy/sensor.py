@@ -396,12 +396,14 @@ SENSORS: tuple[RouvySensorDescription, ...] = (
         key="total_activities",
         translation_key="total_activities",
         entity_registry_enabled_default=False,
+        state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda s: len(s.overview.recent_activities) if s.overview else None,
     ),
     # Challenges, events, routes
     RouvySensorDescription(
         key="active_challenges",
         translation_key="active_challenges",
+        state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda s: SnapshotView.count(s.challenges, lambda c: c.is_active),
         attributes_fn=lambda s: {
             "challenges": ", ".join(
@@ -412,11 +414,13 @@ SENSORS: tuple[RouvySensorDescription, ...] = (
     RouvySensorDescription(
         key="completed_challenges",
         translation_key="completed_challenges",
+        state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda s: SnapshotView.count(s.challenges, lambda c: c.is_done),
     ),
     RouvySensorDescription(
         key="upcoming_events_count",
         translation_key="upcoming_events_count",
+        state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda s: SnapshotView.count(s.upcoming_events(dt_util.utcnow())),
     ),
     RouvySensorDescription(
@@ -436,6 +440,7 @@ SENSORS: tuple[RouvySensorDescription, ...] = (
     RouvySensorDescription(
         key="favorite_routes_count",
         translation_key="favorite_routes_count",
+        state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda s: SnapshotView.count(s.favorite_routes),
     ),
     RouvySensorDescription(
@@ -452,6 +457,7 @@ SENSORS: tuple[RouvySensorDescription, ...] = (
     RouvySensorDescription(
         key="career_level",
         translation_key="career_level",
+        state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda s: s.overview.career.level if s.overview and s.overview.career else None,
     ),
     RouvySensorDescription(
@@ -478,6 +484,7 @@ SENSORS: tuple[RouvySensorDescription, ...] = (
     RouvySensorDescription(
         key="friends_count",
         translation_key="friends_count",
+        state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda s: s.overview.friends.total if s.overview and s.overview.friends else None,
     ),
     RouvySensorDescription(
@@ -503,12 +510,14 @@ SENSORS: tuple[RouvySensorDescription, ...] = (
         key="connected_apps_count",
         translation_key="connected_apps_count",
         entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda s: SnapshotView.count(s.connected_apps),
     ),
     RouvySensorDescription(
         key="connected_apps_active",
         translation_key="connected_apps_active",
         entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda s: SnapshotView.count(s.connected_apps, lambda a: a.is_active),
         attributes_fn=lambda s: {
             "apps": ", ".join(a.name for a in s.connected_apps or () if a.is_active)
