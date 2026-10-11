@@ -9,6 +9,7 @@ from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN, EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from syrupy.assertion import SnapshotAssertion
 
 from custom_components.rouvy.coordinator import RouvySnapshot
 from custom_components.rouvy.rouvy_api import (
@@ -62,6 +63,7 @@ EXPECTED_STATES = {
     "sensor.rouvy_connected_apps": "17",
     "sensor.rouvy_active_connected_apps": "2",
 }
+NUMERIC_SENSORS = [e for e, v in EXPECTED_STATES.items() if v.replace(".", "", 1).isdigit()]
 
 
 class TestSensorValues:
@@ -132,6 +134,31 @@ class TestSensorRegistry:
 
         assert set(SENSOR_SECTIONS) == keys - profile
         assert all(hasattr(RouvySnapshot, section) for section in SENSOR_SECTIONS.values())
+
+    @pytest.mark.parametrize("entity_id", NUMERIC_SENSORS)
+    async def test_numeric_sensors_record_statistics(
+        self, hass: HomeAssistant, loaded_entry: MockConfigEntry, entity_id: str
+    ) -> None:
+        """Numeric sensors keep a state class so HA's long-term statistics stay valid."""
+        state = hass.states.get(entity_id)
+
+        assert state is not None
+        assert state.attributes.get("state_class") is not None
+
+    async def test_statistics_metadata_is_reviewed(self, snapshot: SnapshotAssertion) -> None:
+        """Changing a sensor's class, unit, or category shows up as a snapshot diff."""
+        metadata = {
+            d.key: {
+                "device_class": d.device_class,
+                "state_class": d.state_class,
+                "unit": d.native_unit_of_measurement,
+                "entity_category": d.entity_category,
+                "enabled_by_default": d.entity_registry_enabled_default,
+            }
+            for d in SENSORS
+        }
+
+        assert metadata == snapshot
 
     async def test_every_description_has_unique_key(self) -> None:
         """Sensor keys are unique."""
