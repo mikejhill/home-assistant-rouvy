@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-10-11
+
 ### Changed
 
 - `main` requires the `ci-pass` check; the Release workflow pushes with a
