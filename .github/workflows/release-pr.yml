@@ -1,0 +1,126 @@
+name: Prepare release PR
+'on':
+  workflow_dispatch:
+    inputs:
+      version:
+        description: New MAJOR.MINOR.PATCH version
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: prepare-release-pr
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main' && github.actor == 'mikejhill' && github.triggering_actor == 'mikejhill'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      artifact-id: ${{ steps.bundle.outputs.artifact-id }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+        ref: ${{ github.sha }}
+    - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
+    - name: Validate requested version
+      run: |
+        python3 - <<'PY'
+        import os,re,tomllib
+        version=os.environ['VERSION']; assert re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+',version)
+        with open('pyproject.toml','rb') as f: current=tomllib.load(f)['project']['version']
+        assert tuple(map(int,version.split('.')))>tuple(map(int,current.split('.'))), 'Version must increase'
+        PY
+      env:
+        VERSION: ${{ inputs.version }}
+    - name: Prepare and validate version/changelog/vendor files
+      run: |
+        uv run scripts/release.py prepare "$VERSION"
+        uv lock
+        uv sync --locked
+        uv run poe vendor
+        uv run poe check
+      env:
+        VERSION: ${{ inputs.version }}
+    - name: Bundle release PR data
+      run: |
+        python3 - <<'PY'
+        import base64,json,os,pathlib,re,subprocess
+        version=os.environ['VERSION']
+        assert re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+',version)
+        tracked=subprocess.check_output(['git','diff','--name-only','-z']).decode().split('\0')
+        untracked=subprocess.check_output(['git','ls-files','--others','--exclude-standard','-z']).decode().split('\0')
+        files=[]
+        for name in sorted(set(filter(None,tracked+untracked))):
+            assert name in ['pyproject.toml','uv.lock','CHANGELOG.md','src/rouvy_api/_version.py'] or name.startswith('custom_components/rouvy/'), 'Unexpected prepared path'
+            assert all(x not in ['..','.',''] for x in pathlib.PurePosixPath(name).parts)
+            path=pathlib.Path(name); assert path.is_file() and not path.is_symlink(), 'Deletion/symlink not allowed'
+            tracked_mode=subprocess.check_output(['git','ls-files','-s','--',name]).decode().split()
+            mode=tracked_mode[0] if tracked_mode else '100644'
+            assert mode in ['100644','100755']
+            data=path.read_bytes(); assert len(data)<=2000000
+            files.append({'path':name,'mode':mode,'content':base64.b64encode(data).decode('ascii')})
+        assert 0<len(files)<=500
+        payload={'version':version,'base':os.environ['GITHUB_SHA'],'files':files}
+        text=json.dumps(payload); assert len(text)<16000000
+        pathlib.Path('release-pr.json').write_text(text)
+        PY
+      env:
+        VERSION: ${{ inputs.version }}
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      id: bundle
+      with:
+        name: release-pr-data
+        path: release-pr.json
+        retention-days: 1
+        if-no-files-found: error
+  open-pr:
+    if: github.ref == 'refs/heads/main' && github.actor == 'mikejhill' && github.triggering_actor == 'mikejhill'
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      with:
+        artifact-ids: ${{ needs.prepare.outputs.artifact-id }}
+        path: .
+    - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+      name: Create only release branch/PR and dispatch read-only CI
+      with:
+        script: |2
+
+          const fs = require('fs');
+          if (fs.statSync('release-pr.json').size > 16000000) throw new Error('Bundle too large');
+          const d = JSON.parse(fs.readFileSync('release-pr.json','utf8'));
+          const {owner,repo} = context.repo;
+          if (owner !== 'mikejhill' || context.actor !== 'mikejhill' || context.ref !== 'refs/heads/main') throw new Error('Owner/main required');
+          if (typeof d.version !== 'string' || !/^[0-9]+\.[0-9]+\.[0-9]+$/.test(d.version) || d.base !== context.sha || !Array.isArray(d.files) || !d.files.length || d.files.length>500) throw new Error('Invalid preparation identity');
+          const seen=new Set(); let total=0;
+          for (const f of d.files) {
+            const allowed=['pyproject.toml','uv.lock','CHANGELOG.md','src/rouvy_api/_version.py'].includes(f.path) || /^custom_components\/rouvy\//.test(f.path);
+            if (typeof f.path!=='string' || !allowed || !/^[A-Za-z0-9_./-]+$/.test(f.path) || f.path.split('/').some(x=>['..','.',''].includes(x)) || seen.has(f.path) || !['100644','100755'].includes(f.mode) || typeof f.content!=='string' || f.content.length>2800000 || !/^[A-Za-z0-9+/]*={0,2}$/.test(f.content)) throw new Error('Invalid file');
+            seen.add(f.path); total+=f.content.length;
+          }
+          if (total>16000000) throw new Error('Prepared files too large');
+          const current = await github.rest.repos.getBranch({owner,repo,branch:'main'});
+          if (current.data.commit.sha !== d.base) throw new Error('main advanced: prepare a fresh version PR');
+          const branch=`release/v${d.version}`;
+          try { await github.rest.git.getRef({owner,repo,ref:`heads/${branch}`}); throw new Error('Release branch already exists: review existing PR; no force update'); }
+          catch(e) { if (e.status !== 404) throw e; }
+          const tree=[];
+          for (const f of d.files) {
+            const blob=await github.rest.git.createBlob({owner,repo,encoding:'base64',content:f.content});
+            tree.push({path:f.path,mode:f.mode,type:'blob',sha:blob.data.sha});
+          }
+          const base=await github.rest.git.getCommit({owner,repo,commit_sha:d.base});
+          const made=await github.rest.git.createTree({owner,repo,base_tree:base.data.tree.sha,tree});
+          const commit=await github.rest.git.createCommit({owner,repo,parents:[d.base],tree:made.data.sha,message:`chore(release): v${d.version}`});
+          await github.rest.git.createRef({owner,repo,ref:`refs/heads/${branch}`,sha:commit.data.sha});
+          const pr=await github.rest.pulls.create({owner,repo,head:branch,base:'main',title:`chore(release): v${d.version}`,body:'Prepared from trusted main without publish credentials. Review this version/changelog/vendor diff and merge after ci-pass succeeds. Publication runs automatically after merge. No automatic approval or merge.'});
+          await github.rest.actions.createWorkflowDispatch({owner,repo,workflow_id:'ci.yml',ref:branch});
+          core.notice(`Review ${pr.data.html_url}; read-only CI dispatched on ${commit.data.sha}`);

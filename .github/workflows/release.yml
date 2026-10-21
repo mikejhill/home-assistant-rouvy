@@ -1,92 +1,143 @@
 name: Release
-
-# Manually cut a release from main:
-#   Actions -> Release -> Run workflow -> version (e.g. 2.1.0)
-# The workflow bumps every version string, promotes the CHANGELOG's [Unreleased]
-# notes, re-vendors the library, runs every quality gate, then commits, tags,
-# and publishes a GitHub release that HACS picks up.
-on:
+'on':
+  push:
+    branches:
+    - main
   workflow_dispatch:
     inputs:
-      version:
-        description: "Version to release, without the v prefix (e.g. 2.1.0)"
-        required: true
-        type: string
-
+      retry:
+        description: Retry this exact main commit after a partial release
+        type: boolean
+        default: false
 permissions:
-  contents: write
-
+  contents: read
 concurrency:
   group: release
   cancel-in-progress: false
-
 jobs:
-  release:
+  target:
+    if: github.ref == 'refs/heads/main' && github.actor == 'mikejhill' && github.triggering_actor == 'mikejhill'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      publish: ${{ steps.target.outputs.publish }}
+    steps:
+    - &id001
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+        ref: ${{ github.sha }}
+    - name: Read approved version
+      run: |
+        python3 - <<'PY'
+        import os,re,tomllib,subprocess
+        with open('pyproject.toml','rb') as f: version=tomllib.load(f)['project']['version']
+        assert re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+',version)
+        try:
+            previous=tomllib.loads(subprocess.check_output(['git','show',os.environ['GITHUB_SHA']+'^:pyproject.toml'],stderr=subprocess.DEVNULL).decode())['project']['version']
+        except (subprocess.CalledProcessError,KeyError,tomllib.TOMLDecodeError):
+            previous=version
+        with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+            f.write('version='+version+'\n')
+            f.write('changed='+str(previous!=version).lower()+'\n')
+        PY
+      id: version
+    - name: Require an unpublished trusted-main version
+      run: |
+        if [ "$VERSION_CHANGED" != true ] && [ "$RETRY" != true ]; then
+          echo 'publish=false' >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if git rev-parse --verify "refs/tags/v$VERSION^{commit}" >/dev/null 2>&1; then
+          if [ "$RETRY" != true ]; then
+            echo 'publish=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          actual=$(git rev-parse "refs/tags/v$VERSION^{commit}")
+          test "$actual" = "$GITHUB_SHA" || { echo 'Retry must use the original release commit; rerun its failed jobs instead.' >&2; exit 1; }
+        fi
+        echo 'publish=true' >> "$GITHUB_OUTPUT"
+      id: target
+      env:
+        VERSION: ${{ steps.version.outputs.version }}
+        VERSION_CHANGED: ${{ steps.version.outputs.changed }}
+        RETRY: ${{ inputs.retry || false }}
+  ci:
+    needs: target
+    if: needs.target.outputs.publish == 'true'
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      pull-requests: read
+  build:
+    needs:
+    - target
+    - ci
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      VERSION: ${{ inputs.version }}
+    outputs:
+      artifact-id: ${{ steps.dist.outputs.artifact-id }}
     steps:
-      - name: Require main
-        if: github.ref != 'refs/heads/main'
-        run: |
-          echo "::error::Releases are cut from main only"
-          exit 1
-
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          # main requires the ci-pass check; this write deploy key is the ruleset's
-          # only bypass actor, so it can push the version-bump commit and tag.
-          ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
-
-      - name: Require a new tag
-        run: |
-          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-            echo "::error::Tag v$VERSION already exists"
-            exit 1
-          fi
-
-      - uses: astral-sh/setup-uv@v7
-
-      # ── Prepare ─────────────────────────────────────────────
-      - name: Bump versions and promote CHANGELOG notes
-        run: uv run scripts/release.py prepare "$VERSION"
-
-      - name: Refresh lockfile and vendored library
-        run: |
-          uv lock
-          uv sync --locked
-          uv run poe vendor
-
-      # ── Validate (after the bump, so version-consistency tests see it) ──
-      - name: Quality gates
-        run: uv run poe check
-
-      # ── Build ───────────────────────────────────────────────
-      - run: uv build
-      - name: Package the integration for manual installs
-        run: cd custom_components/rouvy && zip -r ../../dist/rouvy.zip . -x "*/__pycache__/*"
-      - name: Release notes
-        run: uv run scripts/release.py notes "$VERSION" > release-notes.md
-
-      # ── Publish ─────────────────────────────────────────────
-      - name: Commit, tag, and push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A -- pyproject.toml uv.lock CHANGELOG.md src custom_components
-          git commit -m "chore(release): v$VERSION"
-          git tag -a "v$VERSION" -m "v$VERSION"
-          git push origin HEAD:main "v$VERSION"
-
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: v${{ inputs.version }}
-          name: v${{ inputs.version }}
-          body_path: release-notes.md
-          files: |
-            dist/*.whl
-            dist/*.tar.gz
-            dist/rouvy.zip
+    - *id001
+    - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
+    - name: Build approved release without write credentials
+      run: |
+        uv sync --locked
+        uv run poe check
+        uv build
+        (cd custom_components/rouvy && zip -r ../../dist/rouvy.zip . -x '*/__pycache__/*')
+        uv run scripts/release.py notes "$VERSION" > release-notes.md
+        git diff --exit-code
+      env:
+        VERSION: ${{ needs.target.outputs.version }}
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      id: dist
+      with:
+        name: trusted-release
+        path: |-
+          dist/*
+          release-notes.md
+        retention-days: 7
+        if-no-files-found: error
+  github-release:
+    if: github.ref == 'refs/heads/main' && github.actor == 'mikejhill' && github.triggering_actor == 'mikejhill'
+      && needs.build.result == 'success'
+    needs:
+    - target
+    - build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      with:
+        artifact-ids: ${{ needs.build.outputs.artifact-id }}
+        path: release
+    - name: Publish same-run artifacts from trusted merge
+      run: |
+        # The approved immutable-v* ruleset must already prohibit tag updates/deletion.
+        ancestor=$(gh api "repos/$GITHUB_REPOSITORY/compare/$GITHUB_SHA...main" --jq .merge_base_commit.sha)
+        test "$ancestor" = "$GITHUB_SHA" || { echo 'Release commit is no longer on main.' >&2; exit 1; }
+        python3 - <<'PY'
+        import json,os,pathlib,re
+        assert re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+',os.environ['TAG'])
+        assert re.fullmatch(r'[0-9a-f]{40}',os.environ['GITHUB_SHA'])
+        pathlib.Path('release-ref.json').write_text(json.dumps({'ref':'refs/tags/'+os.environ['TAG'],'sha':os.environ['GITHUB_SHA']}))
+        PY
+        # Ref creation is atomic: if another process created it first, accept only the same commit.
+        if ! gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" --input release-ref.json >/dev/null 2>tag-create-error.txt; then
+          actual=$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha)
+          test "$actual" = "$GITHUB_SHA" || { echo 'Tag creation failed or a conflicting tag exists.' >&2; exit 1; }
+        fi
+        actual=$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha)
+        test "$actual" = "$GITHUB_SHA" || { echo 'Tag does not match the trusted merge.' >&2; exit 1; }
+        if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          :
+        else
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" --notes-file release/release-notes.md
+        fi
+        gh release upload "$TAG" release/dist/* --repo "$GITHUB_REPOSITORY" --clobber
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: v${{ needs.target.outputs.version }}
