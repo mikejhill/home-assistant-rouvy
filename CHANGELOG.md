@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Refreshed the lockfile: aiohttp 3.14.5, and patched anyio, certifi, urllib3
+  and uv in the development environment. Pillow (pinned by the Home Assistant
+  test harness) is overridden to 13.0.0 to clear its known CVEs.
+
+### Changed
+
+- Dependabot no longer tries to bump pytest and pytest-asyncio on their own;
+  the Home Assistant test harness pins both, so those updates always failed.
+- Updated hassfest, markdownlint-cli2 and github-script actions.
+
 ## [2.0.2] - 2026-10-11
 
 ### Fixed

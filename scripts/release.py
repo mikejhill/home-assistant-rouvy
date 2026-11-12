@@ -95,7 +95,7 @@ class ReleasePreparer:
         if match is None:
             msg = f"CHANGELOG.md has no section for {self._version}"
             raise ReleaseError(msg)
-        return match.group(1).strip() + "\n"
+        return str(match.group(1)).strip() + "\n"
 
     # Internals
 
