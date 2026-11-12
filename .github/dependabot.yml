@@ -16,3 +16,9 @@ updates:
     groups:
       dev-tools:
         dependency-type: development
+    ignore:
+      # pytest-homeassistant-custom-component pins exact pytest and pytest-asyncio
+      # versions; bumping either on its own makes the lockfile unresolvable and fails
+      # every "uv in /." update run. They move when the HA test harness is bumped.
+      - dependency-name: pytest
+      - dependency-name: pytest-asyncio

@@ -30,9 +30,9 @@ class WindowsCompat:
         sys.modules.setdefault("fcntl", ModuleType("fcntl"))
         if "resource" not in sys.modules:
             resource = ModuleType("resource")
-            resource.RLIMIT_NOFILE = 7  # ty: ignore[unresolved-attribute]  # stub module attribute
-            resource.getrlimit = lambda _limit: (1024, 1024)  # ty: ignore[unresolved-attribute]  # stub
-            resource.setrlimit = lambda _limit, _value: None  # ty: ignore[unresolved-attribute]  # stub
+            resource.RLIMIT_NOFILE = 7  # ty: ignore[missing-attribute]  # stub module attribute
+            resource.getrlimit = lambda _limit: (1024, 1024)  # ty: ignore[missing-attribute]  # stub
+            resource.setrlimit = lambda _limit, _value: None  # ty: ignore[missing-attribute]  # stub
             sys.modules["resource"] = resource
 
     @classmethod

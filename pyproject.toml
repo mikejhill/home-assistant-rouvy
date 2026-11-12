@@ -27,6 +27,12 @@ rouvy-api = "rouvy_api.cli.application:Application.main"
 requires = ["uv_build>=0.11.0,<0.13"]
 build-backend = "uv_build"
 
+[tool.uv]
+# homeassistant (pulled in by pytest-homeassistant-custom-component) pins Pillow exactly;
+# the pinned 12.3.0 has known CVEs fixed in 13.0.0. Remove once the test harness pins a
+# Home Assistant release that ships Pillow >= 13.
+override-dependencies = ["pillow>=13.0.0"]
+
 [tool.uv.build-backend]
 module-name = "rouvy_api"
 
