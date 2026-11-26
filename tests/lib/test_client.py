@@ -69,6 +69,19 @@ class TestLogin:
         assert rouvy_client.is_authenticated
         assert rouvy_client.email == VALID_EMAIL
 
+    async def test_requests_include_referer(
+        self,
+        rouvy_client: RouvyClient,
+        fake_rouvy: FakeRouvy,
+        client_config: ClientConfig,
+    ) -> None:
+        """Every request carries a same-origin Referer so Rouvy's firewall accepts it."""
+        await rouvy_client.login()
+        await rouvy_client.get_user_profile()
+
+        expected = client_config.base_url.rstrip("/") + "/"
+        assert all(r.referer == expected for r in fake_rouvy.state.requests)
+
     async def test_invalid_credentials(
         self, session: aiohttp.ClientSession, client_config: ClientConfig
     ) -> None:

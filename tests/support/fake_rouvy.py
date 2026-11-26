@@ -33,6 +33,7 @@ class RecordedRequest:
     path: str
     form: dict[str, str]
     user_agent: str
+    referer: str
 
 
 @dataclass(slots=True)
@@ -77,9 +78,10 @@ class FakeRouvy:
     async def _guard(self, request: web.Request) -> web.Response | None:
         """Record the request, apply latency, and reject blocked user agents."""
         agent = request.headers.get("User-Agent", "")
+        referer = request.headers.get("Referer", "")
         form = {k: str(v) for k, v in (await request.post()).items()}
         path = request.path_qs.lstrip("/")
-        self.state.requests.append(RecordedRequest(request.method, path, form, agent))
+        self.state.requests.append(RecordedRequest(request.method, path, form, agent, referer))
         if self.state.latency_s:
             await asyncio.sleep(self.state.latency_s)
         if any(marker in agent.lower() for marker in BLOCKED_AGENT_MARKERS):
