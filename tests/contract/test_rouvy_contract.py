@@ -40,7 +40,10 @@ class TestLoginContract:
             session.post(
                 config.url(Endpoint.LOGIN),
                 data={"email": BOGUS.email, "password": BOGUS.password},
-                headers={"User-Agent": config.user_agent},
+                headers={
+                    "User-Agent": config.user_agent,
+                    "Referer": config.base_url.rstrip("/") + "/",
+                },
             ) as response,
         ):
             assert response.status != 403
@@ -60,7 +63,10 @@ class TestAnonymousReads:
             aiohttp.ClientSession() as session,
             session.get(
                 config.url(endpoint),
-                headers={"User-Agent": config.user_agent},
+                headers={
+                    "User-Agent": config.user_agent,
+                    "Referer": config.base_url.rstrip("/") + "/",
+                },
                 allow_redirects=False,
             ) as response,
         ):

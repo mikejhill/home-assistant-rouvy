@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Every request now sends a same-origin `Referer` header so Rouvy's Cloudflare
+  firewall stops answering with 403 challenge pages.
+
 ### Security
 
 - Refreshed the lockfile: aiohttp 3.14.5, and patched anyio, certifi, urllib3

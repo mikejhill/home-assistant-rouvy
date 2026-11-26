@@ -385,7 +385,13 @@ class RouvyClient:
     async def _send(self, method: str, path: str, form: Form | None) -> HttpResult:
         """Send one HTTP request and return its status and body."""
         url = self._config.url(path)
-        headers = {"User-Agent": self._config.user_agent, "Accept": "*/*"}
+        # Rouvy's Cloudflare WAF rejects requests to .data routes without a Referer
+        # that points at the same origin.
+        headers = {
+            "User-Agent": self._config.user_agent,
+            "Accept": "*/*",
+            "Referer": self._config.base_url.rstrip("/") + "/",
+        }
         data = {key: str(value) for key, value in form.items()} if form is not None else None
         started = time.perf_counter()
         try:
